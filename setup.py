@@ -22,5 +22,8 @@ setup(
     'License :: OSI Approved :: Apache Software License'
   ],
   keywords='bioinformatics,sequence,alignment',
+  packages=['seqtools','seqtools_cli'],
+  package_dir={'seqtools':'src',
+               'seqtools_cli':'src'}
 )
   
