@@ -3,13 +3,13 @@ from codecs import open
 from os import path
 
 this_folder = path.abspath(path.dirname(__file__))
-with open(path.join(this_folder,'README.md',encoding='utf-8') as inf:
+with open(path.join(this_folder,'README.md'),encoding='utf-8') as inf:
   long_description = inf.read()
 
 setup(
   name='seqtools',
   version='0.1.0',
-  description='Python tools for working with biological sequence data'
+  description='Python tools for working with biological sequence data',
   long_description=long_description,
   url='https://github.com/jason-weirather/py-seq-tools',
   author='Jason L Weirather',
@@ -21,8 +21,11 @@ setup(
     'Topic :: Scientific/Engineering :: Bio-Informatics',
     'License :: OSI Approved :: Apache Software License'
   ],
-  keywords='bioinformatics,sequence,alignment',
-  packages=['seqtools'],
-  package_dir={'seqtools':'src'}
+  keywords='bioinformatics, sequence, alignment',
+  packages=find_packages('seqtools'),
+  package_dir={'':'src'},
+  entry_points = {
+    'console_scripts':['seq-tools=seqtools.utilities.cli_front:main']
+  }
 )
   
