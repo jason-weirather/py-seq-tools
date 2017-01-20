@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+import argparse, sys
+from seqtools.Format.Fasta import FastaHandle
+
+
+def main(args):
+  inf = sys.stdin
+  of = sys.stdout
+  if args.input != '-':
+    inf = open(args.input)
+  if args.output:
+    of = open(args.output,'w')
+  stream = FastaHandle(inf)
+  for fa in stream:
+    of.write('@'+fa.header+"\n"+fa.seq+"\n+\n"+args.ascii*len(fa.seq)+"\n")
+  of.close()
+
+def do_inputs():
+  # Setup command line inputs
+  parser=argparse.ArgumentParser(description="Simply convert a fasta file to a fastq file with dummy quality",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+  parser.add_argument('input',help="Use - for STDIN")
+  parser.add_argument('--output','-o',help="Specifiy path to write output")
+  parser.add_argument('--ascii',default='I',help="quality base to use")
+  args = parser.parse_args()
+  if len(args.ascii) != 1:
+    sys.stderr.write('ERROR expecting just one character for ascii')
+    sys.exit()
+  return args  
+
+def external_cmd(cmd):
+  cache_argv = sys.argv
+  sys.argv = cmd.split()
+  args = do_inputs()
+  main(args)
+  sys.argv = cache_argv
+
+if __name__=="__main__":
+  args = do_inputs()
+  main(args)

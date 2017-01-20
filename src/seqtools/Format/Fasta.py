@@ -1,5 +1,5 @@
 import os, re, gzip
-import Bio.Sequence
+import seqtools.Sequence
 
 #Iterable Stream
 class FastaHandle:
@@ -25,7 +25,7 @@ class FastaHandle:
     if len(self.buffered_results) > 0:
       m = self.buffered_results.pop(0)
       m1 = re.match('(\S+)',m.group(1))
-      return Bio.Sequence.Seq(m.group(2).rstrip(),m1.group(1))
+      return Fasta(m.group(2).rstrip(),m1.group(1),m.group(1))
     vals = [x for x in self.p.finditer(self.working_string)]
     while not self.file_finished:
       if vals: #have a match
@@ -47,8 +47,17 @@ class FastaHandle:
     if len(self.buffered_results) > 0:
       m = self.buffered_results.pop(0)
       m1 = re.match('(\S+)',m.group(1))
-      return Bio.Sequence.Seq(m.group(2).rstrip(),m1.group(1))
+      return Fasta(m.group(2).rstrip(),m1.group(1),m.group(1))
     return None
+
+class Fasta(seqtools.Sequence.Seq):
+  def __init__(self,seq,name,header):  
+    self.name = name
+    self.header = header
+    self.seq = seq
+  def fasta(self):
+    return '>'+self.header+"\n"+self.seq+"\n"    
+
 # Slicable fast fasta
 # It loses any additional header information in fasta header
 # only the first non-whitespace is what we use
@@ -92,7 +101,7 @@ class FastaData:
     if not end: end = self.fai[chr]['length']
     if not dir: dir = '+'
     if dir == '-':
-      return Bio.Sequence.rc(self._seqs[chr][start-1:end])
+      return sequence.Sequence.rc(self._seqs[chr][start-1:end])
     return self._seqs[chr][start-1:end]
 
   def _scan_data(self,dat):
@@ -166,7 +175,7 @@ class FastaFile:
     self.fh.seek(pos_start)
     v = self.fh.read(pos_end-pos_start).replace("\n",'')
     if dir == '-':
-      return Bio.Sequence.rc(v)
+      return sequence.Sequence.rc(v)
     return v
 
   def _read_index(self):

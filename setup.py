@@ -25,7 +25,7 @@ setup(
   packages=find_packages('seqtools'),
   package_dir={'':'src'},
   entry_points = {
-    'console_scripts':['seq-tools=seqtools.utilities.cli_front:main']
+    'console_scripts':['seq-tools=seqtools.cli.cli_front:main']
   }
 )
   

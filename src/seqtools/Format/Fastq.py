@@ -25,9 +25,11 @@ class FastqHandle:
     return Fastq([line1,line2,line3,line4])
 
 class Fastq(Bio.Sequence.Seq):
+  # v is the lines with the first '@' removed
   def __init__(self,v):
     self.lines = v
-    self.name = v[0]
+    self.header = v[0]
+    self.name = re.match('(\S+)',self.header).group(1)
     self.seq = v[1]
     self.qual = v[3]
   def __getitem__(self,key):
