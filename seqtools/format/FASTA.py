@@ -2,13 +2,13 @@ import os, re, gzip
 import seqtools.Sequence
 
 #Iterable Stream
-class FastaHandle:
+class FASTAStream:
   def __init__(self,fh,custom_buffer_size=10000000):
     self.fh = fh
     self.buffer_size = custom_buffer_size
     self.working_string = self.fh.read(self.buffer_size)
     self.buffered_results = []
-    self.p = re.compile('>([^\n]+)\n([^>]+)')
+    self.p = re.compile('>([^\n]+\n[^>]+)')
     self.file_finished = False
     if not self.working_string: self.file_finished = True
 
@@ -24,8 +24,8 @@ class FastaHandle:
   def get_entry(self):
     if len(self.buffered_results) > 0:
       m = self.buffered_results.pop(0)
-      m1 = re.match('(\S+)',m.group(1))
-      return Fasta(m.group(2).rstrip(),m1.group(1),m.group(1))
+      #m1 = re.match('(\S+)',m.group(1))
+      return FASTA(m.group(1))
     vals = [x for x in self.p.finditer(self.working_string)]
     while not self.file_finished:
       if vals: #have a match
@@ -46,22 +46,34 @@ class FastaHandle:
       self.working_string = self.working_string[self.buffered_results[-1].end():]
     if len(self.buffered_results) > 0:
       m = self.buffered_results.pop(0)
-      m1 = re.match('(\S+)',m.group(1))
-      return Fasta(m.group(2).rstrip(),m1.group(1),m.group(1))
+      #m1 = re.match('(\S+)',m.group(1))
+      return FASTA(m.group(1))
     return None
 
-class Fasta(seqtools.Sequence.Seq):
-  def __init__(self,seq,name,header):  
-    self.name = name
-    self.header = header
-    self.seq = seq
-  def fasta(self):
-    return '>'+self.header+"\n"+self.seq+"\n"    
+class FASTA(seqtools.Sequence.Seq):
+  def __init__(self,fasta_text):
+    # intput is a single fasta entry in text form
+    self._fasta = fasta_text.rstrip()
+    fasta_lines = self._fasta.split("\n")
+    if len(fasta_lines) < 2:
+      sys.stderr.write("ERROR not a fasta entry")
+      sys.exit()
+    self.header = fasta_lines[0][1:]
+    self.name = re.match('\S+',self.header)
+    self.seq = ''.join(fasta_lines[1:])
+  def __getitem__(self,key):
+    if isinstance(key,slice):
+      newseq = self.seq[key.start:min(key.stop,len(self.seq))]
+      return FASTA('>'+self.header+"\n"+newseq)
+    return {'name':self.name,'seq':self.seq}[key]
+  def FASTA(self):
+    #return '>'+self.header+"\n"+self.seq+"\n"    
+    return self._fasta+"\n"
 
 # Slicable fast fasta
 # It loses any additional header information in fasta header
 # only the first non-whitespace is what we use
-class FastaData:
+class FASTAData:
   def __init__(self,data=None,file=None,dict=None):
     self._lengths = {}
     self._seqs = {}
@@ -122,7 +134,7 @@ class FastaData:
 # Post: Makes index if doesn't exist upon being called.
 #       Can access sequence
 # Modifies: File IO reads the fasta, and writes a fasta index file
-class FastaFile:
+class FASTAFile:
   def __init__(self,fname,index=None):
     self.fname = fname
     self.index = index
@@ -136,7 +148,7 @@ class FastaFile:
     self.fh = open(fname)
 
   def __getitem__(self,key):
-    chr = FastaFile.Chromosome(self,key)
+    chr = FASTAFile.Chromosome(self,key)
     if chr.sliced: return chr
     return self.get_sequence(key)
 
@@ -149,7 +161,7 @@ class FastaFile:
     def __getitem__(self,val):
       self.sliced = True
       if val.step:  
-        sys.stderr.write("ERROR: FastaFile doesn't support step access\n")
+        sys.stderr.write("ERROR: FASTAFile doesn't support step access\n")
         sys.exit()
       clen = self.outer.fai[self.chr]['length']
       return self.outer.get_sequence(self.chr,val.start+1,min(val.stop,clen))
