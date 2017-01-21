@@ -15,7 +15,7 @@ def main(args):
     if re.match('[\t]',fa.header):
       sys.stderr.write("ERROR: tab in header cannot convert to tsv")
       sys.stderr.write("\n")
-    of.write(fa.header+"\t"+fa.seq+"\n")
+    of.write(fa.header+"\t"+fa.seq.replace("\n",'')+"\n")
   of.close()
 
 def do_inputs():

@@ -12,7 +12,8 @@ def main(args):
     of = open(args.output,'w')
   stream = FastaHandle(inf)
   for fa in stream:
-    of.write('@'+fa.header+"\n"+fa.seq+"\n+\n"+args.ascii*len(fa.seq)+"\n")
+    seq = fa.seq.replace("\n",'')
+    of.write('@'+fa.header+"\n"+seq+"\n+\n"+args.ascii*len(seq)+"\n")
   of.close()
 
 def do_inputs():
