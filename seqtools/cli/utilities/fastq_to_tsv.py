@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import argparse, sys, re
-from seqtools.Format.Fastq import FastqHandle
+from seqtools.format.FASTQ import FASTQStream
 
 
 def main(args):
@@ -10,7 +10,7 @@ def main(args):
     inf = open(args.input)
   if args.output:
     of = open(args.output,'w')
-  stream = FastqHandle(inf)
+  stream = FASTQStream(inf)
   for fq in stream:
     for l in fq.lines:
       if re.match('[\t]',l):

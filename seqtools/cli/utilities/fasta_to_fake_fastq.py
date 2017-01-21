@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import argparse, sys
-from seqtools.Format.Fasta import FastaHandle
+from seqtools.format.FASTA import FASTAStream
 
 
 def main(args):
@@ -10,7 +10,7 @@ def main(args):
     inf = open(args.input)
   if args.output:
     of = open(args.output,'w')
-  stream = FastaHandle(inf)
+  stream = FASTAStream(inf)
   for fa in stream:
     seq = fa.seq.replace("\n",'')
     of.write('@'+fa.header+"\n"+seq+"\n+\n"+args.ascii*len(seq)+"\n")

@@ -2,7 +2,6 @@
 import argparse, sys, os, re
 from seqtools.format.FASTA import FASTAStream
 
-
 def main(args):
   inf = sys.stdin
   of = sys.stdout
@@ -12,19 +11,30 @@ def main(args):
     of = open(args.output,'w')
   stream = FASTAStream(inf)
   for fa in stream:
-    if re.match('[\t]',fa.header):
-      sys.stderr.write("ERROR: tab in header cannot convert to tsv")
-      sys.stderr.write("\n")
-    of.write(fa.header+"\t"+fa.seq.replace("\n",'')+"\n")
+    if not args.inv:
+      if args.left:
+        fa = fa[args.left:]
+      if args.right:
+        fa = fa[:-1*args.right]
+    else:
+      if args.left:
+        fa = fa[0:args.left]
+      if args.right:
+        fa = fa[-1*args.right:]
+    of.write(fa.FASTA())
   of.close()
 
 def do_inputs():
   # Setup command line inputs
-  parser=argparse.ArgumentParser(description="Simply convert a fasta into tsv output",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+  parser=argparse.ArgumentParser(description="Trim bases off ends (or keep)",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument('input',help="Use - for STDIN")
+  group = parser.add_mutually_exclusive_group()
+  group.add_argument('--left',type=int)
+  group.add_argument('--right',type=int)
+  parser.add_argument('--inv',action='store_true')
   parser.add_argument('--output','-o',help="Specifiy path to write index")
   args = parser.parse_args()
-  return args  
+  return args
 
 def external_cmd(cmd):
   cache_argv = sys.argv

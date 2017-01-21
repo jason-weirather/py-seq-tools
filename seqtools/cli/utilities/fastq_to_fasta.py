@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import argparse, sys
-from seqtools.Format.Fastq import FastqHandle
+from seqtools.format.FASTQ import FASTQStream
 
 
 def main(args):
@@ -10,7 +10,7 @@ def main(args):
     inf = open(args.input)
   if args.output:
     of = open(args.output,'w')
-  stream = FastqHandle(inf)
+  stream = FASTQStream(inf)
   for fq in stream:
     of.write('>'+fq.header+"\n"+fq.seq+"\n")
   of.close()
