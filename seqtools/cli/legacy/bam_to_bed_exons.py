@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys, argparse, re, gzip
 from subprocess import Popen, PIPE
-from Bio.Format.Sam import SAM
+from seqtools.format.bam import BAMFile
 
 def main():
   parser = argparse.ArgumentParser(description="",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -27,9 +27,17 @@ def main():
       of.write("\t".join([str(x) for x in rng.get_bed_array()])+"\n")
 
   if args.input != '-':
-    p.communicate()    
+    p.communicate()
 
   of.close()
+
+def external_cmd(cmd):
+  cache_argv = sys.argv
+  sys.argv = cmd.split()
+  args = do_inputs()
+  main(args)
+  sys.argv = cache_argv
+
 
 if __name__=="__main__":
   main()

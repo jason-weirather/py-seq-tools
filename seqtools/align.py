@@ -1,13 +1,15 @@
+"""This module contains the most basic classes for describing and working with alignments."""
+
 import re, sys
 from seqtools.sequence import rc
 from seqtools.range import GenomicRange
 from seqtools.structure import Transcript, Exon, Junction
 
 from string import maketrans
-# Basic class for common elements of alignments
-# You don't have to have a query sequence and a reference sequence to do an alignment
-# But 
 class Alignment:
+  """ Basic class for common elements of alignments. 
+      You don't have to have a query sequence and a reference sequence 
+      to do an alignment."""
   def __init__(self):
     self._alignment_ranges = None #access through function because of BAM
     self._query_sequence = None
@@ -19,28 +21,59 @@ class Alignment:
     return
 
   def get_aligned_bases_count(self):
+    """The sum of the aligned bases.
+
+    :returns: length (in base pairs)
+    :rtype: int
+
+     """
     return sum([x[0].length() for x in self.get_alignment_ranges()])
 
-  # These methods need to be overridden by an alignment type
-  # target, query
   def _set_alignment_ranges(self):
+    """
+    .. warning:: Must be overridden
+
+    """
     self._alignment_ranges = None
     sys.stderr.write("ERROR: needs overridden\n")
     sys.stderr.exit()
   # Post: Return sequence string, or None if not set
   def get_query_sequence(self):
+    """
+    .. warning:: Must be overridden
+
+    """
     sys.stderr.write("ERROR: needs overridden\n")
     sys.stderr.exit()
     return self._query_sequence
   def set_query_sequence(self,seq):
+    """Assign the query sequence.
+    
+    :param seq: sequence of the query
+    :type seq: string
+
+    """
     self._query_sequence = seq
+
   def get_target_length(self):
+    """
+    .. warning:: Must be overridden
+
+    """
     sys.stderr.write("ERROR: needs overridden\n")
     sys.stderr.exit()
   def get_query_length(self):
+    """
+    .. warning:: Must be overridden
+
+    """
     sys.stderr.write("ERROR: needs overridden\n")
     sys.stderr.exit()
   def get_strand(self):
+    """
+    .. warning:: Must be overridden
+
+    """
     sys.stderr.write("ERROR: needs overridden\n")
     sys.stderr.exit()
     return self._query_direction
@@ -48,9 +81,22 @@ class Alignment:
   # can be overridden
   # Post: Return quality string, or None if not set
   def get_query_quality(self):
+    """Get the quality.
+
+    :returns:  quality
+    :rtype: string
+
+    """
     return self._query_quality
 
   def get_target_range(self):
+    """Get the range covered on the target/reference strand
+
+    :returns: Genomic range of the target strand
+    :rtype: GenomicRange
+
+    """
+
     a = self.get_alignment_ranges()
     return GenomicRange(a[0][0].chr,a[0][0].start,a[-1][0].end)
   
@@ -59,8 +105,13 @@ class Alignment:
   #  a = self._alignment_ranges
   #  return GenomicRange(a[0][1].chr,a[0][1].start,a[-1][1].end,self.get_strand())
 
-  # This is the actual query range for the positive strand
   def get_actual_query_range(self):
+    """This is the actual query range for the positive strand
+
+    :returns: Range of query positive strand covered
+    :rtype: GenomicRange
+
+    """
     a = self.get_alignment_ranges()
     #return GenomicRange(a[0][1].chr,a[0][1].start,a[-1][1].end,self.get_strand())
     if self.get_strand() == '+':
@@ -69,17 +120,34 @@ class Alignment:
     return GenomicRange(a[0][1].chr,self.get_query_length()-a[-1][1].end+1,self.get_query_length()-a[0][1].start+1,self.get_strand())
 
   def get_reference(self):
+    """Return the reference sequence
+
+    :returns: reference sequence
+    :rtype: string
+
+    """
     return self._reference
   def set_reference(self,ref):
+    """Set the reference sequence
+
+    :param ref: reference sequence
+    :type ref: string
+
+    """
     self._reference = ref
-  
-  # Returns an array of alignment ranges
+
   def get_alignment_ranges(self):
+    """Return an array of alignment ranges."""
     return self._alignment_ranges
 
-  # Process the alignment to get information like
-  # the alignment strings for each exon
   def get_alignment_strings(self,min_intron_size=68):
+    """Process the alignment to get information like
+       the alignment strings for each exon. These strings are used by the pretty print.
+
+    :returns: String representation of the alignment in an easy to read format
+    :rtype: string
+
+    """
     qseq = self.get_query_sequence()
     if not qseq:
       sys.exit("ERROR: Query sequence must be accessable to get alignment strings\n")
@@ -156,6 +224,12 @@ class Alignment:
   #      have get_query_sequence()
   #       and get_reference()
   def print_alignment(self,chunk_size=40,min_intron_size=68):
+    """print the nice looking alignment.  Must have data accessable from get_query_sequence() and get_refernece_sequencec()
+
+    :returns: Pretty print string.
+    :rtype: string
+
+    """
     has_qual = True
     if not self.get_query_quality(): has_qual = False
     trantab = maketrans('01',' *')
@@ -175,9 +249,13 @@ class Alignment:
         if has_qual: print 'Y '+y[3]        
         print ''
 
-  # These methods may be overrriden by an alignment type to just return themself
-  # clearly this should be over written by the PSL type to just give itself
   def get_PSL(self,min_intron_size=68):
+    """Get a PSL object representation of the alignment.
+
+    :returns: PSL representation
+    :rtype: PSL
+
+    """
     from seqtools.format.psl import PSL
     if not self.get_alignment_ranges(): return None
     matches = sum([x[0].length() for x in self.get_alignment_ranges()]) # 1. Matches - Number of matching bases that aren't repeats
@@ -238,6 +316,12 @@ class Alignment:
 
   #clearly this should be overwritten by the SAM class to give itself
   def get_SAM(self,min_intron_size=68):
+    """Get a SAM object representation of the alignment.
+
+    :returns: SAM representation
+    :rtype: SAM
+
+    """
     from seqtools.format.sam import SAM
     #ar is target then query
     qname = self.get_alignment_ranges()[0][1].chr
@@ -266,6 +350,13 @@ class Alignment:
     return SAM(ln,reference=self._reference)
 
   def construct_cigar(self,min_intron_size=68):
+    """Create a CIGAR string from the alignment
+
+    :returns: CIGAR string
+    :rtype: string
+
+    """
+
     # goes target query
     ar = self.get_alignment_ranges()
     cig = ''
@@ -291,6 +382,12 @@ class Alignment:
     return cig
 
   def get_target_transcript(self,min_intron=1):
+    """Get the mapping of to the target strand
+
+    :returns: Transcript mapped to target
+    :rtype: Transcript
+
+    """
     if min_intron < 1: 
       sys.stderr.write("ERROR minimum intron should be 1 base or longer\n")
       sys.exit()
