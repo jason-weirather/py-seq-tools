@@ -1,6 +1,6 @@
 import struct, zlib, sys, re, os, gzip, random
 import seqtools.align
-#import Bio.Format.BamIndex as BamIndex
+#import seqtools.format.bamindex as BamIndex
 from seqtools.sequence import rc
 from cStringIO import StringIO
 from string import maketrans
@@ -45,8 +45,8 @@ class SAM(seqtools.align.Alignment):
       sys.exit()
     sys.stderr.write("ERROR reference found\n")
     sys.exit()
- 
-  #Overrides Bio.Alignment.Align.get_query_sequence()
+
+  # Overrides align
   def get_query_sequence(self):
     if self.value('seq') == '*': return None
     if self.check_flag(0x10): return rc(self.value('seq'))
@@ -664,7 +664,7 @@ class BGZF:
       sys.exit()
     return {'block_size':block_size, 'data':data}
 
-class SamStream:
+class SAMStream:
   #  minimum_intron_size greater than zero will only show sam entries with introns (junctions)
   #  minimum_overhang greater than zero will require some minimal edge support to consider an intron (junction)
   def __init__(self,fh=None,minimum_intron_size=0,minimum_overhang=0,reference=None):
@@ -769,7 +769,7 @@ def is_header(line):
   return False
 
 
-class SamtoolsBAMStream(SamStream):
+class SamtoolsBAMStream(SAMStream):
   def __init__(self,path,minimum_intron_size=0,minimum_overhang=0,reference=None):
     self.previous_line = None
     self.in_header = True

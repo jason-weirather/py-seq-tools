@@ -3,7 +3,7 @@ import argparse, sys, os
 from shutil import rmtree
 from multiprocessing import cpu_count, Lock, Pool
 from tempfile import mkdtemp, gettempdir
-from seqtools.format.sam import BAMFile
+from seqtools.format.sam import BAMFile, SAMStream
 from seqtools.stream import LocusStream
 from seqtools.range import ranges_to_coverage, sort_genomic_ranges
 
@@ -15,7 +15,11 @@ of = None
 def main(args):
   #do our inputs
   args = do_inputs()
-  bf = BAMFile(args.input)
+  bf = None
+  if args.input != '-':
+    bf = BAMFile(args.input)
+  else:
+    bf = SAMStream(sys.stdin)
   ls = LocusStream(bf)
   if args.output:
     args.output = open(args.output,'w')
@@ -76,7 +80,7 @@ def get_output(bedarray,z):
 def do_inputs():
   # Setup command line inputs
   parser=argparse.ArgumentParser(description="Convert a sorted bam file (all alignments) into a bed file with depth.  If you want to limit it to primary alignments you better filter the bam.",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-  parser.add_argument('input',help="INPUT BAM FILE")
+  parser.add_argument('input',help="BAM file or - for SAM stdin")
   parser.add_argument('-o','--output',help="OUTPUTFILE or STDOUT if not set")
   parser.add_argument('--minimum_intron_size',default=68,type=int,help="any gaps smaller than this we close")
   parser.add_argument('--threads',type=int,default=cpu_count(),help="INT number of threads to run. Default is system cpu count")
