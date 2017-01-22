@@ -7,7 +7,7 @@ with open(path.join(this_folder,'README.md'),encoding='utf-8') as inf:
   long_description = inf.read()
 
 setup(
-  name='seqtools',
+  name='seq-tools',
   version='0.1.0',
   description='Python tools for working with biological sequence data',
   long_description=long_description,
