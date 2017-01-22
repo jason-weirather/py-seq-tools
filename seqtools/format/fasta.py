@@ -1,5 +1,5 @@
 import os, re, gzip
-import seqtools.Sequence
+import seqtools.sequence
 
 #Iterable Stream
 class FASTAStream:
@@ -50,7 +50,7 @@ class FASTAStream:
       return FASTA(m.group(1))
     return None
 
-class FASTA(seqtools.Sequence.Seq):
+class FASTA(seqtools.sequence.Seq):
   def __init__(self,fasta_text):
     # intput is a single fasta entry in text form
     self._fasta = fasta_text.rstrip()

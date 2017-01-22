@@ -1,10 +1,10 @@
 import uuid, sys, time, re
-import Bio.Structure
-from Bio.Range import GenomicRange
+import seqtools.structure
+from seqtools.range import GenomicRange
 from subprocess import Popen, PIPE
 
 # This whole format is a subclass of the Transcript subclass
-class GPD(Bio.Structure.Transcript):
+class GPD(seqtools.structure.Transcript):
   def __init__(self,gpd_line):
     # Only store the line and ID at first.  
     self._line = gpd_line.rstrip()
@@ -27,13 +27,13 @@ class GPD(Bio.Structure.Transcript):
     self._transcript_name = self.value('name')
     self._name = None
     for i in range(0,self.value('exonCount')):
-      ex = Bio.Structure.Exon(GenomicRange(self.value('chrom'),self.value('exonStarts')[i]+1,self.value('exonEnds')[i]))
+      ex = seqtools.structure.Exon(GenomicRange(self.value('chrom'),self.value('exonStarts')[i]+1,self.value('exonEnds')[i]))
       self._exons.append(ex)
     if self.value('exonCount') > 1:
       for i in range(0,self.value('exonCount')-1):
         l = GenomicRange(self.value('chrom'),self.value('exonEnds')[i],self.value('exonEnds')[i])
         r = GenomicRange(self.value('chrom'),self.value('exonStarts')[i+1]+1,self.value('exonStarts')[i+1]+1)
-        junc = Bio.Structure.Junction(l,r)
+        junc = seqtools.structure.Junction(l,r)
         junc.set_exon_left(self._exons[i])
         junc.set_exon_right(self._exons[i+1])
         self._junctions.append(junc)

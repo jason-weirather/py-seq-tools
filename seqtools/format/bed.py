@@ -1,9 +1,9 @@
 import sys, uuid
-import Bio.Structure
-from Bio.Range import GenomicRange
+import seqtools.structure
+from seqtools.range import GenomicRange
 
 # Bed format with 9 optional fields
-class Bed12(Bio.Structure.Transcript):
+class Bed12(seqtools.structure.Transcript):
   def __init__(self,bed_line):
     self._entry = self._line_to_entry(bed_line)
     self._line = bed_line.rstrip()
@@ -16,7 +16,7 @@ class Bed12(Bio.Structure.Transcript):
     self._gene_name = None
     self._name = self.value('name')
     for i in range(0,self.value('blockCount')):
-      ex = Bio.Structure.Exon(GenomicRange(self.value('chrom'),\
+      ex = seqtools.structure.Exon(GenomicRange(self.value('chrom'),\
             self.value('chromStart')+self.value('blockStarts')[i]+1,\
             self.value('chromStart')+self.value('blockStarts')[i]+self.value('blockSizes')[i]))
       self.exons.append(ex)
@@ -28,7 +28,7 @@ class Bed12(Bio.Structure.Transcript):
         r = GenomicRange(self.value('chrom'),\
              self.value('chromStart')+self.value('blockStarts')[i]+1,\
              self.value('chromStart')+self.value('blockStarts')[i+1]+1)
-        junc = Bio.Structure.Junction(l,r)
+        junc = seqtools.structure.Junction(l,r)
         junc.set_exon_left(self.exons[i])
         junc.set_exon_right(self.exons[i+1])
         self.junctions.append(junc)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import argparse, sys, os, re
-from seqtools.format.FASTA import FASTAStream
+from seqtools.format.fasta import FASTAStream
 
 
 def main(args):

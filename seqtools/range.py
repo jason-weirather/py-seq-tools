@@ -380,7 +380,7 @@ def pad_ranges(inranges,padding,chr_ranges=None):
   return sort_ranges(outranges)
 
 def subtract_ranges(r1s,r2s,already_sorted=False):
-  from Bio.Stream import MultiLocusStream
+  from seqtools.stream import MultiLocusStream
   if not already_sorted:
     r1s = merge_ranges(r1s)
     r2s = merge_ranges(r2s)

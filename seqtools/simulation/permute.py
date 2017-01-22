@@ -1,7 +1,7 @@
 import math
-from Bio.Sequence import rc
-from Bio.Simulation.RandomSource import RandomSource
-from Bio.Format.Fastq import Fastq
+from seqtools.sequence import rc
+from seqtools.simulation.randomsource import RandomSource
+from seqtools.format.fastq import FASTQ
 
 class MakeErrors:
   def __init__(self,rand=None,seed=None):
@@ -54,7 +54,7 @@ class MakeErrors:
           seq += self._modified_base
       else:
         seq += sequence[i]
-    return Fastq([fastq.name,seq,'+',fastq.qual])
+    return FASTQ('@'+fastq.header+"\n"+seq+"\n+\n"+fastq.qual+"\n")
 
   def random_deletion(self,fastq,rate):
     sequence = fastq.seq
@@ -85,7 +85,7 @@ class MakeErrors:
       if rnum >= rate:
         seq += sequence[i]
         if quality: qual+=quality[i]
-    return Fastq([fastq.name,seq,'+',qual])
+    return FASTQ('@'+fastq.header+"\n"+seq+"\n+\n"+qual+"\n")
 
   def random_insertion(self,rate,max_inserts=1):
     sequence = fastq.seq
@@ -132,7 +132,7 @@ class MakeErrors:
           seq += self.random.random_nt()
           if quality: qual += ibase
       z = 0
-    return Fastq([fastq.name,seq,'+',qual])
+    return FASTQ('@'+fastq.name+"\n"+seq+"\n+\n"+qual+"\n")
 
   def random_flip(self,sequence):
     if self.random.random() < 0.5:

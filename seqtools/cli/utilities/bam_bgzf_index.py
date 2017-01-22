@@ -3,7 +3,7 @@ import argparse, sys, os, gzip
 from shutil import rmtree, copy
 from multiprocessing import cpu_count, Pool
 from tempfile import mkdtemp, gettempdir
-from seqtools.format.SAM import BAMFile, SAM, check_flag
+from seqtools.format.sam import BAMFile, SAM, check_flag
 from subprocess import Popen, PIPE
 
 def main(args):

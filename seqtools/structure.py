@@ -1,7 +1,7 @@
 import sys, random, string, uuid, pickle, zlib, base64
-from seqtools.Range import GenomicRange, ranges_to_coverage, merge_ranges
-from seqtools.Sequence import rc
-import seqtools.Graph
+from seqtools.range import GenomicRange, ranges_to_coverage, merge_ranges
+from seqtools.sequence import rc
+import seqtools.graph
 
 class Transcript:
   def __init__(self):

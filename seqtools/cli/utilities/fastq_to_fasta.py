@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import argparse, sys
-from seqtools.format.FASTQ import FASTQStream
+from seqtools.format.fastq import FASTQStream
 
 
 def main(args):

@@ -1,4 +1,4 @@
-from Bio.Simulation.RandomSource import RandomSource
+from seqtools.simulation.randomsource import RandomSource
 
 #Give it a transcriptome definition and a reference genome for it
 #initialy give it uniform probability

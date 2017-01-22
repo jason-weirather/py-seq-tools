@@ -1,8 +1,8 @@
-import Bio.Align
-from Bio.Range import GenomicRange
-from Bio.Sequence import rc
+import seqtools.align
+from seqtools.range import GenomicRange
+from seqtools.sequence import rc
 
-class PSL(Bio.Align.Alignment):
+class PSL(seqtools.align.Alignment):
   #Pre: psl_line is a psl formated line
   #     reference is a dict/slice accessable sequence
   #     query_sequences is a dict/slice accessable sequence

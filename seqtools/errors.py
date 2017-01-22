@@ -1,4 +1,4 @@
-from Bio.Sequence import rc
+from seqtools.sequence import rc
 import sys
 ### Error Analysis ####
 # I am to describe errors at several levels

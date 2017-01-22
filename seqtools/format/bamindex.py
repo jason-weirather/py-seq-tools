@@ -1,6 +1,6 @@
 import gzip, sys, random, os
-from Bio.Range import GenomicRange
-from Bio.Format.Sam import BAMFile
+from seqtools.range import GenomicRange
+from seqtools.format.sam import BAMFile
 
 # Index file is a gzipped TSV file with these fields:
 # 1. qname

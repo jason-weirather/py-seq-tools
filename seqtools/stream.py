@@ -1,5 +1,5 @@
 import sys
-from Bio.Range import merge_ranges
+from seqtools.range import merge_ranges
 from subprocess import Popen, PIPE
 
 # Classes to help stream biological data
