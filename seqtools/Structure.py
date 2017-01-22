@@ -1,7 +1,7 @@
 import sys, random, string, uuid, pickle, zlib, base64
-from Bio.Range import GenomicRange, ranges_to_coverage, merge_ranges
-from Bio.Sequence import rc
-import Bio.Graph
+from seqtools.Range import GenomicRange, ranges_to_coverage, merge_ranges
+from seqtools.Sequence import rc
+import seqtools.Graph
 
 class Transcript:
   def __init__(self):
@@ -103,7 +103,7 @@ class Transcript:
   def load_serialized(self,instr):
     self._initialize()
     vals = pickle.loads(zlib.decompress(base64.b64decode(instr)))
-    import Bio.Format.GPD as inGPD
+    import seqtools.format.GPD as inGPD
     gpd = inGPD.GPD(vals[0])
     self.exons = gpd.exons
     self.junctions = gpd.junctions
@@ -644,7 +644,7 @@ class TranscriptLoci:
     #self.transcripts = []
     self.merge_rules = TranscriptLociMergeRules('is_any_overlap')
     self.merge_rules.set_juntol(10)
-    self.g = Bio.Graph.Graph()   
+    self.g = seqtools.Graph.Graph()   
 
   def __str__(self):
     return str(len(self.g.get_nodes()))+ " nodes"  
@@ -746,7 +746,7 @@ class TranscriptLoci:
         sys.stderr.write("WARNING tx is already in graph\n")
         return True
     # transcript isn't part of graph yet
-    n = Bio.Graph.Node([tx])
+    n = seqtools.Graph.Node([tx])
 
     other_nodes = self.g.get_nodes()
     self.g.add_node(n)
@@ -762,22 +762,22 @@ class TranscriptLoci:
         eo = tx.exon_overlap(tx2,multi_minover=er['multi_minover'],multi_endfrac=er['multi_endfrac'],multi_midfrac=er['multi_midfrac'],single_minover=er['single_minover'],single_frac=er['single_frac'])
         if self.merge_rules.get_merge_type() == 'is_compatible':
           if eo.is_compatible():
-            self.g.add_edge(Bio.Graph.Edge(n,n2),verbose=False)
-            self.g.add_edge(Bio.Graph.Edge(n2,n),verbose=False)
+            self.g.add_edge(seqtools.Graph.Edge(n,n2),verbose=False)
+            self.g.add_edge(seqtools.Graph.Edge(n2,n),verbose=False)
         elif self.merge_rules.get_merge_type() == 'is_subset':
           r = eo.is_subset()
           if r == 2 or r == 1:
-            self.g.add_edge(Bio.Graph.Edge(n,n2),verbose=False)
+            self.g.add_edge(seqtools.Graph.Edge(n,n2),verbose=False)
           if r == 3 or r == 1:
-            self.g.add_edge(Bio.Graph.Edge(n2,n),verbose=False)
+            self.g.add_edge(seqtools.Graph.Edge(n2,n),verbose=False)
         elif self.merge_rules.get_merge_type() == 'is_full_overlap':
           if eo.is_full_overlap():
-            self.g.add_edge(Bio.Graph.Edge(n,n2),verbose=False)
-            self.g.add_edge(Bio.Graph.Edge(n2,n),verbose=False)
+            self.g.add_edge(seqtools.Graph.Edge(n,n2),verbose=False)
+            self.g.add_edge(seqtools.Graph.Edge(n2,n),verbose=False)
         elif self.merge_rules.get_merge_type() == 'is_any_overlap':
           if eo.match_exon_count() > 0:
-            self.g.add_edge(Bio.Graph.Edge(n,n2),verbose=False)
-            self.g.add_edge(Bio.Graph.Edge(n2,n),verbose=False)        
+            self.g.add_edge(seqtools.Graph.Edge(n,n2),verbose=False)
+            self.g.add_edge(seqtools.Graph.Edge(n2,n),verbose=False)        
             
       if self.merge_rules.get_use_junctions():
         # do junction overlap
@@ -785,22 +785,22 @@ class TranscriptLoci:
         #print jo.match_junction_count()
         if self.merge_rules.get_merge_type() == 'is_compatible':
           if jo.is_compatible():
-            self.g.add_edge(Bio.Graph.Edge(n,n2),verbose=False)
-            self.g.add_edge(Bio.Graph.Edge(n2,n),verbose=False)
+            self.g.add_edge(seqtools.Graph.Edge(n,n2),verbose=False)
+            self.g.add_edge(seqtools.Graph.Edge(n2,n),verbose=False)
         elif self.merge_rules.get_merge_type() == 'is_subset':
           r = jo.is_subset()
           if r == 2 or r == 1:
-            self.g.add_edge(Bio.Graph.Edge(n,n2),verbose=False)
+            self.g.add_edge(seqtools.Graph.Edge(n,n2),verbose=False)
           if r == 3 or r == 1:
-            self.g.add_edge(Bio.Graph.Edge(n2,n),verbose=False)
+            self.g.add_edge(Seqtools.Graph.Edge(n2,n),verbose=False)
         elif self.merge_rules.get_merge_type() == 'is_full_overlap':
           if jo.is_full_overlap():
-            self.g.add_edge(Bio.Graph.Edge(n,n2),verbose=False)
-            self.g.add_edge(Bio.Graph.Edge(n2,n),verbose=False)
+            self.g.add_edge(seqtools.Graph.Edge(n,n2),verbose=False)
+            self.g.add_edge(seqtools.Graph.Edge(n2,n),verbose=False)
         elif self.merge_rules.get_merge_type() == 'is_any_overlap':
           if jo.match_junction_count() > 0:
-            self.g.add_edge(Bio.Graph.Edge(n,n2),verbose=False)
-            self.g.add_edge(Bio.Graph.Edge(n2,n),verbose=False)        
+            self.g.add_edge(seqtools.Graph.Edge(n,n2),verbose=False)
+            self.g.add_edge(seqtools.Graph.Edge(n2,n),verbose=False)        
     return True
   #def add_transcript_group(self,txg):
   #  self.transcript_groups.append(txg)      
@@ -1015,7 +1015,7 @@ class Transcriptome:
   def __init__(self,gpd_file=None,ref_fasta=None):
     self.transcripts = []
     if gpd_file:
-      from Bio.Format.GPD import GPD
+      from seqtools.format.GPD import GPD
       with open(gpd_file) as inf:
         for line in inf:
           self.transcripts.append(GPD(line))

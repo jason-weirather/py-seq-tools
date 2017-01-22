@@ -1,7 +1,7 @@
 import re, sys
-from Bio.Sequence import rc
-from Bio.Range import GenomicRange
-from Bio.Structure import Transcript, Exon, Junction
+from seqtools.Sequence import rc
+from seqtools.Range import GenomicRange
+from seqtools.Structure import Transcript, Exon, Junction
 
 from string import maketrans
 # Basic class for common elements of alignments
@@ -178,7 +178,7 @@ class Alignment:
   # These methods may be overrriden by an alignment type to just return themself
   # clearly this should be over written by the PSL type to just give itself
   def get_PSL(self,min_intron_size=68):
-    from Bio.Format.PSL import PSL
+    from seqtools.format.PSL import PSL
     if not self.get_alignment_ranges(): return None
     matches = sum([x[0].length() for x in self.get_alignment_ranges()]) # 1. Matches - Number of matching bases that aren't repeats
     misMatches = 0 # 2. Mismatches - Number of baess that don't match
@@ -238,7 +238,7 @@ class Alignment:
 
   #clearly this should be overwritten by the SAM class to give itself
   def get_SAM(self,min_intron_size=68):
-    from Bio.Format.Sam import SAM
+    from seqtools.format.SAM import SAM
     #ar is target then query
     qname = self.get_alignment_ranges()[0][1].chr
     flag = 0

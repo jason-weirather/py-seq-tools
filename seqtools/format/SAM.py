@@ -1,10 +1,10 @@
 import struct, zlib, sys, re, os, gzip, random
-import Bio.Align
+import seqtools.Align
 #import Bio.Format.BamIndex as BamIndex
-from Bio.Sequence import rc
+from seqtools.Sequence import rc
 from cStringIO import StringIO
 from string import maketrans
-from Bio.Range import GenomicRange
+from seqtools.Range import GenomicRange
 from subprocess import Popen, PIPE
 _bam_ops = maketrans('012345678','MIDNSHP=X')
 _bam_char = maketrans('abcdefghijklmnop','=ACMGRSVTWYHKDBN')
@@ -12,7 +12,7 @@ _bam_value_type = {'c':[1,'<b'],'C':[1,'<B'],'s':[2,'<h'],'S':[2,'<H'],'i':[4,'<
 _sam_cigar_target_add = re.compile('[M=XDN]$')
 
 # A sam entry
-class SAM(Bio.Align.Alignment):
+class SAM(seqtools.Align.Alignment):
   def __init__(self,line,reference=None,reference_lengths=None):
     self._line = line.rstrip()
     self._reference = reference
