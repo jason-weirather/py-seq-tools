@@ -3,24 +3,19 @@ import argparse, sys, os
 from shutil import rmtree
 from multiprocessing import cpu_count, Lock, Pool
 from tempfile import mkdtemp, gettempdir
-from Bio.Format.Sam import BAMFile
-from Bio.Stream import LocusStream
-from Bio.Range import ranges_to_coverage, sort_genomic_ranges
+from seqtools.format.sam import BAMFile
+from seqtools.stream import LocusStream
+from seqtools.range import ranges_to_coverage, sort_genomic_ranges
 
 current = 0
 glock = Lock()
 results = {}
 of = None
 
-def main():
+def main(args):
   #do our inputs
   args = do_inputs()
   bf = BAMFile(args.input)
-  if not args.all_alignments:
-    if args.index_path:
-      bf.read_index(args.index_path)
-    else:
-      bf.read_index(args.index_path)
   ls = LocusStream(bf)
   if args.output:
     args.output = open(args.output,'w')
@@ -33,14 +28,11 @@ def main():
     p = Pool(processes=args.threads)
   for entries in ls:
     bedarray = []
-    #print len(entries.get_payload())
     for e in entries.get_payload():
-      if not args.all_alignments and not e.indexed_as_primary_alignment(): continue
       if not e.is_aligned(): continue
       tx = e.get_target_transcript(min_intron=args.minimum_intron_size)
       for exon in tx.exons:
         bedarray.append(exon.rng.copy())
-        #print exon.rng.get_range_string()
     if len(bedarray) == 0: continue
     if args.threads > 1:
       p.apply_async(get_output,args=(bedarray,z,),callback=do_output)
@@ -83,12 +75,10 @@ def get_output(bedarray,z):
 
 def do_inputs():
   # Setup command line inputs
-  parser=argparse.ArgumentParser(description="Convert a bam file into a bed file with depth.  By default only uses the primary alignment from a .bgi index file.",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+  parser=argparse.ArgumentParser(description="Convert a sorted bam file (all alignments) into a bed file with depth.  If you want to limit it to primary alignments you better filter the bam.",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument('input',help="INPUT BAM FILE")
   parser.add_argument('-o','--output',help="OUTPUTFILE or STDOUT if not set")
-  parser.add_argument('--all_alignments',action='store_true',help="by default only do the primary alignments")
   parser.add_argument('--minimum_intron_size',default=68,type=int,help="any gaps smaller than this we close")
-  parser.add_argument('--index_path',help="specity index location if its not in default place")
   parser.add_argument('--threads',type=int,default=cpu_count(),help="INT number of threads to run. Default is system cpu count")
   # Temporary working directory step 1 of 3 - Definition
   group = parser.add_mutually_exclusive_group()
@@ -117,5 +107,13 @@ def setup_tempdir(args):
     sys.exit()
   return 
 
+def external_cmd(cmd):
+  cache_argv = sys.argv
+  sys.argv = cmd.split()
+  args = do_inputs()
+  main(args)
+  sys.argv = cache_argv
+
 if __name__=="__main__":
-  main()
+  args = do_inputs()
+  main(args)
