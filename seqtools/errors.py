@@ -1,5 +1,6 @@
 from seqtools.sequence import rc
 import sys
+"""This module contains classes for analyzing error patterns in alignments"""
 ### Error Analysis ####
 # I am to describe errors at several levels
 # 
@@ -27,6 +28,9 @@ import sys
 valid_types = set(['match','mismatch','total_insertion','total_deletion','homopolymer_insertion','homopolymer_deletion'])
 
 class ErrorProfileFactory:
+  """This class is used to create an error profile.  
+     It doesn't require any special input to create a new instance of it.  
+     You add to it with the add_alignment() function."""
   def __init__(self):
     self._alignment_errors = []
     self._target_context_errors = None
@@ -35,21 +39,24 @@ class ErrorProfileFactory:
     return
 
   def close(self):
+    """Set some objects to None to hopefully free up some memory."""
     self._target_context_errors = None
     self._query_context_errors = None
     self._general_errors = None
     for ae in self._alignment_errors:
       ae.close()
     self._alignment_errors = None
-      
+
 
   def add_alignment_errors(self,ae):
+    """If you alread have thealignment errors, add them for profile construction."""
     self._target_context_errors = None
     self._query_context_errors = None
     self._alignment_errors.append(ae)
     self._general_errors.add_alignment_errors(ae)
 
   def add_alignment(self,align):
+    """Calculate alignment errors from the alignment and add it to the profile."""
     self._target_context_errors = None
     self._query_context_errors = None
     ae = AlignmentErrors(align)
@@ -57,9 +64,21 @@ class ErrorProfileFactory:
     self._general_errors.add_alignment_errors(ae)
 
   def get_alignment_errors(self):
+    """Return an object that describes the errors
+
+    :returns: Alignment Errors
+    :rtype: GeneralErrorStats
+
+    """
     return self._general_errors
 
   def get_target_context_error_report(self):
+    """Get a report on context-specific errors relative to what is expected on the target strand.
+
+    :returns: Object with a 'header' and a 'data' where data describes context: before,after ,reference, query.  A total is kept for each reference base, and individual errors are finally checked
+    :rtype: dict()
+
+    """
     report = {}
     report['header'] = ['before','after','reference','query','fraction']
     report['data'] = []
@@ -75,6 +94,14 @@ class ErrorProfileFactory:
     return report
 
   def get_min_context_count(self,context_type):
+    """Calculate out which context has the minum coverage thusfar.
+
+    :param context_type: 'target' or 'query'
+    :type context_type: string
+    :returns: Minimum Coverage
+    :rtype: int
+
+    """
     cnt = 10000000000
     bases = ['A','C','G','T']
     basesplus = ['A','C','G','T','-']
@@ -93,6 +120,14 @@ class ErrorProfileFactory:
     return cnt
 
   def write_context_error_report(self,file,context_type):
+    """Write a context error report relative to the target or query into the specified filename
+
+    :param file: The name of a file to write the report to
+    :param context_type: They type of profile, target or query based
+    :type file: string
+    :type context_type: string
+
+    """
     if context_type == 'target':
       r = self.get_target_context_error_report()
     elif context_type == 'query':
@@ -107,6 +142,12 @@ class ErrorProfileFactory:
     return
 
   def get_query_context_error_report(self):
+    """Get a report on context-specific errors relative to what is expected on the query strand.
+
+    :returns: Object with a 'header' and a 'data' where data describes context: before,after ,reference, query.  A total is kept for each reference base, and individual errors are finally checked
+    :rtype: dict()
+
+    """
     report = {}
     report['header'] = ['before','after','reference','query','fraction']
     report['data'] = []
@@ -122,16 +163,35 @@ class ErrorProfileFactory:
     return report
 
   def get_target_context_errors(self):
+    """Return the target context errors
+
+    :returns: Dictionary containing the error counts on context base
+    :rtype: dict()
+
+    """
     if not self._target_context_errors:
       self.combine_context_errors()
     return self._target_context_errors
 
   def get_query_context_errors(self):
+    """Return the query context errors
+
+    :returns: Dictionary containing the error counts on context base
+    :rtype: dict()
+
+    """
     if not self._query_context_errors:
       self.combine_context_errors()
     return self._query_context_errors
 
   def combine_context_errors(self):
+    """Each alignment contributes some information to the error report.  These reports for each alignment need to be gone through and combined into one report.
+
+
+    :returns: Dictionary containing the error counts on context base
+    :rtype: dict()
+
+    """
     r = {}
     if self._target_context_errors: r = self._target_context_errors
     for k in [x.get_context_target_errors() for x in self._alignment_errors]:
@@ -171,6 +231,12 @@ class ErrorProfileFactory:
     return self.get_string()
 
   def get_string(self):
+    """Make a string reprentation of the error stats.
+
+    :returns: error profile
+    :rtype: string
+
+    """
     ostr = ''
     ostr += str(len(self._alignment_errors))+" Alignments\n"
     ostr += 'Target: '+"\n"
@@ -188,6 +254,7 @@ class ErrorProfileFactory:
     return ostr
 
 class BaseError():
+  """Class for describing an error at a sinle base relative to the target or query."""
   def __init__(self,type):
     self._type = type
     if type != 'query' and type != 'target':
@@ -197,9 +264,21 @@ class BaseError():
     self._observable = BaseError.ObservableError(self._type)
     return
   def get_homopolymer(self):
+    """Return the hompolymer on target and the homopolymer on query assicated with this base
+
+    :returns: homopolymer dict {tseq:sequence,qseq:sequence} 
+    :rtype:  dict() 
+
+    """
     return self._observable.get_homopolymer()  
   # Is there any possible way to attribute this call to an error?
   def is_any_error(self):
+    """If theres any reason to attribute this base to an error return True otherwise false
+
+    :returns: there_is_error
+    :rtype: bool
+
+    """
     if self.get_observable_error_probability() > 0:
       return True
     if self.get_unobservable_error_probability() > 0:
@@ -207,23 +286,60 @@ class BaseError():
     return False
 
   def get_observable(self):
+    """Get error information that can be seen
+
+    :returns: Observable error object
+    :rtype: ObservableError
+
+    """
     return self._observable
   def get_unobservable(self):
+    """Unobservable errors inferred, like if its relative to the target and an insertion, then it is not observed in the target, we just know it was inserted between two bases in the target.
+
+    :returns: Unobservable error object
+    :rtype: UnobservableError
+
+    """
     return self._unobservable
 
-  # This means for the base we are talking about how many errors between 0 and 1 do we attribute to it?
-  # For the 'unobserved' errors, these can only count when one is adjacent to base
   def get_error_probability(self):
+    """This means for the base we are talking about how many errors between 0 and 1 do we attribute to it?
+       For the 'unobserved' errors, these can only count when one is adjacent to base
+
+    :returns: error probability p(error_observed)+(1-p_error_observed)*error_unobserved
+    :rtype: float
+
+    """
     a = self._observable.get_error_probability()
     b = self._unobservable.get_error_probability()
     return a+(1-a)*b
 
   def get_observable_error_probability(self):
+    """ get the probability of an observable error occuring at a base
+
+    :returns: error probability
+    :rtype: float
+
+    """
     return self._observable.get_error_probability()
   def get_unobservable_error_probability(self):
+    """ get the probability of an unobservable error occuring at a base
+
+    :returns: error probability
+    :rtype: float
+
+    """
     return self._unobservable.get_error_probability()
 
   def set_observable(self,tseq,qseq):
+    """Set the observable sequence data
+
+    :param tseq: target sequence (from the homopolymer)
+    :param qseq: query sequence ( from the homopolymer)
+    :type tseq: string
+    :type qseq: string
+
+    """
     tnt = None
     qnt = None
     if len(tseq) > 0: tnt = tseq[0]
@@ -231,16 +347,53 @@ class BaseError():
     self._observable.set(len(tseq),len(qseq),tnt,qnt)
 
   def set_unobserved_before(self,tlen,qlen,nt,p):
+    """Set the unobservable sequence data before this base
+
+    :param tlen: target homopolymer length
+    :param qlen: query homopolymer length
+    :param nt: nucleotide
+    :param p: p is the probability of attributing this base to the unobserved error
+    :type tlen: int
+    :type qlen: int
+    :type nt: char
+    :type p: float
+
+    """
     self._unobservable.set_before(tlen,qlen,nt,p)
   def set_unobserved_after(self,tlen,qlen,nt,p):
+    """Set the unobservable sequence data after this base
+
+    :param tlen: target homopolymer length
+    :param qlen: query homopolymer length
+    :param nt: nucleotide
+    :param p: p is the probability of attributing this base to the unobserved error
+    :type tlen: int
+    :type qlen: int
+    :type nt: char
+    :type p: float
+
+    """
     self._unobservable.set_after(tlen,qlen,nt,p)
 
   def get_adjusted_error_count(self):
+    """ Get the total error count associated with this single base.
+      This would typically be one but sometimes it may be larger for instertions.
+
+    :returns: error_count
+    :rtype: float
+
+    """
     p1 =  self._observable.get_attributable_length()
     p1 += self._unobservable.get_attributable_length()
     return p1
 
   def get_base(self):
+    """ Get the single base at this position.
+
+    :returns: base
+    :rtype: char
+
+    """
     if self._type == 'query':
       return self._observable.get_query_base()
     return self._observable.get_target_base()
@@ -258,6 +411,13 @@ class BaseError():
     return self.get_string()
 
   def get_string(self):
+    """ Get a string representation of this single base error.
+
+    :returns: report
+    :rtype: string
+
+
+    """
     ostr = ''
     ostr += 'BaseError for ['+self._type+'] base: '+self.get_base()+"\n"
     if self._observable.get_error_probability() > 0:
@@ -286,11 +446,13 @@ class BaseError():
     return ostr
 
 
-  # Unobservable error is a deletion for a query base
-  #                     an insertion for a target base
-  # A non base error has a probability of occuring before a base
-  # and a probability of occuring after
   class UnobservableError:
+   """Unobservable error is a deletion for a query base
+       an insertion for a target base
+       A non base error has a probability of occuring before a base
+       and a probability of occuring after
+
+       """
    def __init__(self,type):
      # Type is the perspective
      self._type = type # Type is 'query' or 'target'
@@ -347,9 +509,10 @@ class BaseError():
      af = self._after_prob*abs(self._after['qlen']-self._after['tlen'])
      return bef+af
 
-  # Class to describe a homopolymer error or an observable
-  # insertion or deletion
   class ObservableError:
+    """Class to describe a homopolymer error or an observable
+     insertion or deletion.  Future versions of this should probably avoid using
+     a nested class for this"""
     def __init__(self,type):
       self._type = type # Type is 'query' or 'target'
       if type != 'query' and type != 'target':

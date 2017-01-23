@@ -6,7 +6,6 @@ Subpackages
 
 .. toctree::
 
-    seqtools.cli.legacy
     seqtools.cli.utilities
 
 Submodules
