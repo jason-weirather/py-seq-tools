@@ -1,30 +1,35 @@
+"""This module contains classes for analyzing error patterns in alignments
+
+Its in pretty rough shape as its an early, but working, form.  It works with alignqc.  But it really needs some love to be a good module. 
+
+Error Analysis
+
+I am to describe errors at several levels 
+
+Errors in the query sequence
+
+1. Is a query base an error or not?
+  * Probability - Sometimes it can be ambiguous which base is in error
+2. What is the basic type of error?
+  * Mismatch
+  * Insertion
+     * Total insertion
+     * Homopolymer insertion
+     * Deletion
+        * Total deletion
+           * Before
+           * After
+        * Homopolymer deletion
+  * sum of probabilities should add up to 1.)
+3. What is the more specific error?
+  * Mismatch type
+  * insertion/deletion - Base, Length
+
+"""
+
 from seqtools.sequence import rc
 import sys
-"""This module contains classes for analyzing error patterns in alignments"""
-### Error Analysis ####
-# I am to describe errors at several levels
-# 
-# Errors in the query sequence
-# 
-# 1. Is a query base an error or not?
-#    Probability - Sometimes it can be ambiguous which base is in error
-# 
-# 2. What is the basic type of error?
-#    Mismatch
-#    Insertion
-#      Total insertion
-#      Homopolymer insertion
-#    Deletion
-#      Total deletion
-#        Before
-#        After
-#      Homopolymer deletion
-#   sum of probabilities should add up to 1.)
-#
-# 3. What is the more specific error?
-#    Mismatch type
-#    insertion/deletion - Base, Length
-#
+
 valid_types = set(['match','mismatch','total_insertion','total_deletion','homopolymer_insertion','homopolymer_deletion'])
 
 class ErrorProfileFactory:
@@ -448,11 +453,14 @@ class BaseError():
 
   class UnobservableError:
    """Unobservable error is a deletion for a query base
-       an insertion for a target base
-       A non base error has a probability of occuring before a base
-       and a probability of occuring after
+      an insertion for a target base
+      A non base error has a probability of occuring before a base
+      and a probability of occuring after
 
-       """
+      :param type: Either 'query' or target
+      :type type: string
+
+      """
    def __init__(self,type):
      # Type is the perspective
      self._type = type # Type is 'query' or 'target'
@@ -512,7 +520,11 @@ class BaseError():
   class ObservableError:
     """Class to describe a homopolymer error or an observable
      insertion or deletion.  Future versions of this should probably avoid using
-     a nested class for this"""
+     a nested class for this
+
+    :param type: Either 'query' or target
+    :type type: string
+    """
     def __init__(self,type):
       self._type = type # Type is 'query' or 'target'
       if type != 'query' and type != 'target':
@@ -521,6 +533,17 @@ class BaseError():
       self._prob = 0 # proportion of error we will attribute to this base
       self._details = {'qlen':0,'tlen':0,'qnt':None,'tnt':None}
     def set(self,tlen,qlen,tnt,qnt):
+      """ Set the error we are observing for the homopolymer block
+
+      :param tlen: target homopolymer length
+      :param qlen: query homopolymer length
+      :param tnt: target nucleotide
+      :param qnt: query nucleotide
+      :type tlen: int
+      :type qlen: int
+      :type tnt: char
+      :type qnt: char
+      """
       self._details = {'qlen':qlen,'tlen':tlen,'qnt':qnt,'tnt':tnt}
       # can figure out probability now
       if qlen == tlen and qnt == tnt:
@@ -543,6 +566,12 @@ class BaseError():
           sys.stderr.write("unknown perspective type\n")
           sys.exit()
     def get_homopolymer(self):
+      """Return a class to describe the homopolymer
+
+      :returns: homopolymer details
+      :rtype: dict() return {'tseq':string,'seq':string}
+
+      """
       tnt = ''
       qnt = ''
       if self._details['tnt']: tnt = self._details['tnt']
@@ -550,6 +579,12 @@ class BaseError():
       return {'tseq':self._details['tlen']*tnt,'qseq':self._details['qlen']*qnt}
     # Return the basic type of observable error
     def get_type(self):
+      """get the type of the observable error
+
+      :returns: error details
+      :rtype: list with 1. main type, 2. subtype, 3. details [target [nucleotide, length],query [nucleotide, length]]
+
+      """
       if self._details['tlen'] == self._details['qlen'] and\
          self._details['tnt'] == self._details['qnt']:
         return ['match','match',[[self._details['tnt'],1],[self._details['qnt'],1]]]
@@ -583,13 +618,21 @@ class BaseError():
       return 'UNKNOWN'
 
     def get_query_base(self):
+      """Just the query base"""
       return self._details['qnt']        
     def get_target_base(self):
+      """Just the target base"""
       return self._details['tnt']        
     def get_error_probability(self):
+      """Probability that this base is the product of an error
+
+      :returns: probability
+      :rtype: float
+
+      """
       return self._prob
-    # For calculating total error counts
     def get_attributable_length(self):
+      """ For calculating total error counts """
       delta = self.get_changed_length()
       # calculate extra
       extra = 0
@@ -602,13 +645,24 @@ class BaseError():
       return self._prob+extra
 
     def get_changed_length(self): #if we evenly distribute the length of the change in size, how much goes with this
+      """How much the homopolymer length differs between target and query
+
+      :returns: abs(qlen-tlen)
+      :rtype: int
+      """
       return abs(self._details['qlen']-self._details['tlen'])
 
 class AlignmentErrors:
-  # Pre: Take an alignment between a target and query
-  #      Uses get_strand from alignment to orient the query
-  #      All results are on the positive strand of the query
-  #      (meaning may be the reverse complement of target if negative)
+  """Take an alignment between a target and query
+  Uses get_strand from alignment to orient the query
+  All results are on the positive strand of the query
+  (meaning may be the reverse complement of target if negative)
+
+  :param alignment: alignment to be used in error calculation
+  :param min_intron_size: minmum length for an intron
+  :type alignment: Alignment
+  :type min_intron_size: int
+  """
   def __init__(self,alignment,min_intron_size=68):
     #self._alns = []
     self._min_intron_size=min_intron_size
@@ -682,16 +736,31 @@ class AlignmentErrors:
       return
 
   def get_HPAGroups(self):
+    """ get a list of the HPA groups
+    :returns: list of HPA groups
+    :rtype: HPAGroup
+    """
     return self._hpas
 
-  # way to accumulate totals of error types
-  # General error report will be relative to to the total alignment length
-  # error rate = mismatches + insertions + deletions / alignment length
   def get_general_errors(self):
+    """way to accumulate totals of error types
+    General error report will be relative to to the total alignment length
+    error rate = mismatches + insertions + deletions / alignment length
+
+    This looks oddly written, probably should be careful not to run it twice
+    because it looks like it would accumulate.
+    """
     r = GeneralErrorStats()
     r.add_alignment_errors(self)
 
   def get_context_target_errors(self):
+    """A more straitfoward calculation of the context-specific errors 
+    relative to the target
+
+    :returns: matrix of observed contexts and values
+    :rtype: matrix of [before][after][reference]{types} with types being any base or a deletion.
+
+    """
     if self._context_target_errors:  return self._context_target_errors
     if len(self._query_errors) < 3: return {}
     nts = ['A','C','G','T']
@@ -789,6 +858,13 @@ class AlignmentErrors:
     return r
 
   def get_context_query_errors(self):
+    """A more straitfoward calculation of the context-specific errors 
+    relative to the query
+
+    :returns: matrix of observed contexts and values
+    :rtype: matrix of [before][after][query]{types} with types being any base or a deletion.
+
+    """
     if self._context_query_errors:  return self._context_query_errors
     if len(self._query_errors) < 3: return {}
     nts = ['A','C','G','T']
@@ -882,6 +958,12 @@ class AlignmentErrors:
     return r
 
   def get_query_errors(self):
+    """ Return a list of base-wise error observations for the query 
+
+    :returns: list of base-wise errors
+    :rtype: list of HPA groups
+
+    """
     if self._query_errors: return self._query_errors
     v = []
     for i in range(len(self._query_hpas)):
@@ -891,6 +973,15 @@ class AlignmentErrors:
   # Pre:  given an index in the aligned query
   # Post: return the error description for that base
   def get_query_error(self,i):
+    """Just get a single error characterization based on the index
+
+    :param i: list index
+    :type i: int
+    :returns: base-wise error
+    :rtype: HPA group description
+
+
+    """
     x = self._query_hpas[i]
     h = x['hpa']
     pos = x['pos']
@@ -911,6 +1002,15 @@ class AlignmentErrors:
     return be
 
   def get_target_errors(self):
+    """Just get a single error characterization based on the index relative to the target
+
+    :param i: list index
+    :type i: int
+    :returns: list of base-wise errors
+    :rtype: list of HPA groups
+
+
+    """
     if self._target_errors: return self._target_errors
     v = []
     for i in range(len(self._target_hpas)):
@@ -920,6 +1020,14 @@ class AlignmentErrors:
   # Pre:  given an index in the aligned query
   # Post: return the error description for that base
   def get_target_error(self,i):
+    """Just get a single error characterization based on the index relative to the target
+
+    :param i: list index
+    :type i: int
+    :returns: base-wise error
+    :rtype: HPA group description
+
+    """
     x = self._target_hpas[i]
     h = x['hpa']
     pos = x['pos']
@@ -940,12 +1048,15 @@ class AlignmentErrors:
     return be
 
   def get_query_sequence(self):
+    """ return the query sequence reconstructed from the descriptions"""
     return ''.join([x['hpa'].get_query()[0] for x in self._query_hpas])
   def get_target_sequence(self):
+    """ return the target sequence reconstructed from the descriptions"""
     return ''.join([x['hpa'].get_target()[0] for x in self._target_hpas])
 
-  # Go through HPAGroups and store the distro of ordinal values of quality scores
   def analyze_quality(self):
+    """Go through HPAGroups and store the distro of ordinal values of 
+       quality scores"""
     res = {}
     for h in self._hpas:
       if h.type() not in res: res[h.type()]={}
@@ -954,6 +1065,7 @@ class AlignmentErrors:
         res[h.type()][c]+=1
     self._quality_distro = res
   def get_quality_report_string(self):
+    """get a report on quality score distribution.  currently prints to stdout"""
     if not self._quality_distro:
       self.analyze_quality()
     ostr = ""
@@ -965,11 +1077,13 @@ class AlignmentErrors:
     return ostr
 
   def has_quality(self):
+    """ Does the current data have quality information?"""
     return self._has_quality
-  #Pre: alignment strings have been set so for each exon we have
-  #     query, target and query_quality
-  #     _has_quality will specify whether or not the quality is meaningful
   def _misalign_split(self,alns):
+    """Requires alignment strings have been set so for each exon we have
+       query, target and query_quality
+       _has_quality will specify whether or not the quality is meaningful
+    """
     total = []
     z = 0
     for x in alns:
@@ -1013,11 +1127,15 @@ class AlignmentErrors:
     result = [AlignmentErrors.HPAGroup(self,y) for y in total]
     return result
 
-  #Homopolymer alignment group
   class HPAGroup:
-    # takes a chunk of homopolymer alignment
-    # as a dictionary with 'query' and 'target' sequences set
-    # query should always be positive strand
+    """Homopolymer alignment group
+     takes a chunk of homopolymer alignment
+     as a dictionary with 'query' and 'target' sequences set
+     query should always be positive strand
+
+    :param mydict: dictionary with target sequences and a parent object
+    :type mydict: dict() {'query':query sequence,'target':target sequence}
+    """
     def __init__(self,parent,mydict):
       self._error_profile = parent
       self._data = mydict
@@ -1046,17 +1164,29 @@ class AlignmentErrors:
       else:
 	sys.stderr.write("ERROR unsupported type\n")
         sys.exit()
-    def get_nt(self): return self._data['nt']
-    # always + strand
-    def get_query(self):  return self._qseq
-    # could be + or - strand
-    def get_target(self):  return self._tseq
-    def get_exon(self):  return self._exon_number
+    def get_nt(self): 
+      return self._data['nt']
+    def get_query(self):
+      """ always + strand """
+      return self._qseq
+    def get_target(self):
+      """could be + or - strand"""
+      return self._tseq
+    def get_exon(self):
+      """ return the exon number"""
+      return self._exon_number
     def get_length(self):
+      """return the lengths of the query and the target
+
+      :returns: lengths object
+      :rtype: dict() with {'query':query length,'target': target length}
+
+      """
       return {'query':len(self._qseq),'target':len(self._tseq)}
     def __str__(self):
       return self.get_string()
     def get_string(self):
+      """ Describe the group as a string"""
       ostr = ''
       ostr += 'Target:  '+self._tseq+"\n"
       ostr += 'Query:   '+self._qseq+"\n"
@@ -1064,15 +1194,17 @@ class AlignmentErrors:
       ostr += 'Type: '+str(self._type)+"\n"
       return ostr
     def has_quality(self):
+      """ Do we have quality score info?"""
       return self._error_profile.has_quality()
     def get_quality(self):
+      """ get the quality score info or false if we cannot"""
       if not self.has_quality(): return False
       return self._qquality
     def type(self):
       return self._type
 
-# Keep track of general errors across the length of an alignment
 class GeneralErrorStats:
+  """Keep track of general errors across the length of an alignment"""
   def __init__(self):
     self.alignment_count = 0 #number of alignments
     self.alignment_length = 0 #total bp
@@ -1099,6 +1231,7 @@ class GeneralErrorStats:
     return self.get_string()
 
   def get_string(self):
+    """make a string representation of the general error report"""
     ostr = ''
     errtotal = self.deletions['total']+self.insertions['total']+self.mismatches
     ostr += 'from '+str(self.alignment_length)+' bp of alignment'+"\n"
@@ -1125,6 +1258,7 @@ class GeneralErrorStats:
     return ostr
 
   def get_stats(self):
+    """Return a string describing the stats"""
     ostr = ''
     errtotal = self.deletions['total']+self.insertions['total']+self.mismatches
     ostr += "ALIGNMENT_COUNT\t"+str(self.alignment_count)+"\n"
@@ -1140,6 +1274,7 @@ class GeneralErrorStats:
     return ostr
 
   def get_report(self):
+    """Another report, but not context based"""
     ostr = ''
     ostr += "target\tquery\tcnt\ttotal\n"
     poss = ['-','A','C','G','T']
@@ -1149,6 +1284,11 @@ class GeneralErrorStats:
     return ostr
 
   def add_alignment_errors(self,ae):
+    """Add alignment errors to the group
+
+    :param ae: one set of alignment errors
+    :param type:
+    """
     self.alignment_count += 1
     for v in ae.get_HPAGroups():
       self._add_HPAGroup(v)

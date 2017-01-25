@@ -1,7 +1,17 @@
+"""This module has classes to provide graph structures and 
+   graph-based operations."""
+
 import string, sys, random, uuid
 
 class Graph:
-  # Use directed graph by default
+  """ Graph basic structure.
+
+  Use directed graph by default
+
+  :param directionless: use an undirected graph if set to true
+  :type directionless: bool
+
+  """
   def __init__(self,directionless=False):
     self.__edges = {}
     self.__nodes = {}
@@ -13,16 +23,35 @@ class Graph:
     return self.get_report()
 
   def get_report(self):
+    """ describe the graph
+
+    :returns: report
+    :rtype: string
+    """
     ostr = ''
     ostr += "Nodes: "+str(len(self.__nodes.keys()))+"\n"
     ostr += "Edges: "+str(len(self.__edges.keys()))+"\n"
     return ostr
-    
+
   def get_edges(self):
+    """ a list of edges
+
+    :returns: edges
+    :rtype: Edge[]  list
+    """
     return self.__edges.values()
 
   # get a edges given a node
   def get_node_edges(self,node,type="both"):
+    """ given a node return the edges attached, by default get both incoming and outgoing
+
+    :param node:
+    :param type:
+    :type node: Node
+    :type type: string - default 'both'
+    :returns: edge list
+    :rtype: Edge[] edge list
+    """
     if type == "both":
       return [self.__edges[x] for x in self.__edges if node.get_id() in self.__edges[x].get_node_ids()]
     elif type == "outgoing":
@@ -33,10 +62,20 @@ class Graph:
     sys.exit()
 
   def get_nodes(self):
+    """ a list of the nodes
+
+    :returns: Nodes
+    :rtype: Node[] list of nodes
+    """
     return self.__nodes.values()
     #return self.__nodes
 
   def add_node(self,node):
+    """ add a node to the graph
+
+    :param node:
+    :type node: Node
+    """
     #if node.has_edges():
     #  sys.stderr.write("ERROR: nodes can only be added to a graph before edges are set\n")
     #  sys.exit()
@@ -44,6 +83,13 @@ class Graph:
     return
 
   def get_children(self,node):
+    """ Find all the children of a node.  must be a undirectional graph with no cycles
+
+    :param node:
+    :type node: Node
+    :returns: list of nodes
+    :rtype: Node[]
+    """
     if self.find_cycle() or self.__directionless:
       sys.stderr.write("ERROR: do cannot find a branch when there are cycles in the graph\n")
       sys.exit()
@@ -63,6 +109,12 @@ class Graph:
     return kids
 
   def get_roots(self):
+    """get the roots of a graph.  must be a directed graph
+
+    :returns: root list of nodes
+    :rtype: Node[]
+
+    """
     if self.__directionless:
       sys.stderr.write("ERROR: can't get roots of an undirected graph\n")
       sys.exit()
@@ -72,6 +124,14 @@ class Graph:
     return [self.__nodes[x] for x in rootset]
 
   def add_edge(self,edge,verbose=True):
+    """ add an edge to the graph
+
+    :param edge:
+    :param verbose: - optional default (True)
+    :type edge: Edge
+    :type verbose: bool
+
+    """
     #make sure nodes are in the nodes
     if edge.get_node1().get_id() not in self.__nodes:
       sys.stderr.write("ERROR: node should be in graph\n")
@@ -104,6 +164,7 @@ class Graph:
     return
 
   def get_status_string(self):
+    """ get a string describing some stats about a graph"""
     ostr = ''
     ostr += "----------------\n"
     ostr += "Node count: "+str(len(self.__nodes.keys()))+"\n"
@@ -113,6 +174,11 @@ class Graph:
     return ostr
 
   def remove_node(self,node):
+    """remove a node from the graph
+
+    :param node:
+    :type node: Node
+    """
     nid = node.get_id()
     #remove edges associated with this node
     edges = self.get_node_edges(node,type="both")
@@ -122,6 +188,11 @@ class Graph:
 
   # remove edge
   def remove_edge(self,edge):
+    """remove an edge from the graph
+
+    :param edge:
+    :type edge: Edge
+    """
     #sys.stderr.write(str(len(self.__edges.keys()))+" edges\n")
     #sys.stderr.write(str(self.__edges.keys())+" edges\n")
     #sys.stderr.write(str(self.get_report())+" remove edge\n")
@@ -153,9 +224,10 @@ class Graph:
     for eid in edges_to_remove:
       del self.__edges[eid]
 
-  #remove cycles by mergine cyclic nodes into single nodes
-  #their payloads are added to a list
   def merge_cycles(self):
+    """remove cycles by mergine cyclic nodes into single nodes
+       their payloads are added to a list
+    """
     #delete any self cycles first
     for i in self.__parent_to_child:
       for j in self.__parent_to_child[i]:
@@ -188,10 +260,14 @@ class Graph:
       for r in res[1:]:
         self.remove_node(r)
 
-  #return a single cycle, greedy first one found
-  #in terms of nodes return as an array of nodes or None
   def find_cycle(self):
-    #depth first search through nodes
+    """return a single cycle, greedy first one found
+     in terms of nodes return as an array of nodes or None.
+     done by depth first search through nodes
+
+    :returns: nodes in the cycle (list) or None
+    :rtype: Nodes[] or None
+    """
     for nid in self.__nodes.keys():
       res = self.__find_cycle_node([],nid)
       if res: return [self.__nodes[x] for x in res]
@@ -199,10 +275,18 @@ class Graph:
 
   # From some node
   def get_directed_paths_from_node(self,node,prev=[]):
+    """ get all the paths in terms of lists of nodes from a node.  needs to be a directed graph with no cycles.
+
+    :param node:
+    :param prev: do not used, used by the class when calling it recurrsively
+    :type node: Node
+    :type prev: list
+
+    """
     if self.__directionless:
       sys.stderr.write("ERROR: Can't find paths from directionless graph\n")
       sys.exit()
-    if self.find_cycle(): 
+    if self.find_cycle():
       sys.stderr.write("ERROR: Can't find paths when a cycle is present.\n")
       sys.exit()
     id = node.get_id()
@@ -233,6 +317,12 @@ class Graph:
     return None
 
   def partition_graph(self,verbose=False):
+    """break a graph into multiple graphs if they are not connected
+
+    :returns: list of graphs
+    :rtype: Graph[]
+
+    """
     visited_nodes = set()
     ns = self.get_nodes()
     #exclude_ids = exclude_ids | set([x.get_id() for x in g.get_nodes()])
@@ -280,6 +370,15 @@ class Graph:
     return g_results
 
   def connected_nodes(self,node,exclude_ids=None):
+    """get all the connected nodes
+
+    :param node:
+    :param exclude_ids:
+    :type node: Node
+    :type exclude_ids: list or None
+    :returns: list of connected nodes
+    :rtype: Node[]
+    """
     r =  _depth_traverse_node(self,node,visited=exclude_ids)
     if not r: return []
     #sys.stderr.write(str(node.get_id())+"\n")
@@ -308,24 +407,69 @@ def _depth_traverse_node(g,node,visited=None):
     tot = tot | v
   return tot
 
-# directed graph by default
 class Edge:
+  """Class defines an edge.
+
+  directed graph by default 
+
+  :param node1: required - node 2
+  :param node2: required - node 1
+  :param directionless: by defalt we are directed graph
+  :param weight: value to weight the edge
+  :type node1: Node
+  :type node2: Node
+  :type directionless: bool
+  :type weigth: Number
+
+  """
   def __init__(self,node1,node2,directionless=False,weight=None):
     self.__node1 = node1
     self.__node2 = node2
     self.__directionless = directionless
     self.__weight = weight
     self.__id = str(uuid.uuid4())
-  def set_weight(self,weight):  self.__weight = weight
-  def get_weight(self): return self.__weight
-  def get_node_ids(self): return [self.__node1.get_id(),self.__node2.get_id()]
-  def is_directionless(self): return self.__directionless
-  def get_node1(self): return self.__node1
-  def get_node2(self): return self.__node2
-  def get_id(self): return self.__id
+  def set_weight(self,weight):
+    """can set weight to some number""" 
+    self.__weight = weight
+  def get_weight(self):
+    """get the weight if its been set""" 
+    return self.__weight
+  def get_node_ids(self): 
+    """get the uuid4 ids of the nodes in the edge
+
+    :returns: list of [id1,id2]
+    :rtype: list
+    """
+    return [self.__node1.get_id(),self.__node2.get_id()]
+  def is_directionless(self):
+     """get the direction status of the edge"""
+     return self.__directionless
+  def get_node1(self):
+    """get what is called node1
+
+    :returns: node1
+    :rtype: Node
+    """
+    return self.__node1
+  def get_node2(self): 
+    """get what is called node2
+
+    :returns: node2
+    :rtype: Node
+    """
+    return self.__node2
+  def get_id(self):
+    """ get the internal id of the edge. probably uuid4"""
+    return self.__id
 
 #payload is a list. When nodes get merged lists are concatonated.
 class Node:
+  """ Class to describe a node
+
+  :param payload: Empty payload by default
+  :type payload: anything you want
+
+  """
   def __init__(self,payload=None):
     self.__id = str(uuid.uuid4())
     self.__payload = []
@@ -338,10 +482,13 @@ class Node:
   #  if len(self.__outgoing_edges.keys()) > 0: return True
   #  return False
   def get_payload(self):
+    """ return whats curently held in payload"""
     return self.__payload
   def set_payload(self,payload):
+    """ set the payload to anything you want"""
     self.__payload = payload
   def get_id(self):
+    """return the uuid4 id"""
     return self.__id
   #def set_child_node(self,node2):
   #  e = Edge(self,node2)
