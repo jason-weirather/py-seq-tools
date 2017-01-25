@@ -9,8 +9,11 @@ I am to describe errors at several levels
 Errors in the query sequence
 
 1. Is a query base an error or not?
+
   * Probability - Sometimes it can be ambiguous which base is in error
+
 2. What is the basic type of error?
+
   * Mismatch
   * Insertion
      * Total insertion
@@ -19,9 +22,13 @@ Errors in the query sequence
         * Total deletion
            * Before
            * After
+
         * Homopolymer deletion
+
   * sum of probabilities should add up to 1.)
+
 3. What is the more specific error?
+
   * Mismatch type
   * insertion/deletion - Base, Length
 

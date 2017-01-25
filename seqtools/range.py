@@ -1,9 +1,24 @@
-import sys, re, json
-# These classes are to help deal with genomic coordinates and 
-# this associated with those coordinates.
+""" These classes are to help deal with genomic coordinates and
+    things associated with those coordinates. """
 
-#These are 1-index for both start and end
+import sys, re, json
+
 class GenomicRange:
+  """A basic class for keeping genomic range data.  It is 1-indexed for both start and end.
+
+  :param chr: chromosome name
+  :param start: 1-indexed starting base
+  :param end: 1-indexed ending base
+  :param dir: direction
+  :param range_string: set from string like chr5:801-900
+  :type chr: char
+  :type start: int
+  :type end: int
+  :type dir: char
+  :type range_string: string
+
+
+  """
   def __init__(self,chr=None,start=None,end=None,dir=None,range_string=None):
     if range_string:
       m = re.match('^(.+):(\d+)-(\d+)$',range_string)
@@ -25,10 +40,22 @@ class GenomicRange:
     self.payload = [] # should be a reference since its an array
 
   def load_serialized(self,instr):
+    """load a pickeled range back into the object
+
+    :param instr:
+    :type instr: pickled_object
+
+    """
     self = pickle.loads(instr)
     return
 
   def dump_serialized(self):
+    """dump the pickle for this object
+
+    :return: pickled object
+    :rtype: pickle_object
+
+    """
     return pickle.dumps(self)
 
   def __str__(self):
@@ -38,6 +65,12 @@ class GenomicRange:
 
   # Copy with the exception of payload.  Thats still a link
   def copy(self):
+    """Create a new copy of selfe.  does not do a deep copy for payload
+
+    :return: copied range
+    :rtype: GenomicRange
+
+    """
     n = GenomicRange(self.chr,self.start,self.end,self.direction)
     n.payload = []
     for p in self.payload:
@@ -45,48 +78,111 @@ class GenomicRange:
     return n
 
   def get_range(self):
+    """For compatability with some range-based tools that need to call this function
+
+    :return: this object
+    :rtype: GenomicRange
+
+    """
     return self
 
   def get_bed_array(self):
+    """Return a basic three meber bed array representation of this range
+
+    :return: list of [chr,start (0-indexed), end (1-indexed]
+    :rtype: list
+
+    """
     arr = [self.chr,self.start-1,self.end]
     if self.direction:
       arr.append(self.direction)
     return arr 
 
   def get_payload(self):
+    """Returns the payload, whatever it may be"""
     return self.payload[0]
   def set_payload(self,inpay):
+    """Set the payload.  Stored in a list to try to keep it as a reference
+
+    :param inpay: payload input - any type that can be pushed into a list
+
+    """
     if len(self.payload)==0:
       self.payload = [inpay]
       return
     self.payload[0] = inpay
   def get_direction(self):
+    """return the direction
+
+    :return: the direction or strand +/- (or None if not set)
+    :rtype: char
+
+    """
     return self.direction
+
   def set_direction(self,dir):
+    """ set he direction
+
+    :param dir: direction + or -
+    :type dir: char
+    """
     self.direction = dir
 
   def length(self):
+    """get the length of the range
+
+    :return: length
+    :rtype: int
+    """
     return self.end-self.start+1
 
   def equals(self,gr):
+    """ check for equality
+
+    :param gr: another genomic range
+    :type gr: GenomicRange
+    :return: true if they are the same, false if they are not
+    :rtype: bool
+    """
     if self.chr == gr.chr and self.start == gr.start and self.end == gr.end:
       return True
     return False
 
   def get_range_string(self):
-    return self.chr+":"+str(self.start)+"-"+str(self.end)
+    """ get the range string represetation. similar to the default input for UCSC genome browser
 
+    :return: representation by string like chr2:801-900
+    :rtype: string
+    """
+    return self.chr+":"+str(self.start)+"-"+str(self.end)
   def print_range(self):
+    """print the range string to stdout"""
     print self.get_range_string()
-  # These are the 0-indexed start, 1-indexted stop coordinates
   def get_bed_coordinates(self):
+    """ Same as get bed array.
+        These are the 0-indexed start, 1-indexted stop coordinates
+
+    :return: bed array [chr,start-1, end]
+    """
     return [self.chr,self.start-1,self.end]
 
-  # These are the 1-indexed coordiantes
   def get_genomic_coordinates(self):
+    """These are the 1-indexed coordiantes in list form
+
+    :return: list of coords [chr, start (1-indexed), end(1-indexed)
+    :rtype: list
+
+    """
     return [self.chr,self.start,self.end]
 
   def adjacent(self,rng2,use_direction=False):
+    """ Returns true if the two beds are directly next to eachother, 'touching'
+
+    :param rng2:
+    :param use_direction: false by default
+    :param type: GenomicRange
+    :param type: use_direction
+    """
     if self.chr != rng2.chr: return False
     if self.direction != rng2.direction and use_direction: return False
     if self.end == rng2.start-1:  return True
@@ -94,6 +190,19 @@ class GenomicRange:
     return False
 
   def overlaps(self,in_genomic_range,use_direction=False,padding=0):
+    """do the ranges overlap?
+
+    :param in_genomic_range: range to compare to
+    :param use_direction: default (False)
+    :param padding: add to the ends this many (default 0)
+    :type in_genomic_range: GenomicRange
+    :type use_direction: bool
+    :type padding: int
+
+    :return: True if they overlap
+    :rtype: bool
+
+    """
     if padding > 0:
       in_genomic_range = GenomicRange(in_genomic_range.chr,max([1,in_genomic_range.start-padding]),in_genomic_range.end+padding)
     if self.chr != in_genomic_range.chr:
@@ -124,10 +233,29 @@ class GenomicRange:
     return False
 
   def overlaps_with_padding(self,in_genomic_range,padding):
+    """Does the range overlap with a padded range.  Looks like this is fairly redundnat with the overlaps function
+
+    :param in_genomic_range: range to compare to
+    :param padding: amount to add onto ends to search
+    :type in_genomic_range: GenomicRange
+    :type padding: int
+
+
+    :return: true if they overlap, false if they do not
+    :rtype: bool
+    """
     in_range_padded = GenomicRange(in_genomic_range.chr,max([1,in_genomic_range.start-padding]),in_genomic_range.end+padding)
     return self.overlaps(in_range_padded)
 
   def overlap_size(self,in_genomic_range):
+    """ The size of the overlap
+
+    :param in_genomic_range: the range to intersect
+    :type in_genomic_range: GenomicRange
+
+    :return: count of overlapping bases
+    :rtype: int
+    """
     if self.chr != in_genomic_range.chr:
       return 0
     if self.end < in_genomic_range.start:
@@ -151,7 +279,18 @@ class GenomicRange:
     sys.stderr.write("overlap_size: unprogrammed error\n")
     return 0
 
-  def merge(self,range2,use_direction=False): #merge this bed with another bed
+  def merge(self,range2,use_direction=False): 
+    """merge this bed with another bed to make a longer bed.  Returns None if on different chromosomes or direction is set true and they are in differet strands.
+
+    :param range2:
+    :param use_direction: consider direction for overlapping? (default False)
+    :type range2: GenomicRange
+    :type use_direction: bool
+
+    :return: bigger range with both
+    :rtype: GenomicRange
+
+    """
     if self.chr != range2.chr:
       return None
     if self.direction != range2.direction and use_direction:
@@ -160,14 +299,32 @@ class GenomicRange:
     if use_direction==False: o.direction = None
     return o
 
-  def union(self,range2): # direction is destroyed
+  def union(self,range2):
+    """Intersection may be a better description. Return the chunk they overlap as a range. direction is destroyed
+
+    :param range2:
+    :type range2: GenomicRange
+
+    :return: Range with the intersecting segement, or None if not overlapping
+    :rtype: GenomicRange
+
+    """
     if not self.overlaps(range2): return None
     return GenomicRange(self.chr,max(self.start,range2.start),min(self.end,range2.end))
 
-  # return 1 if greater than range2
-  # return -1 if less than range2
-  # return 0 if overlapped
   def cmp(self,range2,overlap_size=0):
+    """the comparitor for ranges
+
+     * return 1 if greater than range2
+     * return -1 if less than range2
+     * return 0 if overlapped
+
+    :param range2:
+    :param overlap_size: allow some padding for an 'equal' comparison (default 0)
+    :type range2: GenomicRange
+    :type overlap_size: int
+
+    """
     if self.overlaps_with_padding(range2,overlap_size): return 0
     if self.chr < range2.chr: return -1
     elif self.chr > range2.chr: return 1
