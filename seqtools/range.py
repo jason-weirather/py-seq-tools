@@ -334,10 +334,17 @@ class GenomicRange:
     sys.exit()
     return 0
   
-  #pre another rnage
-  #post a list of ranges after removing range2
-  #no garuntees on payload
   def subtract(self,range2,use_direction=False):
+    """Take another range, and list of ranges after removing range2, no garuntees on payload
+
+    :param range2:
+    :param use_direction:
+    :type range2: GenomicRange
+    :type use_direction: bool
+    :return: List of Genomic Ranges
+    :rtype: GenomicRange[]
+
+    """
     outranges = []
     if self.chr != range2.chr:
       outranges.append(self.copy())
@@ -367,16 +374,36 @@ class GenomicRange:
     return True
 
   def distance(self,rng):
+    """The distance between two ranges.
+
+    :param rng: another range
+    :type rng: GenomicRange
+    :returns: bases separting, 0 if overlapped or adjacent, -1 if on different chromsomes
+    :rtype: int
+
+    """
     if self.chr != rng.chr: return -1
     c = self.cmp(rng)
     if c == 0: return 0
     if c < 0:
       return rng.start - self.end
-    return self.start - rng.end      
-# Pre: Inherits all methods of GenomicRange but modifies the class to use the 0-based start 1-based end style of a bed file
-# Essentially, a Bed is just another way of defining a GenomicRange.
+    return self.start - rng.end
+
 class Bed(GenomicRange):
-  # Takes as an input the chromosome, 0-based start, 1-based end of a range
+  """ Bed format is a chromosome, start (0-index), end (1-index). 
+      It is a child of GenomicRange but modifies the class 
+      to use the 0-based start 1-based end style of a bed file
+
+  :param chrom:
+  :param start: 0-indexed
+  :param finish: 1-indexed
+  :param dir: + or - (optional)
+  :type chrom: string
+  :type start: int
+  :type finish: int
+  :type dir: char
+
+  """
   def __init__(self,chrom,start,finish,dir=None):
     self.start = int(start)+1
     self.end = int(finish)
@@ -384,6 +411,12 @@ class Bed(GenomicRange):
     self.payload = []
     self.direction = dir
   def copy(self):
+    """Override copy to make another copy
+
+    :returns: a new copy of this object
+    :rtype: Bed
+
+    """
     n = Bed(self.chr,self.start-1,self.end,self.direction)
     n.payload = []
     for p in self.payload:
@@ -391,15 +424,27 @@ class Bed(GenomicRange):
     return n
 
 class Locus:
-  # A Locus is a colloction of GenomicRanges that fall within some distance of one another
+  """A Locus is a colloction of GenomicRanges that fall 
+     within some distance of one another"""
   def __init__(self):
     self.range = None
     self.members = []
     self.use_direction = False #If we want to use direction, input ranges must have the direction set
-  # Set to true if you want all locus members to share the same direction
   def set_use_direction(self,inbool):
+    """Set to true if you want all locus members to share the same direction
+
+    :param inbool:
+    :type inbool: bool
+
+    """
     self.use_direction = inbool
   def add_member(self,grange):
+    """Add a genomic range to the locus
+
+    :param grange:
+    :type grange: GenomicRange
+
+    """
     if self.use_direction and not grange.direction:
       sys.stderr.write("ERROR if using direction then direction of input members must be set\n")
       sys.exit()
@@ -420,8 +465,8 @@ class Locus:
     self.members.append(grange)
 
 class Loci:
-  # multiple locus combined together when new members are added
-  # based on parameters
+  """multiple locus combined together when new members are added
+     based on parameters"""
   def __init__(self):
     self.loci = []
     self.overhang = 0
@@ -429,19 +474,20 @@ class Loci:
     self.verbose = False
     return
   def set_minimum_distance(self,over):
+    """In preparation for combining loci specify how many basepairs they may be separated by but still get  merged"""
     self.overhang = over
-  # Do we want to only combine loci when they have the same direction, if so, set to True
   def set_use_direction(self,inbool):
+    """ Do we want to only combine loci when they have the same direction, if so, set to True"""
     self.use_direction = inbool
-  # Adds a locus to our loci, but does not go through an update our locus sets yet
   def add_locus(self,inlocus):
+    """ Adds a locus to our loci, but does not go through an update our locus sets yet"""
     if self.use_direction == True and inlocus.use_direction == False:
       sys.stderr.write("ERROR if using the direction in Loci, then every locus added needs use_direction to be True\n")
       sys.exit()
     self.loci.append(inlocus)
     return
-  # Goes through and combines loci until we have one set meeting our overlap definition
   def update_loci(self):
+    """Goes through and combines loci until we have one set meeting our overlap definition"""
     # Create sub-loci for each chromosome
     lbc = {}
     chroms = sorted([x.range.chr for x in self.loci])
@@ -458,6 +504,7 @@ class Loci:
     for chrom in sorted(lbc.keys()):
       for locus in lbc[chrom].loci:  self.loci.append(locus)
   def merge_down_loci(self):
+    """Called internally to make loci overlapping into one set"""
     old_locus_size = -1
     z = 0
     while len(self.loci) != old_locus_size:
@@ -485,15 +532,31 @@ class Loci:
       sys.stderr.write("Finished combining down "+str(len(self.loci))+" loci in "+str(z)+" steps   \n")
     return
 
-#pre an array of ranges
-#post a sorted array of ranges
 def sort_ranges(inranges):
+  """from an array of ranges, make a sorted array of ranges
+
+  :param inranges: List of GenomicRange data
+  :type inranges: GenomicRange[]
+  :returns: a new sorted GenomicRange list
+  :rtype: GenomicRange[]
+
+  """
   return sorted(inranges,key=lambda x: (x.chr,x.start,x.end,x.direction))
   
-#Pre: list of bed tools, whether or not they are already sorted
-#Post: flattend range list of ranges where if they overlapped, they are now joined
-#      (not yet) The new range payloads will be the previous ranges
 def merge_ranges(inranges,already_sorted=False):
+  """from a list of genomic range or bed entries, whether or not they are already sorted, 
+     make a flattend range list of ranges where if they overlapped, they are now joined
+     (not yet) The new range payloads will be the previous ranges
+
+  :param inranges:
+  :param already_sorted: has this already been sorted (defaults to False)
+  :type inranges: GenomicRange[]
+  :type already_sorted: bool
+
+  :return: sorted ranges
+  :rtype: GenomicRange[]
+
+  """
   if not already_sorted: inranges = sort_ranges(inranges)
   prev = None
   outputs = []
@@ -517,6 +580,16 @@ def merge_ranges(inranges,already_sorted=False):
   return sort_ranges(outputs)
 
 def pad_ranges(inranges,padding,chr_ranges=None):
+  """Add the specfied amount onto the edges the transcripts
+
+  :param inranges: List of genomic ranges in Bed o GenomicRange format.
+  :param padding: how much to add on
+  :param chr_ranges: looks like the list of ranges within which to pad
+  :type inranges: GenomicRange[]
+  :type padding: int
+  :type chr_ranges: 
+
+  """
   if not inranges: return
   outranges = []
   if len(inranges) == 0: return outranges
@@ -537,6 +610,17 @@ def pad_ranges(inranges,padding,chr_ranges=None):
   return sort_ranges(outranges)
 
 def subtract_ranges(r1s,r2s,already_sorted=False):
+  """Subtract multiple ranges from a list of ranges
+
+  :param r1s: range list 1
+  :param r2s: range list 2
+  :param already_sorted: default (False)
+  :type r1s: GenomicRange[]
+  :type r2s: GenomicRange[]
+
+  :return: new range r1s minus r2s
+  :rtype: GenomicRange[]
+  """
   from seqtools.stream import MultiLocusStream
   if not already_sorted:
     r1s = merge_ranges(r1s)
@@ -590,11 +674,20 @@ def subtract_ranges(r1s,r2s,already_sorted=False):
 
   return merge_ranges(outputs)
 
-# Does not do a merge if the payload has been set
-# Payload 1 return the payload of bed1 on each of the union set
-# Payload 2 return the payload of bed2 on each of the union set
-# Payload 3 return the payload of bed1 and bed2 on each of the union set
 def union_range_array(bed1,beds2,payload=None,is_sorted=False):
+  """ Does not do a merge if the payload has been set
+
+  :param bed1:
+  :param bed2:
+  :param payload: Payload 1 return the payload of bed1 on each of the union set
+  Payload 2 return the payload of bed2 on each of the union set
+  Payload 3 return the payload of bed1 and bed2 on each of the union set
+  :param is_sorted:
+  :type bed1: GenomicRange()
+  :type bed2: GenomicRange()
+  :type payload: int
+  :type is_sorted: bool
+  """
   if not is_sorted: beds2 = sort_ranges(beds2)
   output = []
   for bed2 in beds2:
@@ -611,10 +704,17 @@ def union_range_array(bed1,beds2,payload=None,is_sorted=False):
   if payload: return sort_ranges(output)
   return merge_ranges(output)
 
-# subtract several ranges from a range
-# pre: 1. range 2. range array
-# post: range array of 1 with 2 removed
 def subtract_range_array(bed1,beds2,is_sorted=False):
+  """subtract several ranges from a range, returns array1 - (all of array2)
+
+  :param bed1: 
+  :param beds2: subtract all these beds from bed1
+  :param is_sorted: has it been sorted already? Default (False)
+  :type bed1: Bed or GenomicRange
+  :type beds2: Bed[] or GenomicRange[]
+  :param is_sorted: bool
+
+  """
   if not is_sorted: beds2 = sort_ranges(beds2)
   output = [bed1.copy()]  
   mink = 0
@@ -631,20 +731,38 @@ def subtract_range_array(bed1,beds2,is_sorted=False):
   return output
 
 def string_to_genomic_range(rstring):
+  """ Convert a string to a genomic range
+
+  :param rstring: string representing a genomic range chr1:801-900
+  :type rstring:
+  :returns: object representing the string
+  :rtype: GenomicRange
+  """
   m = re.match('([^:]+):(\d+)-(\d+)',rstring)
   if not m: 
     sys.stderr.write("ERROR: problem with range string "+rstring+"\n")
   return GenomicRange(m.group(1),int(m.group(2)),int(m.group(3)))
 
 def sort_genomic_ranges(rngs):
+  """sort multiple ranges"""
   return sorted(rngs, key=lambda x: (x.chr, x.start, x.end))
 
-# take a list of ranges as an input
-# output a list of ranges and the coverage at each range
 def ranges_to_coverage(rngs,threads=1):
-  # input is the bed ranges on a single chromosome
-  # out is the non-overlapping bed ranges with the edition of depth
+  """take a list of ranges as an input
+  output a list of ranges and the coverage at each range
+  :param rngs: bed ranges on a single chromosome. not certain about that single chromosome requirement
+  :type rngs: GenomicRange[] or Bed[]
+  :param threads: Not currently being used
+  :type threads: int
+
+  :return: out is the non-overlapping bed ranges with the edition of depth
+  :rtype: GenomicRange[]
+  """
   def do_chr(rngs):
+    """do one chromosomes sorting
+    :param rngs:
+    :type rngs: GenomicRange[]
+    """
     #starts = sorted(range(0,len(rngs)), key=lambda x: rngs[x].start)
     #print starts
     #ends = sorted(range(0,len(rngs)), key=lambda x: rngs[x].end)
@@ -675,6 +793,7 @@ def ranges_to_coverage(rngs,threads=1):
     return outputs
   
   class Queue:
+    """Simple class to be able to use get function to retreive a value"""
     def __init__(self,val):
       self.val = [val]
     def get(self):
@@ -704,16 +823,29 @@ def ranges_to_coverage(rngs,threads=1):
   return results
 
 class BedArrayStream:
+  """Make a stream from a bedarray
+
+  Read as an interator or with read_entry()
+
+  :param bedarray:
+  :type bedarray: Bed[]
+  """
   def __init__(self,bedarray):
     self.prev = None
     self.curr_ind = 0
     self.bedarray = bedarray
   def read_entry(self):
+    """get the next value from the array, and set internal iterator so next call will be next entry
+
+    :return: The next GenomicRange entry
+    :rtype: GenomicRange
+    """
     if len(self.bedarray) <= self.curr_ind: return None
     val = self.bedarray[self.curr_ind]
     self.curr_ind += 1
     return val
   def next(self):
+    """ call read_entry() from inside this iterator"""
     r = self.read_entry()
     if not r: raise StopIteration
     else:
@@ -722,9 +854,15 @@ class BedArrayStream:
     return self
 
 class BedStream:
+  """Make a stream from a handle, keep it as an iterator
+
+  :param fh: readable file handle or stream
+  :type fh: handle
+  """
   def __init__(self,fh):
     self.fh = fh
   def read_entry(self):
+    """read the next bed entry from the stream"""
     line = self.fh.readline()
     if not line: return None
     m = re.match('([^\t]+)\t(\d+)\t(\d+)\t*(.*)',line.rstrip())
