@@ -1,70 +1,75 @@
-#!/usr/bin/python
-import argparse, sys, re
-import SamBasics
-import SequenceBasics
-from Bio.Format.Fasta import FastaData
+#!/usr/bin/env python
+"""Read any SAM/BAM and output a junction bed file in the splicemap format"""
 
-def main():
-  parser = argparse.ArgumentParser(description="Read a sam file and output a bed file in the format of junction_color.bed")
-  parser.add_argument('-o','--output',help='FILENAME is output')
-  parser.add_argument('--min_intron_size',type=int,default=68,help='minimum intron size')
-  parser.add_argument('infile',help='FILENAME of sam file or "-" for STDIN')
-  parser.add_argument('reference_genome',help='FILENAME of the reference genome')
-  args = parser.parse_args()
+import argparse, sys, re
+from seqtools.format.sam import is_header, SAM
+from seqtools.format.fasta import FASTAData
+from subprocess import Popen, PIPE
+
+def main(args):
 
   # get our reference genome
   sys.stderr.write("reading reference genome\n")
-  #g = SequenceBasics.read_fasta_into_hash(args.reference_genome)
-  g = FastaData(open(args.reference_genome).read())
+
+  g = FASTAData(open(args.reference_genome).read())
   sys.stderr.write("finished reading reference genome\n")
 
   inf = sys.stdin
+  if args.infile != '-':
+    if args.infile[-4:] == '.bam':
+      cmd = 'samtools view -h '+args.infile
+      pinf = Popen(cmd.split(),stdout=PIPE)
+      inf = pinf.stdout
+    else:
+      inf = open(args.infile)
+
   read_mapping_count = {}
   junctions = {}
-  if args.infile != '-':
-    inf = open(args.infile)
   sys.stderr.write("reading through sam file\n")
   zall = 0
   zn = 0
-  while True:
-    line = inf.readline()
-    if not line: break
-    line = line.rstrip()
-    if SamBasics.is_header(line): continue
-    d = SamBasics.sam_line_to_dictionary(line)
-    chrom = d['rname']
+  for line in inf:
+    if is_header(line): continue
+    sam = SAM(line)
+    if not sam.is_aligned(): continue
+
+    chrom = sam.value('rname')
     if chrom =='*': continue
     if chrom not in g.keys():
       sys.stderr.write("WARNING: "+chrom+" not in reference, skipping\n")
       continue
     mate = 'U'
-    if SamBasics.check_flag(d['flag'],int('0x4',16)): #check if its unmapped
-      continue  # we can ignore the unmapped things for now
-    if SamBasics.check_flag(d['flag'],int('0x40',16)):
+    if sam.check_flag(int('0x40',16)):
       mate = 'L'
-    elif SamBasics.check_flag(d['flag'],int('0x80',16)):
+    elif sam.check_flag(int('0x80',16)):
       mate = 'R'
-    actual_read = d['qname']+"\t"+mate
+    actual_read = sam.value('qname')+"\t"+mate
     if actual_read not in read_mapping_count:
       read_mapping_count[actual_read] = 0
     read_mapping_count[actual_read] += 1
     has_intron = 0
-    start_loc = d['pos']
+    start_loc = sam.value('pos')
     current_loc = start_loc
     bounds  = []
-    for i in range(0,len(d['cigar_array'])):
-      ce = d['cigar_array'][i]
+    cigar = [{'val':x[0],'op':x[1]} for x in sam.get_cigar()]
+    for i in range(0,len(cigar)):
+      # No action is necessary for H and S since they do not change the starting position on the reference
+      ce = cigar[i]
       if ce['op'] == 'N' and ce['val'] >= args.min_intron_size:
         has_intron = 1
         lbound = current_loc # should be the intron start base index-1
         current_loc += ce['val']
         rbound = current_loc # should be the second exon start base index-1
-        right_size = d['cigar_array'][i+1]['val']
+        right_size = cigar[i+1]['val']
         bounds.append([lbound,rbound,right_size])
       elif ce['op'] == 'D':
         current_loc += ce['val']
-      elif re.match('[=XMSHP]',ce['op']):
-        current_loc += ce['val'] 
+      #elif re.match('[=XMSHP]',ce['op']):
+      elif re.match('[=XM]',ce['op']):
+        current_loc += ce['val']
+      elif re.match('[P]',ce['op']):
+        sys.stderr.write("ERROR: P padding not supported yet\n")
+        sys.exit() 
     if has_intron == 0: continue # there are no splices to report here
     #print actual_read
     #print d['cigar']
@@ -118,7 +123,7 @@ def main():
         junctions[entry]['positions'] = set()
         junctions[entry]['right_sizes'] = set()
       junctions[entry]['reads'].add(actual_read)
-      junctions[entry]['positions'].add(d['pos'])
+      junctions[entry]['positions'].add(sam.value('pos'))
       junctions[entry]['right_sizes'].add(bound[2])
   sys.stderr.write("\n")
   sys.stderr.write("finished reading sam\n")
@@ -146,6 +151,12 @@ def main():
     bed[3] = name
     of.write("\t".join(bed)+"\n")    
 
+  if args.infile != '-':
+    if args.infile[-4:] == '.bam':
+      pinf.communicate()
+    else:
+      inf.close()
+
 def is_canon(input):
   v = set()
   v.add('GT-AG')
@@ -162,4 +173,22 @@ def is_revcanon(input):
   if input in v: return True
   return False
 
-main()
+def do_inputs():
+  parser = argparse.ArgumentParser(description="Read a SAM/BAM file and output a bed file in the format of junction_color.bed",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+  parser.add_argument('-o','--output',help='FILENAME is output')
+  parser.add_argument('--min_intron_size',type=int,default=68,help='minimum intron size')
+  parser.add_argument('infile',help='FILENAME SAM or BAM if .bam and "-" SAM for STDIN')
+  parser.add_argument('-r','--reference_genome',required=True,help='REQUIRED: FILENAME of the reference genome')
+  args = parser.parse_args()
+  return args
+
+def external_cmd(cmd):
+  cache_argv = sys.argv
+  sys.argv = cmd.split()
+  args = do_inputs()
+  main(args)
+  sys.argv = cache_argv
+
+if __name__=="__main__":
+  args = do_inputs()
+  main(args)
