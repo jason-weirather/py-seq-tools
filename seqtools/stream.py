@@ -1,15 +1,22 @@
+""" Classes to help stream biological data"""
 import sys
 from seqtools.range import merge_ranges
 from subprocess import Popen, PIPE
 
-# Classes to help stream biological data
 
-# Works for any stream with a 
-# 1. read_entry 
-# function and also 
-# 2. get_range
-# function for each of the objects streamed
 class LocusStream:
+  """Works for any stream with ordered range bound objects that have the functions.
+     LocusStream is a stream itself, and is iterable
+
+   1. read_entry()
+   2. get_range()
+
+   Data is not stored as an actual Locus object, but rather in list in the payload of the range covered by the locus
+
+   :param stream: ordered stream with range
+   :type stream: Stream
+   """
+
   def __init__(self,stream):
     self.stream = stream
     self.current_range = None
@@ -25,8 +32,14 @@ class LocusStream:
     if not r: raise StopIteration
     else:
       return r
-    
+
   def read_entry(self):
+    """As long as entires overlap keep putting them together in a list that is
+       the payload for a range that describes the bounds of the list
+
+    :return: range with payload list of elements
+    :rtype: GenomicRange
+    """
     if not self.current_range:
       return None
     output = None
@@ -49,12 +62,17 @@ class LocusStream:
         break
     return output
 
-# Take an array streams
-# Each element should be sorted by position
-# Streams need to have this method:
-# read_entry
-# Each entry should have a get_range element
 class MultiLocusStream:
+  """Take an array streams
+     Each element should be sorted by position
+     Streams need to have this method:
+
+     1. read_entry()
+     2. get_range()
+
+     :param streams: list of streams
+     :type streams: list
+  """
   def __init__(self,streams):
     self.streams = streams
     self.buffers = []
@@ -74,7 +92,11 @@ class MultiLocusStream:
       return r
 
   def read_entry(self):
-    # Find our current lowest range
+    """get the next aggrogate of streams
+
+    :return: range containing a list of entries from each stream that are from the overlapping part
+    :rtype: GenomicRange
+    """
     output = []
     for i in self.buffers: output.append([])
     rngs = [x.get_range() for x in self.buffers if x]
@@ -101,8 +123,13 @@ class MultiLocusStream:
     current_range.set_payload(output)
     return current_range
 
-# use gzip utility to compress output
 class GZippedOutputFile:
+  """ use gzip utility to compress output
+
+  :param filename: filename to write to
+  :type filename: string
+
+  """
   def __init__(self,filename):
     self._fh = open(filename,'w')
     cmd = "gzip"

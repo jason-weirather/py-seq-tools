@@ -679,12 +679,10 @@ def union_range_array(bed1,beds2,payload=None,is_sorted=False):
 
   :param bed1:
   :param bed2:
-  :param payload: Payload 1 return the payload of bed1 on each of the union set
-  Payload 2 return the payload of bed2 on each of the union set
-  Payload 3 return the payload of bed1 and bed2 on each of the union set
+  :param payload: payload=1 return the payload of bed1 on each of the union set, payload=2 return the payload of bed2 on each of the union set, payload=3 return the payload of bed1 and bed2 on each of the union set
   :param is_sorted:
-  :type bed1: GenomicRange()
-  :type bed2: GenomicRange()
+  :type bed1: GenomicRange
+  :type bed2: GenomicRange
   :type payload: int
   :type is_sorted: bool
   """

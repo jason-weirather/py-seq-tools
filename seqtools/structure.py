@@ -1,9 +1,11 @@
+"""this collection of classes helps us operate on mappings of transcripts"""
 import sys, random, string, uuid, pickle, zlib, base64
 from seqtools.range import GenomicRange, ranges_to_coverage, merge_ranges
 from seqtools.sequence import rc
 import seqtools.graph
 
 class Transcript:
+  """Class to describe the mapping of a basic transcript"""
   def __init__(self):
     self._exons = []
     self._junctions = []
@@ -24,14 +26,22 @@ class Transcript:
 
   @property
   def exons(self):
+    """Maybe the most core property of the transcript are the exon defintions"""
     self._initialize()
     return self._exons
+
   @property
-  def junctiosn(self):
+  def junctions(self):
+    """Can be inferred from the exons"""
     self._initialize()
     return self._junctions
 
   def validate(self):
+    """be certain the scructure is a transcriptome
+
+    :return: true if exon order is compatible with a transcriptome
+    :rtype: list
+    """
     self._initialize()
     # check the structure
     prev = None
@@ -46,15 +56,29 @@ class Transcript:
     return True
 
   def copy(self):
+    """A copy of the transcript
+
+    :return: transcript copy
+    :rtype: Transcript
+    """
     self._initialize()
     tx_str = self.dump_serialized() 
     tx = Transcript()
     tx.load_serialized(tx_str)
     return tx
-   
-  # Pre: Start base index 0
-  # Post: Finish base index 1
+
   def subset(self,start,finish):
+    """Make a trimmed transcript
+       Pre: Start base index 0
+       Post: Finish base index 1
+
+    :param start: 0-index start
+    :type start: int
+    :param end:
+    :type end: int
+    :return: subset transcript
+    :rtype: Transcript
+    """
     self._initialize()
     # construct a new transcript
     #print str(start)+' to '+str(finish)
