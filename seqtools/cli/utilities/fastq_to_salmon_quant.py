@@ -78,6 +78,7 @@ def main(args):
   """Collected enough information to make output"""
   sys.stderr.write("generating output\n")
   of = sys.stdout
+  of.write("geneName\ttranscriptName\tlength\tEffectiveLength\ttxTPM\tNumReads\tgeneTPM\n")
   if args.output != '-':
     of = open(args.output,'w')
   for gene in ordered_gene_names:
