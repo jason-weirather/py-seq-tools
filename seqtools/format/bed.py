@@ -2,8 +2,12 @@ import sys, uuid
 import seqtools.structure
 from seqtools.range import GenomicRange
 
-# Bed format with 9 optional fields
 class Bed12(seqtools.structure.Transcript):
+  """ Bed format with 9 optional fields 
+
+  :param bed_line: one line of a bed file
+  :type bed_line: string
+  """
   def __init__(self,bed_line):
     self._entry = self._line_to_entry(bed_line)
     self._line = bed_line.rstrip()
@@ -38,18 +42,24 @@ class Bed12(seqtools.structure.Transcript):
   def __str__(self):
     return self.get_bed_line()  
 
-  #output the original gpd line
-  # Overrides Structure.Transcript
   def get_bed_line(self):
+    """get the bed line"""
     return self._line
 
   def get_line(self):
+    """get the bed line"""
     return self._line
 
   def value(self,key):
+    """access the bed line by key
+
+    :param key: which attribute of the bed12
+    :type key: string
+    """
     return self._entry[key]
 
   def _line_to_entry(self,line):
+    """parse the line into entries and keys"""
     f = line.rstrip().split("\t")
     d = {}
     d['chrom'] = f[0]
