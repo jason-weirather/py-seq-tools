@@ -1,12 +1,20 @@
+"""Classes to work with the psl format"""
 import seqtools.align
 from seqtools.range import GenomicRange
 from seqtools.sequence import rc
 
 class PSL(seqtools.align.Alignment):
-  #Pre: psl_line is a psl formated line
-  #     reference is a dict/slice accessable sequence
-  #     query_sequences is a dict/slice accessable sequence
-  #     query_sequence is just the string that is the query
+  """Class to define a psl line
+
+  :param psl_line: is a psl formated line
+  :param reference: a dict/slice accessable sequences
+  :param query_sequences: a dict/slice accessable sequences
+  :param query_sequence:  just the string that is the query sequence
+  :type psl_line: string
+  :type refernece: dict()
+  :type query_sequences: dict()
+  :type query_sequence: string
+  """
   def __init__(self,psl_line,reference=None,query_sequences=None,query_sequence=None,query_quality=None):
     self._line = psl_line.rstrip()
     self._query_sequences = query_sequences
@@ -26,9 +34,12 @@ class PSL(seqtools.align.Alignment):
   def get_line(self):
     return self._line
 
-  #Do our overrides of Bio.Alignment.Align functions
-  #Overrides Bio.Alignment.Align.get_query_sequence()
   def get_query_sequence(self):
+    """Do our overrides parent to get query sequence
+
+    :return: query sequence
+    :rtype: string
+    """
     if self._query_sequence: return self._query_sequence
     if not self._query_sequences: return None
     if self.value('qName') not in self._query_sequences: return None
@@ -38,17 +49,21 @@ class PSL(seqtools.align.Alignment):
   def get_query_quality(self):
     return self._query_quality
 
-  #Overrides Bio.Alignment.Align.get_reference()
   def get_reference(self):
+    """overrides parent to get the reference genome dict()"""
     return self._reference
-  #Overrides Bio.Alignment.Align.get_query_length()
   def get_query_length(self):
+    """overrides parent to get the query length"""
     return self.value('qSize')
-  # Override the obvious access
   def get_PSL(self):
+    """Overrides parent to make the PSL generation just return self"""
     return self
-  # Override 
   def get_strand(self):
+    """same as direction
+
+    :return: strand + or -
+    :rtype: char
+    """
     return self.value('strand')
 
   def _parse_psl_line(self):
@@ -87,12 +102,16 @@ class PSL(seqtools.align.Alignment):
       self._alignment_ranges.append([trng,qrng])
     return
 
-  #Here is how we access value
   def value(self,key):
+    """ Access spefific attributes of the PSL by key name. Here is how we access value by keys
+
+    :param key: which attribute of the PSL to get
+    :type key: string
+    """
     return self._private_values.get_entry(key)    
-  # Values from the orginal should just be accessed though functions for consistancy sake.
-  # This class should remind us well that entires need to be accessed this way
   class PrivateValues:
+    """ This class was an attempt at creating closures for some values.  It may be overkill for what we are doing, or worse, it may be slow.  Values from the orginal should just be accessed though functions for consistancy sake.
+    This class should remind us well that entires need to be accessed this way"""
     def __init__(self):
       self.__entries = {}
     def set_entries_dict(self,mydict): self.__entries = mydict
