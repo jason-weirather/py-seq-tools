@@ -1,26 +1,33 @@
+"""bamindex class describes a custom index format used by AlignQC"""
 import gzip, sys, random, os
 from seqtools.range import GenomicRange
 from seqtools.format.sam import BAMFile
 
-# Index file is a gzipped TSV file with these fields:
-# 1. qname
-# 2. target range
-# 3. bgzf file block start
-# 4. bgzf inner block start
-# 5. aligned base count
-# 6. flag
-
-# Usage:
-# name_to_num is used to get all the names at random
-# get_longest_target_alignment_coords_by_name is used to get the best random
-# coord hash is import for random access
-# There are some inactive methods because the datastructures
-# they needed were not getting used and were memory intensive.
-# subsequent updates could put them back or even better only use them
-# when the methods requring them are called the first time
-# This class is actually incredibly bulky for working with a big index
-# > 1M reads.  I think some more specific cases may need to be written
 class BAMIndex:
+  """Index file is a gzipped TSV file with these fields:
+
+  1. qname
+  2. target range
+  3. bgzf file block start
+  4. bgzf inner block start
+  5. aligned base count
+  6. flag
+
+  Usage:
+
+  name_to_num is used to get all the names at random
+  get_longest_target_alignment_coords_by_name is used to get the best random
+  coord hash is import for random access
+  There are some inactive methods because the datastructures
+  they needed were not getting used and were memory intensive.
+  subsequent updates could put them back or even better only use them
+  when the methods requring them are called the first time
+  This class is actually incredibly bulky for working with a big index
+  > 1M reads.  I think some more specific cases may need to be written
+
+  :param index_file: filename (of the gzipped index file)
+  :type index_file: string
+  """
   def __init__(self,index_file):
     self.index_file = index_file
     self._name_to_num = {} #name index to line number
@@ -42,15 +49,18 @@ class BAMIndex:
     return
 
   def destroy(self):
+    """Try to clear memory up by setting values to None"""
     self._name_to_num = None
     self._lines = None
     self._coords = None
     return
 
-  # Pre: nothing
-  # Post: True if each chromosome is listed together as a chunk and if the range starts go from smallest to largest
-  #       otherwise false
   def check_ordered(self): 
+    """ True if each chromosome is listed together as a chunk and if the range starts go from smallest to largest otherwise false
+
+    :return: is it ordered?
+    :rtype: bool
+    """
     sys.stderr.write("error unimplemented check_ordered\n")
     sys.exit()
     seen_chrs = set()
@@ -68,19 +78,28 @@ class BAMIndex:
       prevstart = l['rng'].start
     return True
 
-  # Return how many entries have been indexed
   def get_length(self):
+    """number of indexed entries"""
     return len(self._lines)
 
   def get_names(self):
+    """get all the query names"""
     return self._name_to_num.keys()
 
   def get_coords_by_name(self,name):
+    """
+    .. warning:: not implemented
+    """
     sys.stderr.write("error unimplemented get_coords_by_name\n")
     sys.exit()
     return [[self._lines[x]['filestart'],self._lines[x]['innerstart']] for x in self._queries[self._name_to_num[name]]]
 
   def get_longest_target_alignment_coords_by_name(self,name):
+    """For a name get the best alignment
+
+    :return: [filebyte,innerbyte] describing the to distance the zipped block start, and the distance within the unzipped block
+    :rtype: list
+    """
     longest = -1
     coord = None
     #for x in self._queries[self._name_to_num[name]]:
@@ -91,36 +110,42 @@ class BAMIndex:
     sys.stderr.write("ERROR: no primary alignment set in index\n")
     sys.exit()
 
-  # Tak the 1-indexed line number and return its index information
   def get_index_line(self,lnum):
-    if lnum < 1: 
+    """ Take the 1-indexed line number and return its index information"""
+    if lnum < 1:
       sys.stderr.write("ERROR: line number should be greater than zero\n")
       sys.exit()
     elif lnum > len(self._lines):
       sys.stderr.write("ERROR: too far this line nuber is not in index\n")
-      sys.exit()  
+      sys.exit()
     return self._lines[lnum-1]
 
-  # return the one-indexed line number given the coordinates
   def get_coord_line_number(self,coord):
+    """return the one-indexed line number given the coordinates"""
     if coord[0] in self._coords:
       if coord[1] in self._coords[coord[0]]:
         return self._coords[coord[0]][coord[1]]
     return None
 
   def get_unaligned_lines(self):
+    """get the lines that are not aligned"""
     sys.stderr.write("error unimplemented get_unaligned_lines\n")
     sys.exit()
     return [self._lines[x-1] for x in self._unaligned]
-    #return [x for x in self._lines if x['flag'] & 4]
 
   def get_unaligned_start_coord(self):
+    """
+    .. warning:: not implemented
+    """
     sys.stderr.write("error unimplemented get_unaligned_start_coord\n")
     sys.exit()
     if len(self._unaligned)==0: return None
     return [self._lines[self._unaligned[0]-1]['filestart'],self._lines[self._unaligned[0]-1]['innerstart']]
 
   def get_range_start_coord(self,rng):
+    """
+    .. warning:: not implemented
+    """
     sys.stderr.write("error unimplemented get_range_start_coord\n")
     sys.exit()
     if rng.chr not in self._chrs: return None
@@ -136,15 +161,26 @@ class BAMIndex:
   
   # return the line number 1-indexed of the first occurance after range
   def get_range_start_line_number(self,rng):
+    """
+    .. warning:: not implemented
+    """
     sys.stderr.write("error unimplemented get_range_start_line\n")
     sys.exit()
     for i in range(0,len(self._lines)):
       if rng.cmp(self._lines[i]['rng'])==0: return i+1
     return None
 
-# The best index class will read an index file and only provide access
-# to primary alignment coordinates
 class BAMIndexRandomAccessPrimary:
+  """ The best index class will read an index file and only provide access
+      to primary alignment coordinates 
+
+  :param index_file: the bam index file
+  :param alignment_file: the bam alignment file
+  :param verbose: more visual output
+  :type index_file: string
+  :type alignment_file: string
+  :type verbose: bool
+  """
   def __init__(self,index_file=None,alignment_file=None,verbose=False):
     self.verbose=verbose
     self.alignment_file = None
@@ -165,7 +201,7 @@ class BAMIndexRandomAccessPrimary:
     z = 0
     tot = 0
     for line in fh:
-      z += 1      
+      z += 1
       f = line.rstrip().split("\t")
       if check_flag(int(f[5]),2304):
         continue # only process primary alignments
@@ -181,26 +217,30 @@ class BAMIndexRandomAccessPrimary:
     return
   def get_random_coord(self):
     return random.choice(self.bests)
-  #def get_alignment(self):
-  #  if not self.alignment_file:
-  #    sys.stderr.write("ERROR: alignment file needs to be defined on initialization for this method\n")
-  #    sys.exit()
-  #  v = random.choice(self.bests)
-  #  bf = BAMFile(self.alignment_)
-
 
 def check_flag(flag,inbit):
   if flag & inbit: return True
   return False
-      
-# Index file is a gzipped TSV file with these fields:
-# 1. qname
-# 2. target range
-# 3. bgzf file block start
-# 4. bgzf inner block start
-# 5. aligned base count
-# 6. flag
+
 def write_index(path,index_file,verbose=False,samtools=False):
+  """ Index file is a gzipped TSV file with these fields:
+
+  1. qname
+  2. target range
+  3. bgzf file block start
+  4. bgzf inner block start
+  5. aligned base count
+  6. flag
+
+  :param path: bamfile
+  :param index_file: bam index to write
+  :param verbose: default False
+  :param samtools: use samtools default False
+  :type path:
+  :type index_file:
+  :type verbose: bool
+  :type samtools: bool
+  """
   if verbose:
     sys.stderr.write("scanning for primaries\n")
   reads = {}

@@ -1,8 +1,14 @@
 import struct, sys, zlib, StringIO, time
 
-#Pre block starts
-#start 0-indexted, end 1-indexted
 def get_block_bounds(filename):
+ """Pre block starts
+    start 0-indexted, end 1-indexted
+
+ :param filename: filename
+ :type filename: string
+ :return: 0-index start and 1-index end
+ :rtype: array of arrays with the [start end] of each block
+ """
  bs = []
  with open(filename,'rb') as inf:
   while True:
@@ -32,11 +38,18 @@ def get_block_bounds(filename):
    chunk = inf.read(blocksize-1-xlen-19)
    inf.read(9)
    bs[-1].append(inf.tell())
- return bs    
+ return bs
 
-# Pre: filename to test if it is a bgzf format
-# Post: True or False
 def is_bgzf(filename):
+  """Pre: filename to test if it is a bgzf format
+
+  Post: True or False
+
+  :param filename:
+  :type filename: string
+  :return: if its a bgzf
+  :rtype: bool
+  """
   with open(filename,'rb') as inf:
    bytes1 = inf.read(12)
    if len(bytes1) != 12:
@@ -89,10 +102,18 @@ def is_bgzf(filename):
   return True
 
 class reader:
-  # Methods adapted from biopython's bgzf.py
-  # Pre: Handle is a file handle to read from
-  #      (optional) blockStart is the byte start location of a block
-  #      (optional) innerStart says how far into a decompressed bock to start
+  """ Methods adapted from biopython's bgzf.py
+
+         (optional) blockStart is the byte start location of a block
+         (optional) innerStart says how far into a decompressed bock to start
+
+  :param handle:
+  :param blockStart: start from here (optional)
+  :param innerStart: start from here (optional)
+  :type handle: stream
+  :type blockStart: int
+  :type innerStart: int
+  """
   def __init__(self,handle,blockStart=None,innerStart=None):
     self.fh = handle
     self._pointer = 0
@@ -115,6 +136,7 @@ class reader:
     self._buffer = self._load_block()
     self._buffer_pos = innerStart
   def read(self,size):
+    """read size bytes and return them"""
     done = 0 #number of bytes that have been read so far
     v = ''
     while True:
@@ -184,7 +206,7 @@ class reader:
     return {'block_size':block_size, 'data':data}
 
 class writer:
-  #  Give it the handle of the stream to write to
+  """  Give it the handle of the stream to write to"""
   def __init__(self,handle):
     #self.path = filename
     self.fh = handle

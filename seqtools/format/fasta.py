@@ -1,8 +1,14 @@
 import os, re, gzip
 import seqtools.sequence
 
-#Iterable Stream
 class FASTAStream:
+  """Iterable Stream
+
+  :param fh: file handle
+  :param custom_buffer_size: default size (10000000)
+  :type fh: stream
+  :type custom_buffer_size: int
+  """
   def __init__(self,fh,custom_buffer_size=10000000):
     self.fh = fh
     self.buffer_size = custom_buffer_size
@@ -70,10 +76,18 @@ class FASTA(seqtools.sequence.Seq):
     #return '>'+self.header+"\n"+self.seq+"\n"    
     return self._fasta+"\n"
 
-# Slicable fast fasta
-# It loses any additional header information in fasta header
-# only the first non-whitespace is what we use
 class FASTAData:
+  """ Slicable fast fasta
+  It loses any additional header information in fasta header
+  only the first non-whitespace is what we use
+
+  :param data: bytes of the fasta file
+  :param file: filename
+  :param dict: dictionary of chromosomes
+  :type data: bytes
+  :type file: string
+  :type dict: dict()
+  """
   def __init__(self,data=None,file=None,dict=None):
     self._lengths = {}
     self._seqs = {}
@@ -104,6 +118,21 @@ class FASTAData:
     return self._seqs[key]
 
   def get_sequence(self,chr=None,start=None,end=None,dir=None,rng=None):
+    """get a sequence
+
+    :param chr:
+    :param start:
+    :param end:
+    :param dir: charcter +/-
+    :parma rng:
+    :type chr: string
+    :type start: int
+    :type end: int
+    :type dir: char
+    :type rng: GenomicRange
+    :return: sequence 
+    :rtype: string
+    """
     if rng: 
       chr = rng.chr
       start = rng.start
@@ -126,15 +155,21 @@ class FASTAData:
       self._lengths[m1.group(1)] = len(seq)
       self._seqs[m1.group(1)] = seq
 
-# Do random access with an indexed Fasta File
-# Creates the index if its not there already
-# Pre: An uncompressed fasta file
-#      Can be called by chromosome and location slices
-#          Slices are same as array - zero indexed
-# Post: Makes index if doesn't exist upon being called.
-#       Can access sequence
-# Modifies: File IO reads the fasta, and writes a fasta index file
 class FASTAFile:
+  """ Do random access with an indexed Fasta File
+  Creates the index if its not there already
+
+  Pre: An uncompressed fasta file
+       Can be called by chromosome and location slices
+       Slices are same as array - zero indexed
+
+  Post: Makes index if doesn't exist upon being called.
+       Can access sequence
+
+  Modifies: File IO reads the fasta, and writes a fasta index file
+
+  .. warning:: this uses a subclass.  probably should avoid that
+  """
   def __init__(self,fname,index=None):
     self.fname = fname
     self.index = index
