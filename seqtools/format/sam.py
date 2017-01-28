@@ -1,6 +1,6 @@
+"""Classes to work with sam and bam files"""
 import struct, zlib, sys, re, os, gzip, random
 import seqtools.align
-#import seqtools.format.bamindex as BamIndex
 from seqtools.sequence import rc
 from cStringIO import StringIO
 from string import maketrans
@@ -13,6 +13,15 @@ _sam_cigar_target_add = re.compile('[M=XDN]$')
 
 # A sam entry
 class SAM(seqtools.align.Alignment):
+  """Class to define the SAM format.
+
+  :param line:
+  :param reference:
+  :param reference_lengths:
+  :type line: string
+  :type reference: dict() 
+  :type reference_lengths: dict() dictionary of chromosome keyed lengths
+  """
   def __init__(self,line,reference=None,reference_lengths=None):
     self._line = line.rstrip()
     self._reference = reference
@@ -30,8 +39,11 @@ class SAM(seqtools.align.Alignment):
       return self._line
     return self.get_line()
 
-  # Get the length of the target sequence
   def get_target_length(self):
+    """ Get the length of the target sequence.  length of the entire chromosome
+    :return: length
+    :rtype: int
+    """
     if not self.is_aligned():
       sys.stderr.write("ERROR no length for reference when not aligned\n")
       sys.exit()
@@ -46,13 +58,20 @@ class SAM(seqtools.align.Alignment):
     sys.stderr.write("ERROR reference found\n")
     sys.exit()
 
-  # Overrides align
   def get_query_sequence(self):
+    """ Overrides align 
+
+    .. warning:: this returns the full query sequence, not just the aligned portion
+    """
     if self.value('seq') == '*': return None
     if self.check_flag(0x10): return rc(self.value('seq'))
     return self.value('seq')
   #Overrides Bio.Alignment.Align.get_query_sequence()
   def get_query_quality(self):
+    """ Overrides align 
+
+    .. warning:: this returns the full query quality, not just the aligned portion
+    """
     if not self.get_query_sequence(): return None
     if self.value('qual') == '*': return None
     if self.check_flag(0x10): return self.value('qual')[::-1]
@@ -64,19 +83,27 @@ class SAM(seqtools.align.Alignment):
     if seq != '*': return len(self.value('seq'))
     return sum([x[0] for x in self.get_cigar() if re.match('[MIS=X]',x[1])])
 
-  # Similar to get_get_query_length, but it also includes
-  # hard clipped bases
-  # if there is no cigar, then default to trying the sequence
   def get_original_query_length(self):
+    """Similar to get_get_query_length, but it also includes
+    hard clipped bases
+    if there is no cigar, then default to trying the sequence
+
+    :return: the length of the query before any clipping
+    :rtype: int
+    """
     if not self.is_aligned():
       return self.get_query_length()    
     if self.get_cigar() == '*':
       return self.get_query_length()
     return sum([x[0] for x in self.get_cigar() if re.match('[HMIS=X]',x[1])])
-  
-  # This accounts for hard clipped bases 
-  # and a query sequence that hasnt been reverse complemented
+
   def get_actual_original_query_range(self):
+    """ This accounts for hard clipped bases 
+    and a query sequence that hasnt been reverse complemented
+
+    :return: the range covered on the original query sequence
+    :rtype: GenomicRange
+    """
     l = self.get_original_query_length()
     a = self.get_alignment_ranges()
     qname = a[0][1].chr
@@ -90,17 +117,26 @@ class SAM(seqtools.align.Alignment):
       start = 1+l-(qend)
     return GenomicRange(qname,start,end,self.get_strand())
 
-  #Overrides Bio.Alignment.Align.get_strand()
-  #Which strand is the query aligned to
   def get_strand(self):
+    """ Overrides parent to get direction from the flag
+
+    :return: strand/direction + or -
+    :rtype: char
+    """
     if self.check_flag(0x10): return '-'
     return '+'
 
-  #Overrides Bio.Alignment.Align.get_SAM()
   def get_SAM(self):
+    """Override parent to just return itself"""
     return self
 
   def get_tag(self,key):
+    """access tags by key and get the value
+
+    .. warning:: Some of the key values may be better returned as numerical when they are.  Right now i'm not sure how its implemneted but probably just as a string.
+
+    :param key: type key: string return: key rtype: string
+    """
     return self._private_values.get_tags()[key]['value']
 
   #Overrides Bio.Alignment.Align._set_alignment_ranges()
@@ -159,12 +195,21 @@ class SAM(seqtools.align.Alignment):
         tags[m[0]] = {'type':m[1],'value':m[2]}
     self._private_values.set_tags(tags)
 
-  # Necessary function for doing a locus stream
-  # For the context of a SAM file we set this to be the target range
   def get_range(self):
+    """ Necessary function for doing a locus stream
+    For the context of a SAM file we set this to be the target range
+
+    :return: target range
+    :rtype: GenomicRange
+    """
     return self.get_target_range()
 
   def get_target_range(self):
+    """Get the range on the target strand
+
+    :return: target range
+    :rtype: GenomicRange
+    """
     if not self.is_aligned(): return None
     if self._target_range: return self._target_range
     global _sam_cigar_target_add
@@ -177,8 +222,11 @@ class SAM(seqtools.align.Alignment):
   def is_aligned(self):
     return not self.check_flag(0x4)
 
-  #assemble the line if its not there yet
   def get_line(self):
+    """assemble the line if its not there yet
+
+    .. warning:: this should probably not exist if the constructor takes a line
+    """
     if not self._line:
       chr = self.value('rname')
       rnext = self.value('rnext')
@@ -192,14 +240,25 @@ class SAM(seqtools.align.Alignment):
   def value(self,key):
     return self._private_values.get_entry(key)
   def get_tags(self): 
+    """Get all the tags
+
+    :return: tag information
+    :rtype: dict() of key value attributes
+    """
     return self._private_values.get_tags()
-  def get_cigar(self): 
+  def get_cigar(self):
+    """ Get list of cigar data in the form [[value1,char1],[value2,char2]...]
+
+    :return: cigar data
+    :rtype: list of [int value, char type] pairs
+    """
     return self._private_values.get_cigar()
 
-  #Bam files need a specific override to get_tags and get_cigar that would break other parts of the class if we 
-  # access the variables other ways
-  #Force tags and cigars to be hidden so we don't accidently change them.
   class PrivateValues:
+    """My attempt at closures again.  Still think its probably not worth the trouble doing it this way.  Bam files need a specific override to get_tags and get_cigar that would break other parts of the class if we 
+    access the variables other ways
+    Force tags and cigars to be hidden so we don't accidently change them.
+    """
     def __init__(self):
       self.__tags = None
       self.__cigar = None
@@ -219,10 +278,29 @@ class SAM(seqtools.align.Alignment):
       return False
     def set_entry(self,key,value): self.__entries[key] = value
 
-# Very much like a sam entry but optimized for access from a bam
-# Slows down for accessing things that need more decoding like
-# sequence, quality, cigar string, and tags
 class BAM(SAM):
+  """Very much like a sam entry but optimized for access from a bam
+  Slows down for accessing things that need more decoding like
+  sequence, quality, cigar string, and tags
+
+  .. warning:: Having the reference names and the reference sizes we may save some time by not reading the header each time we access the file.  Theres probably a more efficent coarse to go by defining a bamfile object and having a BAMline entry being the extension of sam, and drawing most of this stuff from the bam file
+
+  :param bin_data: byte data for just a single bam entry (seems unnecessary since we have the file)
+  :param ref_names: array of refernece names
+  :param fileName: the bam file name
+  :param blockStart:
+  :param innerStart:
+  :param ref_lengths: seems unncessary to take the reference lengths because we can always get that from the header
+  :param reference:
+  :param line_number:
+  :type bin_data: bytes
+  :type ref_names: list of names
+  :type blockStart: where to begin in the file
+  :type innerStart: where to begin in the decompressed block
+  :type ref_lengths: dict()
+  :type reference: dict()
+  :type line_number: int
+  """
   def __init__(self,bin_data,ref_names,fileName=None,blockStart=None,innerStart=None,ref_lengths=None,reference=None,line_number=None):
     part_dict = _parse_bam_data_block(bin_data,ref_names)
     #self._bamfileobj = bamfileobj #this is most like our parent
@@ -239,6 +317,7 @@ class BAM(SAM):
     return
 
   def get_alignment_ranges(self):
+    """return the basics for defining an alignment"""
     if not self._alignment_ranges:
       self._set_alignment_ranges()
     return self._alignment_ranges
@@ -246,10 +325,16 @@ class BAM(SAM):
   def get_line_number(self):
     return self._line_number
   def get_target_length(self):
+    """length of the entire chromosome"""
     return self._ref_lengths[self.value('rname')]
   def get_filename(self):
     return self._file_position['fileName']
   def get_coord(self):
+    """get the current coordinate
+
+    :return: [blockStart, innerStart]
+    :rtype: list is a pair [int, int]
+    """
     return [self._file_position['blockStart'],self._file_position['innerStart']]
   def get_block_start(self):
     return self._file_position['blockStart']
@@ -259,7 +344,10 @@ class BAM(SAM):
     return 'fileName: '+self._file_position['fileName']+" "\
            'blockStart: '+str(self._file_position['blockStart'])+" "\
            'innerStart: '+str(self._file_position['innerStart'])
-  def get_tag(self,key): 
+  def get_tag(self,key):
+    """retrieve the value of a single tag by its key.  
+
+    .. warning:: Not sure if it accommodates multiple of the same keys"""
     cur = self._private_values.get_tags()
     if not cur:
       v1,v2 = _bin_to_extra(self.value('extra_bytes'))
@@ -267,21 +355,20 @@ class BAM(SAM):
       self._private_values.set_entry('remainder',v2)
     return self._private_values.get_tags()[key]['value']
   def get_cigar(self): 
+    """produce the cigar in list form
+
+    :return: Cigar list of [value (int), type (char)] pairs
+    :rtype: list
+    """
     cur = self._private_values.get_cigar()
     if not cur:
       v1,v2 = _bin_to_cigar(self.value('cigar_bytes'))
       self._private_values.set_cigar(v1) #keep the cigar array in a special palce
       self._private_values.set_entry('cigar',v2)
     return self._private_values.get_cigar()
-  #def indexed_as_primary_alignment(self):
-  #  ind = self._bamfileobj.index
-  #  if not ind:
-  #    sys.stderr.write("ERROR: to access indexed as primary alignment, and index must have been loaded\n")
-  #    sys.exit()
-  #  e = self._bamfileobj.index.get_index_line(self._line_number)
-  #  if e['flag'] & 2304: return False
-  #  return True
+
   def value(self,key):
+    """Access basic attributes of BAM by key"""
     if not self._private_values.is_entry_key(key):
       if key == 'seq':
         v = _bin_to_seq(self.value('seq_bytes'))
@@ -307,6 +394,7 @@ class BAM(SAM):
 
 
 class SAMHeader:
+  """class to retain information about a SAMheader and access data from it"""
   def __init__(self,header_text):
     self._text = header_text
     self.tags = []
@@ -331,7 +419,19 @@ class SAMHeader:
 
 # reference is a dict
 class BAMFile:
-  #def __init__(self,filename,blockStart=None,innerStart=None,cnt=None,index_obj=None,index_file=None,reference=None):
+  """iterable class to open and access a bam file
+
+  :param filename:
+  :param blockStart:
+  :param innerStart:
+  :param cnt:
+  :param reference: dictionary of genomic sequences
+  :type filename: string
+  :type blockStart: int
+  :type innerStart: int
+  :type cnt: int
+  :type reference: dict()
+  """
   def __init__(self,filename,blockStart=None,innerStart=None,cnt=None,reference=None):
     self.path = filename
     self._reference = reference # dict style accessable reference
@@ -362,30 +462,6 @@ class BAMFile:
       self._header = SAMHeader(self.header_text)
       return self._header
     return self._header
-  #def has_index(self):
-  #  if self.index: return True
-  #  return False
-
-  # Index file is a gzipped TSV file with these fields:
-  # 1. qname
-  # 2. target range
-  # 3. bgzf file block start
-  # 4. bgzf inner block start
-  # 5. aligned base count
-  # 6. flag
-  #def write_index(self,index_file,verbose=False):
-  #  BamIndex.write_index(self.path,index_file,verbose=verbose)
-  #  #_write_index(self.path,index_file,verbose=verbose)
-
-  #def read_index(self,index_file=None):
-  #  #prepare index
-  #  if index_file: 
-  #    self.index = BamIndex.BAMIndex(index_file)
-  #    return True
-  #  elif os.path.exists(self.path+'.bgi'):
-  #    self.index = BamIndex.BAMIndex(self.path+'.bgi')
-  #    return True
-  #  return False
 
   def __iter__(self):
     return self
@@ -425,34 +501,12 @@ class BAMFile:
     self._output_range = rng
     return
 
-  #def fetch_random(self):
-  #  cnt = self.index.get_length()
-  #  num = random.randint(0,cnt-1)
-  #  iline = self.index.get_index_line(num+1)
-  #  bf2 = BAMFile(self.path,blockStart=iline['filestart'],innerStart=iline['innerstart'])
-  #  bam = bf2.read_entry()
-  #  bf2.close()
-  #  return bam
-
-  #def fetch_by_range(self,rng):
-  #  coord = self.index.get_range_start_coord(rng)
-  #  line_number = self.index.get_range_start_line_number(rng)
-  #  if not coord: return None
-  #  b2 = BAMFile(self.path,blockStart=coord[0],innerStart=coord[1],index_obj=self.index,reference=self._reference)
-  #  b2._set_output_range(rng)
-  #  return b2
-
-  # A special way to access via bam
-  #def fetch_by_query(self,name):
-  #  bams = []
-  #  for coord in self.index.get_coords_by_name(name):
-  #    b2 = BAMFile(self.path,blockStart=coord[0],innerStart=coord[1],index_obj=self.index,reference=self._reference)
-  #    bams.append(b2.read_entry())
-  #    b2.close()
-  #  return bams
-    
   # only get a single
   def fetch_by_coord(self,coord):
+    """get a single entry by the coordinate location [blockStart, innerStart]
+
+    .. warning:: creates a new instance of a BAMFile object when maybe the one we had would have worked
+    """
     #b2 = BAMFile(self.path,blockStart=coord[0],innerStart=coord[1],index_obj=self.index,reference=self._reference)
     b2 = BAMFile(self.path,blockStart=coord[0],innerStart=coord[1],reference=self._reference)
     bam = b2.read_entry()
@@ -462,6 +516,10 @@ class BAMFile:
 
   def fetch_starting_at_coord(self,coord):
     #b2 = BAMFile(self.path,blockStart=coord[0],innerStart=coord[1],index_obj=self.index,reference=self._reference)
+    """starting at a certain coordinate was supposed to make output
+
+    .. warning:: creates a new instance of a BAMFile object when maybe the one we had would have worked
+    """
     b2 = BAMFile(self.path,blockStart=coord[0],innerStart=coord[1],reference=self._reference)
     return b2
 
@@ -588,7 +646,17 @@ def _bin_to_extra(extra_bytes):
 
 
 class BGZF:
-  # Methods adapted from biopython's bgzf.py
+  """ Methods adapted from biopython's bgzf.py
+
+  .. warning:: We already have a BGZF class, i winder why we don't put this there
+
+  :param filename:
+  :param blockStart:
+  :param innerStart:
+  :type filename: string
+  :type blockStart: int
+  :type innerStart: int
+  """
   def __init__(self,filename,blockStart=None,innerStart=None):
     self.path = filename
     self.fh = open(filename,'rb')
@@ -610,7 +678,9 @@ class BGZF:
     self._buffer_pos = 0
     self._buffer = self._load_block()
     self._buffer_pos = innerStart
+    """go to this posiiton in the file"""
   def read(self,size):
+    """Read this many bytes from where you currently are"""
     done = 0 #number of bytes that have been read so far
     v = ''
     while True:
@@ -665,8 +735,18 @@ class BGZF:
     return {'block_size':block_size, 'data':data}
 
 class SAMStream:
-  #  minimum_intron_size greater than zero will only show sam entries with introns (junctions)
-  #  minimum_overhang greater than zero will require some minimal edge support to consider an intron (junction)
+  """minimum_intron_size greater than zero will only show sam entries with introns (junctions)
+  minimum_overhang greater than zero will require some minimal edge support to consider an intron (junction)
+
+  :param fh: filehandle to go through
+  :param minimum_intron_size: (default 0)
+  :param minimum_overhang: require some minimum edge support to consider a junction.  Probably should make more use of this
+  :param reference: dictionary of reference sequences
+  :type fh: stream
+  :type minimum_intron_size: int
+  :type minimum_overhang:
+  :type reference: dict()
+  """
   def __init__(self,fh=None,minimum_intron_size=0,minimum_overhang=0,reference=None):
     self.previous_line = None
     self.in_header = True
@@ -687,6 +767,7 @@ class SAMStream:
 
   # return a string that is the header
   def get_header(self):
+    """Return the object representing the header"""
     if not self._header:
       self._header = SAMHeader(self.header_text)
       return self._header
@@ -757,10 +838,8 @@ def is_junction_line(line,minlen=68,minoverhang=0):
   return False
 
 
-#pre: a flag from a sam file, in integer format
-#     a bit to convert, given as a hex number ie 0x10
-#post: returns true if the flag is set on
 def is_header(line):
+  """true if we are in a header"""
   if re.match('^@',line):
     f = line.rstrip().split("\t")
     if(len(f) > 9):
@@ -770,6 +849,7 @@ def is_header(line):
 
 
 class SamtoolsBAMStream(SAMStream):
+  """Stream but use samtools"""
   def __init__(self,path,minimum_intron_size=0,minimum_overhang=0,reference=None):
     self.previous_line = None
     self.in_header = True
@@ -796,7 +876,7 @@ class SamtoolsBAMStream(SAMStream):
   #  #_write_index(self.path,opath,verbose=verbose,samtools=True)
 
 def sort_header(header_text):
-  #sort the chromosomes in a header text
+  """sort the chromosomes in a header text"""
   lines = header_text.rstrip().split("\n")
   rlens = {}
   for ln in lines:
@@ -816,6 +896,7 @@ def sort_header(header_text):
   return output
 
 def check_flag(flag,inbit):
+  """Check a flag is true or false"""
   if flag & inbit: return True
   return False
 
