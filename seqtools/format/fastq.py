@@ -1,8 +1,8 @@
 import re, sys
 import seqtools.sequence
 
-#Iterable Stream
 class FASTQStream:
+  """Iterable Stream"""
   def __init__(self,fh):
     self.fh = fh
   def __iter__(self):
@@ -25,7 +25,11 @@ class FASTQStream:
     return FASTQ("\n".join([line1,line2,line3,line4]))
 
 class FASTQ(seqtools.sequence.Seq):
-  # v is the lines with the first '@' removed
+  """ fastq single entry
+
+  :param v: one entry
+  :type v: string
+  """
   def __init__(self,v):
     self.lines = v.rstrip().split("\n")
     self.header = self.lines[0][1:]

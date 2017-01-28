@@ -3,8 +3,12 @@ import seqtools.structure
 from seqtools.range import GenomicRange
 from subprocess import Popen, PIPE
 
-# This whole format is a subclass of the Transcript subclass
 class GPD(seqtools.structure.Transcript):
+  """ This whole format is a subclass of the Transcript subclass
+
+  :param gpd_line:
+  :type gpd_line: string
+  """
   def __init__(self,gpd_line):
     # Only store the line and ID at first.  
     self._line = gpd_line.rstrip()
@@ -48,16 +52,16 @@ class GPD(seqtools.structure.Transcript):
     self._initialize()
     return self._exons
 
-  # override, we are garunteed to have the range since we initialize on reading a line
   def get_range(self):
+    """ override, we are garunteed to have the range since we initialize on reading a line"""
     return self._range
 
   def __str__(self):
     return self.get_gpd_line()  
 
-  #output the original gpd line
-  # Overrides Structure.Transcript
   def get_gpd_line(self):
+    """output the original gpd line
+    Overrides Structure.Transcript"""
     return self._line
 
   def get_line(self):
@@ -86,6 +90,7 @@ def _line_to_entry(line):
   return d
 
 class GPDStream:
+  """Iterate over GPD entries"""
   def __init__(self,fh):
     self.fh = fh
 
@@ -106,6 +111,15 @@ class GPDStream:
       return r
 
 class SortedOutputFile:
+  """a stream to write to for outputing a sorted file
+
+  :param filename: output file
+  :param type: how to sort (default location)
+  :param tempdir:
+  :type filename: string
+  :type type: string
+  :type tempdir: string
+  """
   def __init__(self,filename,type='location',tempdir=None):
     if type not in ['location','name']:
       sys.stderr.write("ERROR: must be type location or name\n")
