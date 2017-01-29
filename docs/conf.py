@@ -207,6 +207,7 @@ htmlhelp_basename = 'seqtoolsdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
+PREAMBLE = open('latex_preamble.tex','r+').read()
 latex_elements = {
 # The paper size ('letterpaper' or 'a4paper').
 #'papersize': 'letterpaper',
@@ -215,7 +216,7 @@ latex_elements = {
 #'pointsize': '10pt',
 
 # Additional stuff for the LaTeX preamble.
-#'preamble': '',
+'preamble': PREAMBLE,
 
 # Latex figure (float) alignment
 #'figure_align': 'htbp',
