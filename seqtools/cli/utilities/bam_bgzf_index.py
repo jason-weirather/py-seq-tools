@@ -1,4 +1,14 @@
-#!/usr/bin/python
+"""The bam bgzf utility produces gzipped index of a bam file with the following fields for each line of the bam file (not counting header)
+
+   1. Query name
+   2. Target range
+   3. BlockStart
+   4. InnerStart
+   5. Aligned Base Count
+   6. Flag
+
+   This index can be used to provide random access into a bam file
+"""
 import argparse, sys, os, gzip
 from shutil import rmtree, copy
 from multiprocessing import cpu_count, Pool
