@@ -1,3 +1,6 @@
+"""The cli_front is a the command line utility that is used to list all the
+   accessable command line utilities and to call the command line utility
+   you want to run."""
 import sys, argparse, pkgutil
 from importlib import import_module
 import os.path
