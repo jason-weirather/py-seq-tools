@@ -1,5 +1,25 @@
-#!/usr/bin/env python
-"""Take a fastq/fasta and make a transcriptome quantification"""
+"""Take a fastq/fasta and make a transcriptome quantification
+
+   Pre: Requires
+
+   1. A FASTQ/FASTA input file (can be gzipped)
+   2. A transcriptome genepred
+   3. A genome fasta
+
+   See -h for detailed input description
+
+   Post: Returns
+
+   Writes an output table that has header and the following fields:
+
+   1. geneName
+   2. transcriptName
+   3. length (transcript)
+   4. EffectiveLength (transcript)
+   5. TPM (transcript)
+   6. NumReads(transcript)
+   7. TPM (gene)
+"""
 import argparse, sys, os, gzip
 from shutil import rmtree, copy
 from multiprocessing import cpu_count, Pool

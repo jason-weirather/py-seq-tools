@@ -1,4 +1,11 @@
-#!/usr/bin/env python
+"""Convert a FASTQ to a TSV with the following fields
+
+   1. Header (without the '@' prepending)
+   2. Sequence
+   3. Line 3 (still has the '+' sign)
+   4. Quality
+
+   lines cannot contain tabs"""
 import argparse, sys, re
 from seqtools.format.fastq import FASTQStream
 

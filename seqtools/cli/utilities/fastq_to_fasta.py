@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+"""Convert a FASTQ file to a FASTA"""
 import argparse, sys
 from seqtools.format.fastq import FASTQStream
 

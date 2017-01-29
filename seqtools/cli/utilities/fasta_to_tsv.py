@@ -1,4 +1,9 @@
-#!/usr/bin/env python
+"""Convert a FASTA file into a TSV with the fields
+
+   1. Header
+   2. Sequence
+
+The Header cannot contain tabs, and any linebreaks in the sequence will be lost"""
 import argparse, sys, os, re
 from seqtools.format.fasta import FASTAStream
 

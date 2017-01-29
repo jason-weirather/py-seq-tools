@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+"""Convert a FASTA file into a FASTQ file. You can designate what to include
+   in the quality score by setting the --ascii paramater (default 'I')"""
 import argparse, sys
 from seqtools.format.fasta import FASTAStream
 

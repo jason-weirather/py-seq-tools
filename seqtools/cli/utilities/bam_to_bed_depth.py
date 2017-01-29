@@ -1,4 +1,15 @@
-#!/usr/bin/python
+""" Convert a BAM or a SAM into a bed depth file
+
+   The file is a TSV format with the fields
+
+   1. Chromosome
+   2. Start (0-index)
+   3. End (1-index)
+   4. Read depth
+
+   The file is ordered and covers all regions covered by alignments
+"""
+
 import argparse, sys, os
 from shutil import rmtree
 from multiprocessing import cpu_count, Lock, Pool
