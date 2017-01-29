@@ -37,11 +37,11 @@ class MakeErrors:
     """Perform the permutation on the sequence
 
     :param fastq: FASTQ sequence to permute
-    :type fastq: FASTQ
+    :type fastq: format.fastq.FASTQ
     :param rate: how frequently to permute
     :type rate: float
     :return: Permutted FASTQ
-    :rtype: FASTQ
+    :rtype: format.fastq.FASTQ
     """
     sequence = fastq.seq
     seq = ''
@@ -75,11 +75,11 @@ class MakeErrors:
     """Perform the permutation on the sequence
 
     :param fastq: FASTQ sequence to permute
-    :type fastq: FASTQ
+    :type fastq: format.fastq.FASTQ
     :param rate: how frequently to permute
     :type rate: float
     :return: Permutted FASTQ
-    :rtype: FASTQ
+    :rtype: format.fastq.FASTQ
     """
     sequence = fastq.seq
     quality = fastq.qual
@@ -115,13 +115,13 @@ class MakeErrors:
     """Perform the permutation on the sequence. If authorized to do multiple bases they are done at hte rate defined here.
 
     :param fastq: FASTQ sequence to permute
-    :type fastq: FASTQ
+    :type fastq: format.fastq.FASTQ
     :param rate: how frequently to permute
     :type rate: float
     :param max_inserts: the maximum number of bases to insert (default 1)
     :type rate: int
     :return: Permutted FASTQ
-    :rtype: FASTQ
+    :rtype: format.fastq.FASTQ
     """
     sequence = fastq.seq
     quality = fastq.qual
