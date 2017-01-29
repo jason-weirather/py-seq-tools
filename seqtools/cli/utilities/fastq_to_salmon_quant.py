@@ -1,5 +1,7 @@
 """Take a fastq/fasta and make a transcriptome quantification
 
+   **Requires salmon**
+
    Pre: Requires
 
    1. A FASTQ/FASTA input file (can be gzipped)

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+"""Trim a FASTQ file/stream ends of all entries (option to invert and only keep the ends)"""
 import argparse, sys, os, re
 from seqtools.format.fastq import FASTQStream
 

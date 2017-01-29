@@ -1,5 +1,17 @@
-#!/usr/bin/env python
-"""Read any SAM/BAM and output a junction bed file in the splicemap format"""
+"""Read any SAM/BAM and output a junction bed file in the splicemap format
+
+   The bed format is compatible with the UCSC genome browser for viewing the junctions.
+   The name of the junction encodes important information about the support from the short reads.
+
+   (nR)[width_nR](nUR/nMR)
+
+   * nR - Number of reads supporting the junction
+   * width - Range of different right side lengths supporting the junction (larger means better diversity of coverage)
+   * nNR - Number of no-redundant reads supporting the junction
+   * nUR - Number of uniquely mappable reads supporting the junction
+   * nMR - Number of multiply mappable reads supporting the junction
+
+"""
 
 import argparse, sys, re
 from seqtools.format.sam import is_header, SAM

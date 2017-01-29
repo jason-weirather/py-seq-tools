@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+"""Undo the fastq_to_tsv command and put it back in fastq format"""
 import argparse, sys, re
 
 def main(args):

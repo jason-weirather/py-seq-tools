@@ -1,4 +1,3 @@
-#/usr/bin/env python
 """Take alignments of PacBio data highest quality, any quality (low quality), 
 or subreads and output the best aligned molecules
 

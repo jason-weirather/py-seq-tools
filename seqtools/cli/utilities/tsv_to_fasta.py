@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+"""Undo the fasta_to_tsv command and put it back in fasta format"""
 import argparse, sys, os, re
 
 def main(args):

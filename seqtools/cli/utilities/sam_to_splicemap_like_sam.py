@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Convert a BAM/SAM file into one that is compatible with applications
-that require a splicemap output SAM.  Requires samtools.
+that require a splicemap output SAM.  
+
+**Requires samtools.**
 
 This makes the IDP and IDP-fusion in versions that depend on splicemap
 to accept more universal inputs.

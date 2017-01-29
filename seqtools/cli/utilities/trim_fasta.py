@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+"""left or right trim a FASTA file (option ot invert the trim to keep the ends)"""
 import argparse, sys, os, re
 from seqtools.format.fasta import FASTAStream
 
