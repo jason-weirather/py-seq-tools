@@ -25,7 +25,7 @@ def main(args):
   else: args.input = BAMFile(args.input,reference=ref)
   for e in args.input:
     if e.is_aligned():
-      of.write(e.get_PSL()+"\n")
+      of.write(str(e.get_PSL())+"\n")
   of.close()
 
 
