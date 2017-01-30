@@ -20,3 +20,30 @@ From within the source directory you can try
 `$ pip install .`
 
 This should make the `seq-tools` command available as well as the `seqtools` library for import.
+
+This library includes the following modules:
+
+* seqtools
+  * align
+  * errors
+  * format
+    * bamindex
+    * bed
+    * bgzf
+    * fasta
+    * fastq
+    * pacbio
+    * psl
+    * sam
+  * graph
+  * range
+  * sequence
+  * simulation
+    * emitter
+    * permute
+    * randomsource
+  * statistics
+  * stream
+  * structure
+
+Again, details are available in the [API documentation](https://github.com/jason-weirather/py-seq-tools/blob/master/manual.pdf).
