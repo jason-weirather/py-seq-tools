@@ -17,6 +17,6 @@ You can install seq-tools with pip
 
 From within the source directory you can try
 
-`$pip install .`
+`$ pip install .`
 
 This should make the `seq-tools` command available as well as the `seqtools` library for import.
