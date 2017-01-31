@@ -53,7 +53,7 @@ def main(args):
     if gpd.get_transcript_name() in txome:
       sys.stderr.write("WARNING already have a transcript "+gpd.get_transcript_name()+" ignoring line "+str(z)+" of the gpd\n")
       continue
-    txome[gpd.get_transcript_name()] = gpd
+    txome[gpd.get_transcript_name()] = gpd.get_gene_name()
     tof.write('>'+gpd.get_transcript_name()+"\n"+gpd.get_sequence(ref)+"\n")
   tof.close()
   inf.close()
@@ -88,7 +88,7 @@ def main(args):
       salmon[f[0]] = {'name':f[0],'length':int(f[1]),'EffectiveLength':float(f[2]),'TPM':float(f[3]),'NumReads':float(f[4])}
   genes = {}
   for name in salmon:
-    gene = txome[name].get_gene_name()
+    gene = txome[name]
     if gene not in genes: genes[gene] = []
     genes[gene].append(salmon[name])
   genetot = {}
