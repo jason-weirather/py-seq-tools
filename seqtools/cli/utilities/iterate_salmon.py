@@ -59,8 +59,11 @@ def main(args):
       expressed = [x for x in genes[gene] if x[1] in expression and expression[x[1]] > 0.0001]
       txs = sorted(expressed, key=lambda x: expression[x[1]])
       #print [expression[x[1]] for x in txs]
-      if len(txs) > 0:
-        if txs[0][1] in fail: txs.pop(0)
+      failures = len([x for x in txs if x[1] in fail])
+      dcount = max(1,int(float(failures)*args.decimate))
+      for i in range(0,dcount):
+        if len(txs) > 0:
+          if txs[0][1] in fail: txs.pop(0)
       for tx in txs:
         tof.write("\t".join(tx)+"\n")
         cnt += 1
@@ -89,6 +92,7 @@ def do_inputs():
   parser.add_argument('-p','--numThreads',type=int,default=cpu_count(),help="INT number of threads to run. Default is system cpu count")
   parser.add_argument('-t','--minTPM',type=float,default=1.0,help='smallest tpm for a transcript in final output')
   parser.add_argument('-f','--minFraction',type=float,default=0.1,help='smallest fraction of gene for a transcript to be in the end')
+  parser.add_argument('--decimate',type=float,default=0.1,help='if number of failures is large decmiate it by this fraction')
   # Temporary working directory step 1 of 3 - Definition
   group = parser.add_mutually_exclusive_group()
   group.add_argument('--tempdir',default=gettempdir(),help="The temporary directory is made and destroyed here.")
