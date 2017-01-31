@@ -1,12 +1,12 @@
-#!/usr/bin/python
+"""Simplify a genepred by combining down redundancies"""
 import argparse, sys, os, gzip, random
 from shutil import rmtree
 from multiprocessing import cpu_count, Pool
 from tempfile import mkdtemp, gettempdir
 
-from Bio.Format.GPD import GPDStream, GPD
-from Bio.Stream import LocusStream
-from Bio.Structure import TranscriptGroup
+from seqtools.format.gpd import GPDStream, GPD
+from seqtools.stream import LocusStream
+from seqtools.structure import TranscriptGroup
 
 def main(args):
   #do our inputs
