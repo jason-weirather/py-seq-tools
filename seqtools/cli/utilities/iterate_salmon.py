@@ -1,5 +1,9 @@
 """Iteratively execute salmon until all transcripts with
    leave-one-out-ish until all transcripts meet expression criteria
+
+   a nice addition (or option) would be to have the iteration 
+   continuously testing the gene group to see if it should be 
+   split apart more because of no linkage
 """
 import argparse, sys, os, gzip
 from shutil import rmtree, copy
