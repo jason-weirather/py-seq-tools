@@ -1,27 +1,29 @@
-#!/usr/bin/python
+"""CLI script to annotate gpd entries
+   Outputs annotations
+
+   1. read line number              
+   2. read name
+   3. gene_name
+   4. transcript name
+   5. match type
+   6. number of matching exons
+   7. highst number of consecutive_exons
+   8. number of exons in read
+   9. number of exons in reference transcript
+   10. number of bp overlapping
+   11. read lengthread_length
+   12. transcript length
+   13. read range
+   14. transcript range
+   15. reference line number
+"""
+
 import sys, argparse, gzip, re
-from Bio.Format.GPD import GPD
+from seqtools.format.gpd import GPD
 from multiprocessing import cpu_count, Pool, Lock
 
 txome = {}
 sys.setrecursionlimit(10000)
-
-# Outputs annotations
-#1. read line number              
-#2. read name
-#3. gene_name
-#4. transcript name
-#5. match type
-#6. number of matching exons
-#7. highst number of consecutive_exons
-#8. number of exons in read
-#9. number of exons in reference transcript
-#10. number of bp overlapping
-#11. read lengthread_length
-#12. transcript length
-#13. read range
-#14. transcript range
-#15. reference line number
 
 def main(args):
 
