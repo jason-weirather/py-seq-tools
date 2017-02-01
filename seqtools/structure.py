@@ -3,6 +3,7 @@ import sys, random, string, uuid, pickle, zlib, base64
 from seqtools.range import GenomicRange, ranges_to_coverage, merge_ranges
 from seqtools.sequence import rc
 import seqtools.graph
+from math import sqrt
 
 class Transcript:
   """Class to describe the mapping of a basic transcript"""
@@ -183,6 +184,20 @@ class Transcript:
     :rtype: string
     """
     return self._id
+
+  def avg_mutual_coverage(self,gpd):
+    """get the coverage fraction of each transcript then return the geometric mean
+
+    :param gpd: Another transcript
+    :type gpd: Transcript
+    :return: avg_coverage
+    :rtype: float
+    """
+    ov = self.overlap_size(gpd)
+    if ov == 0: return 0
+    xfrac = float(ov) / float(self.get_length())
+    yfrac = float(ov) / float(gpd.get_length())
+    return sqrt(xfrac*yfrac)
 
   # Post: Return the number of overlapping base pairs
   #       between self and tx2 transcript

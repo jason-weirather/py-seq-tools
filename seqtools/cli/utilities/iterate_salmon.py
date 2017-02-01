@@ -29,7 +29,7 @@ def main(args):
     result = args.tempdir+'/result.'+str(z)
     # run an iteration
     cmd_gpd = ' '+current_gpd
-    cmd = 'fastq_to_salmon_quant '+cmd_fastq+cmd_gpd+cmd_genome+' -o '+result
+    cmd = 'fastq_to_salmon_quant --tempdir '+args.tempdir+' '+cmd_fastq+cmd_gpd+cmd_genome+' -o '+result
     sys.stderr.write(cmd)
     salmon(cmd)
     #check the result
@@ -60,7 +60,7 @@ def main(args):
     # populated all the genes
     cnt = 0
     for gene in genes:
-      expressed = [x for x in genes[gene] if x[1] in expression and expression[x[1]] > 0.0001]
+      expressed = [x for x in genes[gene] if x[1] in expression and expression[x[1]] > 0]
       txs = sorted(expressed, key=lambda x: expression[x[1]])
       #print [expression[x[1]] for x in txs]
       failures = len([x for x in txs if x[1] in fail])
