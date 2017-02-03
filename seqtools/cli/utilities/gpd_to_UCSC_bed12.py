@@ -1,18 +1,15 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+"""
+pre: genepred filename, an optional integer for smoothing size
+     The smoothing is done to combine adjacent "exons" within that size definition to get rid of small deletions or indels
+post: a bed file where each line has chromosome, index 1 start, and index 1 end coordinates and the gene_name from each psl line is listed
+
+bring in the folder to the path for our modules
+bring in the folder to the path for our modules
+"""
 import sys, re, os, inspect, argparse, gzip
 
-#pre: genepred filename, an optional integer for smoothing size
-#     The smoothing is done to combine adjacent "exons" within that size definition to get rid of small deletions or indels
-#post: a bed file where each line has chromosome, index 1 start, and index 1 end coordinates and the gene_name from each psl line is listed
-
-#bring in the folder to the path for our modules
-#bring in the folder to the path for our modules
-
-pythonfolder_loc = "../pythonlib"
-cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe() ))[0],pythonfolder_loc)))
-if cmd_subfolder not in sys.path:
-  sys.path.insert(0,cmd_subfolder)
-from Bio.Format.GPD import GPDStream, GPD
+from seqtools.format.gpd import GPDStream, GPD
 #import GenePredBasics
 
 
@@ -77,7 +74,7 @@ def main(args):
       if args.namefield == 1:
         ostring += gpd.value('gene_name') + "\t"
       else: 
-        ostring += gpd.value('name')
+        ostring += gpd.value('name')+"\t"
       ostring += '1000' + "\t"
       ostring += gpd.value('strand') + "\t" 
       ostring += str(gpd.value('exonStarts')[0]) + "\t"

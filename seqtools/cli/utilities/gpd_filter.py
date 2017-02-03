@@ -24,6 +24,18 @@ def main(args):
     stream = GPDStream(fh)
     for gpd in stream:
       juncs.add(gpd.get_junction_string())
+  if args.subset:
+    sys.stderr.write("not working yet\n")
+    sys.exit()
+    is_good = True
+    fh = None
+    if args.subset[-3:] == '.gz':
+      fh = gzip.open(args.subset)
+    else: fh = open(args.subset)
+    stream = GPDStream(fh)
+    refs = []
+    for gpd in stream:
+      refs.append(gpd)
   inf = sys.stdin
   if args.input != '-':
     inf = open(args.input)
@@ -47,6 +59,10 @@ def main(args):
     if args.junctions:
       if g.get_junction_string() not in juncs:
         is_good = False
+    if args.subset:
+        ovs = [x.exon_overlap(g) for x in refs]
+        is_good = False
+
     # If we are still here we can print
     if not args.invert:
       if is_good: print line.rstrip()
@@ -61,6 +77,7 @@ def do_inputs():
   parser.add_argument('--names',help="filter on a name list")
   parser.add_argument('--gene_names',help="filter on a gene name list")
   parser.add_argument('--junctions',help="GPD file containing transcript with junctions to filter on")
+  parser.add_argument('--subset',help="REFERENCE GPD filter if the read is full length or subset of the reference")
   parser.add_argument('-v','--invert',action='store_true',help='Invert search result')
   args = parser.parse_args()
   return args
