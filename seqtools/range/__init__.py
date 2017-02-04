@@ -29,6 +29,10 @@ class RangeGeneric(object):
   def __len__(self):
     return self._end-self._start+1
 
+  #@property
+  #def length(self):
+  #  return len(self)
+
   @property
   def start(self):
     return self._start

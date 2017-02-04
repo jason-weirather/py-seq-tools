@@ -3,7 +3,8 @@
 """
 import sys, random, string, uuid
 from collections import namedtuple
-from seqtools.range import GenomicRange, ranges_to_coverage, merge_ranges
+from seqtools.range import GenomicRange
+from seqtools.range.multi import ranges_to_coverage, merge_ranges
 from seqtools.sequence import rc
 import seqtools.graph
 from math import sqrt
@@ -29,14 +30,23 @@ class MappingGeneric:
      :type options.sequence: String
      :type options.name: String
   """
-  def __init__(self,rngs,options=namedtuple()):
+  def __init__(self,rngs,options=None):
+    if not options: options = MappingGeneric().Options()
     self._rngs = rngs
     self._options = options
     self._id = str(uuid.uuid4())
-    self._payload = []
-    self._ref = None
-    self._sequence = None
-    self._name = None
+    #self._payload = []
+    #self._ref = None
+    #self._sequence = None
+    #self._name = None
+
+  @staticmethod
+  def Options(**kwargs):
+     """Create a new options namedtuple with only allowed keyword arguments"""
+     attributes = ['payload']
+     Opts = namedtuple('Opts',attributes)
+     if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
+     return Opts(**dict(kwargs))
 
   @property
   def exons(self):
@@ -171,7 +181,7 @@ class MappingGeneric:
     self.set_sequence(ref=self._ref)
     return self._sequence
 
-  def set_sequence(self,ref=ref_dict,seq=sequence):
+  def set_sequence(self,ref=None,seq=None):
     """use the reference dictionary to set the transcript's sequence
 
     :param ref: reference dictionary
@@ -225,7 +235,7 @@ class MappingGeneric:
     rngs = [self._rngs[0].copy()]
     for i in range(len(self._rngs)-1):
       dist = -1
-      if self._rngs[i+1].chr == rngs[-1].chr
+      if self._rngs[i+1].chr == rngs[-1].chr:
         dist = self._rngs[i+1].start - rngs[-1].end-1
       if dist >= min_intron or dist < 0:
         rngs.append(self._rngs[i+1].copy())

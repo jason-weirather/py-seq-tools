@@ -3,14 +3,15 @@
 """
 import sys, random, string, uuid
 from collections import namedtuple
-from seqtools.range import GenomicRange, ranges_to_coverage, merge_ranges
+from seqtools.range import GenomicRange
+from seqtools.range.multi import ranges_to_coverage, merge_ranges
 from seqtools.sequence import rc
 import seqtools.graph
 from math import sqrt
-from seqtools.structure2.transcript.converters import transcript_to_gpd_line, transcript_to_fake_psl_line
+from seqtools.structure.transcript.converters import transcript_to_gpd_line, transcript_to_fake_psl_line
 
 
-class Transcript(seqtools.structure2.MappingGeneric):
+class Transcript(seqtools.structure.MappingGeneric):
   """Class to describe a transcript
 
      This is a basic transcript where all the exons are in order and on the same chromosome
@@ -36,11 +37,25 @@ class Transcript(seqtools.structure2.MappingGeneric):
      :type options.gene_name: String     
   """
 
-  def __init__(self,rngs,options=namedtuple()):
+  def __init__(self,rngs,options=None):
+    if not options: options = Transcript.Options()
     super(Transcript,self).__init__(rngs,options)
     self._rngs = rngs
     self._options = options
     self._gene_name = options.gene_name
+
+  @staticmethod
+  def Options(**kwargs):
+     """Create a new options namedtuple with only allowed keyword arguments"""
+     attributes = ['direction',
+                   'ref',
+                   'sequence',
+                   'name',
+                   'gene_name',
+                   'payload']
+     Opts = namedtuple('Opts',attributes)
+     if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
+     return Opts(**dict(kwargs))
 
   def __getitem__(self,key):
     """To handle slicing the transcript"""

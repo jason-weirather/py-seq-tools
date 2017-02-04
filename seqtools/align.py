@@ -3,7 +3,7 @@
 import re, sys
 from seqtools.sequence import rc
 from seqtools.range import GenomicRange
-from seqtools.structure import Transcript, Exon, Junction
+from seqtools.structure.transcript import Transcript, Exon, Junction
 
 from string import maketrans
 class Alignment:
@@ -27,7 +27,7 @@ class Alignment:
     :rtype: int
 
      """
-    return sum([x[0].length() for x in self.get_alignment_ranges()])
+    return sum([len(x[0]) for x in self.get_alignment_ranges()])
 
   def _set_alignment_ranges(self):
     """

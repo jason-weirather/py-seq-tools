@@ -43,3 +43,14 @@ class Sequence(SequenceGeneric):
     return
   def __str__(self):
     return self._data
+
+def rc(seq):
+  """Fast reverse complement function using a translation table and slice
+
+  :param seq: string to reverse complement
+  :type seq: string
+  :return: reverse complemented sequence
+  :rtype: string
+  """
+  complement = maketrans('ACTGUNXactgunx','TGACANXtgacanx')
+  return seq.translate(complement)[::-1]
