@@ -13,21 +13,11 @@ class RangeGeneric(object):
      the slicing is 1-index as well for this object
   """
   def __init__(self,start,end,options=None):
-    if not options: options =RangeGeneric.default_options
+    if not options: options = {'payload':None}
     self.start = start
     self.end = end
     self._options = options
     self._start_offset = 0
-
-  @staticmethod
-  def Options(**kwargs):
-     """Create a new options namedtuple with only allowed keyword arguments"""
-     attributes = ['payload']
-     Opts = namedtuple('Opts',attributes)
-     if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
-     return Opts(**dict(kwargs))
-  
-  default_options = Options.__func__()
 
   @property
   def length(self):
@@ -37,16 +27,14 @@ class RangeGeneric(object):
     return type(self)(self.start+self._start_offset,self.end,self._options)
 
   @property
-  def payload(self):
-    """Returns the payload, whatever it may be"""
-    return self._options.payload
+  def payload(self): return self._options['payload']
 
   def set_payload(self,inpay):
     """Set the payload.  Stored in a list to try to keep it as a reference
 
     :param inpay: payload input
     """
-    self._options = self._options._replace(payload=inpay)
+    self.options['payload']=inpay
 
   def __iter__(self):
     """Lets try to do it by makinga n iterator"""
@@ -59,7 +47,9 @@ class RangeGeneric(object):
     if isinstance(key,slice):
       if key.start > self.end: return None
       if key.stop < self.start: return None
-      return RangeGeneric(max(key.start,self.start),min(key.stop,self.end),self._options)
+      return RangeGeneric(max(key.start,self.start),
+                          min(key.stop,self.end),
+                          self._options)
 
   def __setitem__(self,key):
     return
@@ -90,10 +80,11 @@ class GenomicRange(RangeGeneric):
 
   """
   def __init__(self,chr,start,end,options=None):
-    if not options: 
-      options = GenomicRange.default_options
+    if not options: options = {'payload':None,
+                               'dir':None}
     super(GenomicRange,self).__init__(start,end,options)
     self.chr = chr
+    self.dir = dir
 
   def __getitem__(self,key):
     if key.step:
@@ -101,17 +92,10 @@ class GenomicRange(RangeGeneric):
     if isinstance(key,slice):
       if key.start > self.end: return None
       if key.stop < self.start: return None
-      return GenomicRange(self.chr,max(key.start,self.start),min(key.stop,self.end),self._options)
-
-  @staticmethod
-  def Options(**kwargs):
-     """Create a new options namedtuple with only allowed keyword arguments"""
-     attributes = ['payload','dir']
-     Opts = namedtuple('Opts',attributes)
-     if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
-     return Opts(**dict(kwargs))
-
-  default_options = Options.__func__()
+      return GenomicRange(self.chr,
+                          max(key.start,self.start),
+                          min(key.stop,self.end),
+                          self._options)
 
   def __str__(self):
     return self.get_range_string()+' '+str(self._options)
@@ -123,8 +107,10 @@ class GenomicRange(RangeGeneric):
     :rtype: GenomicRange
 
     """
-    return type(self)(self.chr,self.start+self._start_offset,self.end,self._options)
-    #return GenomicRange(self._chr,self._start,self._end,self._options)
+    return type(self)(self.chr,
+                      self.start+self._start_offset,
+                      self.end,
+                      self._options)
 
   def get_range(self):
     """For compatability with some range-based tools that need to call this function
@@ -141,8 +127,8 @@ class GenomicRange(RangeGeneric):
     :rtype: list
     """
     arr = [self.chr,self.start-1,self.end]
-    if self._options.dir:
-      arr.append(self._options.dir)
+    if self._options['dir']:
+      arr.append(self._options['dir'])
     return arr 
 
   @property
@@ -153,7 +139,7 @@ class GenomicRange(RangeGeneric):
     :rtype: char
 
     """
-    return self._options.dir
+    return self._options['dir']
 
   def set_direction(self,dir):
     """ set he direction
@@ -161,7 +147,7 @@ class GenomicRange(RangeGeneric):
     :param dir: direction + or -
     :type dir: char
     """
-    self._options = self._options._replace(dir=dir)
+    self._options['dir'] = dir
 
   def equals(self,gr):
     """ check for equality. does not consider direction
@@ -414,17 +400,10 @@ class Bed(GenomicRange):
   """
 
   def __init__(self,chrom,start0,finish,options=None):
-    if not options: options = Bed.Options()
+    if not options: options = {'dir':None,
+                               'payload':None}
     super(Bed,self).__init__(chrom,start0+1,finish,options)
     self._start_offset = -1 #override this to indicate on outputs to offset -1 on start
-  @staticmethod
-  def Options(**kwargs):
-     """Create a new options namedtuple with only allowed keyword arguments"""
-     attributes = ['payload','dir']
-     Opts = namedtuple('Opts',attributes)
-     if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
-     return Opts(**dict(kwargs))
-
 
   def copy(self):
     """Override copy to make another copy

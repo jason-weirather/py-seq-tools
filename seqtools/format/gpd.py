@@ -11,38 +11,25 @@ class GPD(seqtools.structure.transcript.Transcript):
   :type gpd_line: string
   """
   def __init__(self,gpd_line,options=None):
-    if not options: options = GPD.default_options
+    if not options: options = {'sequence':None,
+                               'ref':None,
+                               'payload':None}
     # Only store the line and ID at first.  
     self._line = gpd_line.rstrip()
     m = re.match('[^\t]+\t[^\t]+\t([^\t]+)\t[^\t]+\t([^\t]+)\t([^\t]+)',gpd_line)
     self.entries = GPD._line_to_entry(self._line)
 
-    exs = [GenomicRange(self.entries.chrom, 
-                        self.entries.exonStarts[i]+1,
-                        self.entries.exonEnds[i]) for i in range(0,self.entries.exonCount)]
-    super(GPD,self).__init__(exs,seqtools.structure.transcript.Transcript.Options(
-      direction = self.entries.strand,
-      name=self.entries.name,
-      gene_name=self.entries.gene_name,
-      sequence = options.sequence,
-      ref = options.ref,
-      payload = options.payload
-    ))
-
-  @staticmethod
-  def Options(**kwargs):
-     """Create a new options namedtuple with only allowed keyword arguments"""
-     attributes = ['sequence',
-                   'ref',
-                   'payload']
-     Opts = namedtuple('Opts',attributes)
-     if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
-     kwdict = dict(kwargs)
-     for k in [x for x in attributes if x not in kwdict.keys()]:
-       kwdict[k] = None
-     return Opts(**kwdict)
-
-  default_options = Options.__func__()
+    exs = [GenomicRange(self.entries['chrom'], 
+                        self.entries['exonStarts'][i]+1,
+                        self.entries['exonEnds'][i]) for i in range(0,self.entries['exonCount'])]
+    super(GPD,self).__init__(exs,{
+      'direction':self.entries['strand'],
+      'name':self.entries['name'],
+      'gene_name':self.entries['gene_name'],
+      'sequence':options['sequence'],
+      'ref':options['ref'],
+      'payload':options['payload']
+    })
 
   def __str__(self):
     return self.get_gpd_line()  
@@ -55,36 +42,23 @@ class GPD(seqtools.structure.transcript.Transcript):
   def get_line(self):
     return self._line
 
-  GPDEntries = namedtuple('GPDEntries',
-     ['gene_name',
-      'name',
-      'chrom',
-      'strand',
-      'txStart',
-      'txEnd',
-      'cdsStart',
-      'cdsEnd',
-      'exonCount',
-      'exonStarts',
-      'exonEnds'])
-
   @staticmethod
   def _line_to_entry(line):
     f = line.rstrip().split("\t")
     starts = [int(x) for x in f[9].rstrip(",").split(",")]
     finishes =  [int(x) for x in f[10].rstrip(",").split(",")]
-    return GPD.GPDEntries(
-      f[0],
-      f[1],
-      f[2],
-      f[3],
-      int(f[4]),
-      int(f[5]),
-      int(f[6]),
-      int(f[7]),
-      int(f[8]),
-      starts,
-      finishes)
+    return {
+      'gene_name':f[0],
+      'name':f[1],
+      'chrom':f[2],
+      'strand':f[3],
+      'txStart':int(f[4]),
+      'txEnd':int(f[5]),
+      'cdsStart':int(f[6]),
+      'cdsEnd':int(f[7]),
+      'exonCount':int(f[8]),
+      'exonStarts':starts,
+      'exonEnds':finishes}
 
 class GPDStream:
   """Iterate over GPD entries"""

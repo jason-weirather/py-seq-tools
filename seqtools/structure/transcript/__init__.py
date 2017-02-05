@@ -38,29 +38,16 @@ class Transcript(seqtools.structure.MappingGeneric):
   """
 
   def __init__(self,rngs,options=None):
-    if not options: options = default_options
+    if not options: options = {'direction':None,
+         'ref':None,
+         'sequence':None,
+         'name':None,
+         'gene_name':None,
+         'payload':None}
     super(Transcript,self).__init__(rngs,options)
     self._rngs = rngs
     self._options = options
-    self._gene_name = options.gene_name
-
-  @staticmethod
-  def Options(**kwargs):
-     """Create a new options namedtuple with only allowed keyword arguments"""
-     attributes = ['direction',
-                   'ref',
-                   'sequence',
-                   'name',
-                   'gene_name',
-                   'payload']
-     Opts = namedtuple('Opts',attributes)
-     if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
-     kwdict = dict(kwargs)
-     for k in [x for x in attributes if x not in kwdict.keys()]: 
-       kwdict[k] = None
-     return Opts(**kwdict)
-
-  default_options = Options.__func__()
+  
 
   def __getitem__(self,key):
     """To handle slicing the transcript"""

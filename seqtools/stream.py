@@ -1,8 +1,47 @@
 """ Classes to help stream biological data"""
-import sys
+import sys, re
 from seqtools.range.multi import merge_ranges
 from subprocess import Popen, PIPE
+from format.gpd import GPD
+from multiprocessing import Pool, cpu_count
 
+class BufferedLineStream:
+   """Generic class for a stream that reads a data stream"""
+   def __init__(self,stream):
+      self._stream = stream
+      self._buffer_size = 1000000
+      self._buffer = ''
+      self._lines = []
+   def __iter__(self):
+      while True:
+         data = self._buffer
+         self._buffer = ''
+         read_data = self._stream.read(self._buffer_size)
+         if read_data: data += read_data
+         last = 0
+         for m in re.finditer('\n',data):
+            yield data[last:m.start()]
+            last = m.start()+1
+         self._buffer = data[last:]
+         if not read_data and last == 0:
+            if len(data) > 0:
+               yield data
+            else: break
+
+class LineMapper:
+   def __init__(self, stream,func):
+      self._stream = stream
+      self.func = func
+      self.cpus = cpu_count()
+      #self.p = Pool(processes=self.cpus)
+   def __iter__(self):
+     #res = self.p.imap(self.func,self._stream,10000)
+     res = map(self.func,self._stream)
+     for r in res:
+       yield r
+   #def do_stuff(self):
+   #   for v in self._stream:
+   #      yield self.func(v)
 
 class LocusStream:
   """Works for any stream with ordered range bound objects that have the functions.

@@ -31,22 +31,10 @@ class MappingGeneric(object):
      :type options.name: String
   """
   def __init__(self,rngs,options=None):
-    if not options: options = default_options
+    if not options: options = {'payload':None}
     self._rngs = rngs
     self._options = options
     self._id = str(uuid.uuid4())
-
-  @staticmethod
-  def Options(**kwargs):
-     """Create a new options namedtuple with only allowed keyword arguments"""
-     attributes = ['payload']
-     Opts = namedtuple('Opts',attributes)
-     if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
-     kwdict = dict(kwargs)
-     for k in [x for x in attributes if x not in kwdict.keys()]: kwdict[k] = None
-     return Opts(**kwdict)
-
-  default_options = Options.__func__()
 
   @property
   def exons(self):
@@ -78,16 +66,16 @@ class MappingGeneric(object):
     :param val: payload to be stored
     :type val: Anything that can be put in a list
     """
-    self._payload = [val]
+    self._options['payload'] = val
 
-  def get_payload(self):
+  @property
+  def payload(self):
     """Get the payload currently being stored
 
     :return: payload
     :rtype: anything that can be stored in a list
     """
-    self._initialize()
-    return self._payload[0]
+    return self._options['payload']
 
   @property
   def id(self):
@@ -158,15 +146,17 @@ class MappingGeneric(object):
     tx._direction = self._direction
     tx._transcript_name = self._transcript_name
     tx._gene_name = self._gene_name
+    sys.stderr.write("not updated\n")
+    sys.exit()
     return tx
 
-  def __len__(self):
-    """Return the length of the mapping in bp. Its the sum of the ranges
-
-    :return: length
-    :rtype: int
-    """
-    return sum([x.get_length() for x in self.exons])
+  #def __len__(self):
+  #  """Return the length of the mapping in bp. Its the sum of the ranges
+  #
+  #  :return: length
+  #  :rtype: int
+  #  """
+  #  return sum([x.length for x in self.exons])
 
   @property
   def sequence(self):
