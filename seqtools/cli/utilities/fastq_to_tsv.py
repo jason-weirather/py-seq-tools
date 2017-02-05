@@ -23,7 +23,7 @@ def main(args):
       if re.match('[\t]',l):
         sys.stderr.write('ERROR: there is a tab in the header\n'+l+"\n")
         sys.exit()
-    of.write("\t".join(fq.lines)+"\n")
+    of.write(("\t".join(fq.lines)+"\n")[1:])
   of.close()
 
 def do_inputs():

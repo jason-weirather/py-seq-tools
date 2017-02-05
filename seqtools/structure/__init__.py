@@ -9,7 +9,7 @@ from seqtools.sequence import rc
 import seqtools.graph
 from math import sqrt
 
-class MappingGeneric:
+class MappingGeneric(object):
   """Class to describe the mapping of a transcript
 
      Mapping is sliceable by genomic coordinate. Example:
@@ -31,14 +31,10 @@ class MappingGeneric:
      :type options.name: String
   """
   def __init__(self,rngs,options=None):
-    if not options: options = MappingGeneric().Options()
+    if not options: options = default_options
     self._rngs = rngs
     self._options = options
     self._id = str(uuid.uuid4())
-    #self._payload = []
-    #self._ref = None
-    #self._sequence = None
-    #self._name = None
 
   @staticmethod
   def Options(**kwargs):
@@ -46,12 +42,20 @@ class MappingGeneric:
      attributes = ['payload']
      Opts = namedtuple('Opts',attributes)
      if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
-     return Opts(**dict(kwargs))
+     kwdict = dict(kwargs)
+     for k in [x for x in attributes if x not in kwdict.keys()]: kwdict[k] = None
+     return Opts(**kwdict)
+
+  default_options = Options.__func__()
 
   @property
   def exons(self):
     """Maybe the most core override this later"""
     return self._rngs
+
+  @property
+  def length(self):
+    return sum([x.length for x in self._rngs])
 
   @property
   def junctions(self):

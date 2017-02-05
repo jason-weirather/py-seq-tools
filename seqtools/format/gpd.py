@@ -1,60 +1,48 @@
 import uuid, sys, time, re
-import seqtools.structure
+import seqtools.structure.transcript
 from seqtools.range import GenomicRange
 from subprocess import Popen, PIPE
+from collections import namedtuple
 
-class GPD(seqtools.structure.Transcript):
+class GPD(seqtools.structure.transcript.Transcript):
   """ This whole format is a subclass of the Transcript subclass
 
   :param gpd_line:
   :type gpd_line: string
   """
-  def __init__(self,gpd_line):
+  def __init__(self,gpd_line,options=None):
+    if not options: options = GPD.default_options
     # Only store the line and ID at first.  
     self._line = gpd_line.rstrip()
-    self._id = str(uuid.uuid4())
     m = re.match('[^\t]+\t[^\t]+\t([^\t]+)\t[^\t]+\t([^\t]+)\t([^\t]+)',gpd_line)
-    self._range = GenomicRange(m.group(1),int(m.group(2))+1,int(m.group(3)))
-    self._initialized = False
-    # Most of GPD has not been set yet.  Each method accessing GPD
-    # will need to check to see if initialize has been run
+    self.entries = GPD._line_to_entry(self._line)
 
-  def _initialize(self): # Wait to initialize to speed up streaming
-    if self._initialized: return # nothing to do if its done
-    self._initialized = True
-    self._entry = _line_to_entry(self._line)
-    self._exons = []
-    self._junctions = []
-    self._payload = []
-    self._direction = self.value('strand')
-    self._gene_name = self.value('gene_name')
-    self._transcript_name = self.value('name')
-    self._name = None
-    for i in range(0,self.value('exonCount')):
-      ex = seqtools.structure.Exon(GenomicRange(self.value('chrom'),self.value('exonStarts')[i]+1,self.value('exonEnds')[i]))
-      self._exons.append(ex)
-    if self.value('exonCount') > 1:
-      for i in range(0,self.value('exonCount')-1):
-        l = GenomicRange(self.value('chrom'),self.value('exonEnds')[i],self.value('exonEnds')[i])
-        r = GenomicRange(self.value('chrom'),self.value('exonStarts')[i+1]+1,self.value('exonStarts')[i+1]+1)
-        junc = seqtools.structure.Junction(l,r)
-        junc.set_exon_left(self._exons[i])
-        junc.set_exon_right(self._exons[i+1])
-        self._junctions.append(junc)
-    self._sequence = None
+    exs = [GenomicRange(self.entries.chrom, 
+                        self.entries.exonStarts[i]+1,
+                        self.entries.exonEnds[i]) for i in range(0,self.entries.exonCount)]
+    super(GPD,self).__init__(exs,seqtools.structure.transcript.Transcript.Options(
+      direction = self.entries.strand,
+      name=self.entries.name,
+      gene_name=self.entries.gene_name,
+      sequence = options.sequence,
+      ref = options.ref,
+      payload = options.payload
+    ))
 
-  @property
-  def junctions(self):
-    self._initialize()
-    return self._junctions
-  @property
-  def exons(self):
-    self._initialize()
-    return self._exons
+  @staticmethod
+  def Options(**kwargs):
+     """Create a new options namedtuple with only allowed keyword arguments"""
+     attributes = ['sequence',
+                   'ref',
+                   'payload']
+     Opts = namedtuple('Opts',attributes)
+     if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
+     kwdict = dict(kwargs)
+     for k in [x for x in attributes if x not in kwdict.keys()]:
+       kwdict[k] = None
+     return Opts(**kwdict)
 
-  def get_range(self):
-    """ override, we are garunteed to have the range since we initialize on reading a line"""
-    return self._range
+  default_options = Options.__func__()
 
   def __str__(self):
     return self.get_gpd_line()  
@@ -67,27 +55,36 @@ class GPD(seqtools.structure.Transcript):
   def get_line(self):
     return self._line
 
-  def value(self,key):
-    self._initialize()
-    return self._entry[key]
+  GPDEntries = namedtuple('GPDEntries',
+     ['gene_name',
+      'name',
+      'chrom',
+      'strand',
+      'txStart',
+      'txEnd',
+      'cdsStart',
+      'cdsEnd',
+      'exonCount',
+      'exonStarts',
+      'exonEnds'])
 
-def _line_to_entry(line):
-  f = line.rstrip().split("\t")
-  d = {}
-  d['gene_name'] = f[0]
-  d['name'] = f[1]
-  d['chrom'] = f[2]
-  d['strand'] = f[3]
-  d['txStart'] = int(f[4])
-  d['txEnd'] = int(f[5])
-  d['cdsStart'] = int(f[6])
-  d['cdsEnd'] = int(f[7])
-  d['exonCount'] = int(f[8])
-  exonstarts = [int(x) for x in f[9].rstrip(",").split(",")]
-  d['exonStarts'] = exonstarts
-  exonends = [int(x) for x in f[10].rstrip(",").split(",")]
-  d['exonEnds'] = exonends
-  return d
+  @staticmethod
+  def _line_to_entry(line):
+    f = line.rstrip().split("\t")
+    starts = [int(x) for x in f[9].rstrip(",").split(",")]
+    finishes =  [int(x) for x in f[10].rstrip(",").split(",")]
+    return GPD.GPDEntries(
+      f[0],
+      f[1],
+      f[2],
+      f[3],
+      int(f[4]),
+      int(f[5]),
+      int(f[6]),
+      int(f[7]),
+      int(f[8]),
+      starts,
+      finishes)
 
 class GPDStream:
   """Iterate over GPD entries"""

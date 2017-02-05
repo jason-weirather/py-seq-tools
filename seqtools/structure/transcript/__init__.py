@@ -38,7 +38,7 @@ class Transcript(seqtools.structure.MappingGeneric):
   """
 
   def __init__(self,rngs,options=None):
-    if not options: options = Transcript.Options()
+    if not options: options = default_options
     super(Transcript,self).__init__(rngs,options)
     self._rngs = rngs
     self._options = options
@@ -55,7 +55,12 @@ class Transcript(seqtools.structure.MappingGeneric):
                    'payload']
      Opts = namedtuple('Opts',attributes)
      if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
-     return Opts(**dict(kwargs))
+     kwdict = dict(kwargs)
+     for k in [x for x in attributes if x not in kwdict.keys()]: 
+       kwdict[k] = None
+     return Opts(**kwdict)
+
+  default_options = Options.__func__()
 
   def __getitem__(self,key):
     """To handle slicing the transcript"""
@@ -77,10 +82,10 @@ class Transcript(seqtools.structure.MappingGeneric):
     :return: total range
     :rtype: GenomicRange
     """
-    self._initialize()
-    if self._range:
-      return self._range
     return GenomicRange(self._rngs[0].chr,self._rngs[0].start,self._rngs[-1].end)
+
+  def get_range(self):
+    return self.range
 
   def set_strand(self,dir):
     """Set the strand (direction)
@@ -111,7 +116,6 @@ class Transcript(seqtools.structure.MappingGeneric):
     :return: chromosome
     :rtype: string
     """
-    self._initialize()
     if len(self.exons)==0: 
       sys.stderr.write("WARNING can't return chromsome with nothing here\n")
       return None
@@ -134,8 +138,7 @@ class Transcript(seqtools.structure.MappingGeneric):
     :param name: name
     :type name: string
     """
-    self._initialize()
-    self._gene_name = name
+    self._options = self._options._replace(gene_name = name)
 
   def get_gene_name(self):
     """retrieve the gene name
@@ -143,7 +146,7 @@ class Transcript(seqtools.structure.MappingGeneric):
     :return: gene name
     :rtype: string
     """
-    self._initialize()
+    self._options.gene_name
     return self._gene_name
   def set_transcript_name(self,name):
     """assign a transcript name
@@ -151,16 +154,15 @@ class Transcript(seqtools.structure.MappingGeneric):
     :param name: name
     :type name: string
     """
-    self._initialize()
-    self._transcript_name = name
+    self._options = self._options._replace(name = name)
+
   def get_transcript_name(self):
     """retrieve the transcript name
 
     :return: transcript name
     :rtype: string
     """
-    self._initialize()
-    return self._transcript_name
+    return self._options.name
 
   def get_fake_psl_line(self,ref):
     """Convert a mapping to a fake PSL line"""
@@ -172,7 +174,6 @@ class Transcript(seqtools.structure.MappingGeneric):
     :return: string representation of junction
     :rtype: string
     """
-    self._initialize()
     return ';'.join([x.get_range_string() for x in self.junctions])
 
   def junction_overlap(self,tx,tolerance=0):
@@ -185,7 +186,6 @@ class Transcript(seqtools.structure.MappingGeneric):
     :return: Junction Overlap Report
     :rtype: Transcript.JunctionOverlap
     """
-    self._initialize()
     return JunctionOverlap(self,tx,tolerance)
 
   def exon_overlap(self,tx,multi_minover=10,multi_endfrac=0,multi_midfrac=0.8,single_minover=50,single_frac=0.5,multi_consec=True):
@@ -208,7 +208,6 @@ class Transcript(seqtools.structure.MappingGeneric):
     :return: ExonOverlap report
     :rtype: Transcript.ExonOverlap
     """
-    self._initialize()
     return Transcript.ExonOverlap(self,tx,multi_minover,multi_endfrac,multi_midfrac,single_minover,single_frac,multi_consec=multi_consec)
 
 class ExonOverlap:

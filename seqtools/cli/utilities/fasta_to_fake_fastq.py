@@ -13,7 +13,7 @@ def main(args):
     of = open(args.output,'w')
   stream = FASTAStream(inf)
   for fa in stream:
-    seq = fa.seq.replace("\n",'')
+    seq = fa.sequence
     of.write('@'+fa.header+"\n"+seq+"\n+\n"+args.ascii*len(seq)+"\n")
   of.close()
 

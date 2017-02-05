@@ -1,6 +1,6 @@
 """ Classes to help stream biological data"""
 import sys
-from seqtools.range import merge_ranges
+from seqtools.range.multi import merge_ranges
 from subprocess import Popen, PIPE
 
 
@@ -49,7 +49,7 @@ class LocusStream:
         rng = e.get_range()
         if not rng: continue # continue if nonetype for range
         if rng.overlaps(self.current_range):
-          self.current_range.get_payload().append(e)
+          self.current_range.payload.append(e)
           if self.current_range.end < rng.end: self.current_range.end = rng.end
         else: 
           output = self.current_range

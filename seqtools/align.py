@@ -27,7 +27,7 @@ class Alignment:
     :rtype: int
 
      """
-    return sum([len(x[0]) for x in self.get_alignment_ranges()])
+    return sum([x[0].length for x in self.get_alignment_ranges()])
 
   def _set_alignment_ranges(self):
     """
@@ -202,7 +202,7 @@ class Alignment:
 
   def _analyze_alignment(self,min_intron_size=68):
     [qstrs,tstrs,ystrs] = self.get_alignment_strings(min_intron_size=min_intron_size)
-    matches = sum([x[0].length() for x in self.get_alignment_ranges()]) 
+    matches = sum([x[0].length for x in self.get_alignment_ranges()]) 
     misMatches = 0
     for i in range(len(qstrs)):
       misMatches += sum([int(qstrs[i][j]!=tstrs[i][j] and qstrs[i][j]!='-' and tstrs[i][j]!='-' and tstrs[i][j]!='N') for j in range(len(qstrs[i]))])
@@ -258,7 +258,7 @@ class Alignment:
     """
     from seqtools.format.psl import PSL
     if not self.get_alignment_ranges(): return None
-    matches = sum([x[0].length() for x in self.get_alignment_ranges()]) # 1. Matches - Number of matching bases that aren't repeats
+    matches = sum([x[0].length for x in self.get_alignment_ranges()]) # 1. Matches - Number of matching bases that aren't repeats
     misMatches = 0 # 2. Mismatches - Number of baess that don't match
     repMatches = 0 # 3. repMatches - Number of matching baess that are part of repeats
     nCount = 0 # 4. nCount - Number of 'N' bases
@@ -287,7 +287,7 @@ class Alignment:
     tStart = self.get_alignment_ranges()[0][0].start-1
     tEnd = self.get_alignment_ranges()[-1][0].end
     blockCount = len(self.get_alignment_ranges())
-    blockSizes = ','.join([str(x[0].length()) for x in self.get_alignment_ranges()])+','
+    blockSizes = ','.join([str(x[0].length) for x in self.get_alignment_ranges()])+','
     qStarts = ','.join([str(x[1].start-1) for x in self.get_alignment_ranges()])+','
     tStarts = ','.join([str(x[0].start-1) for x in self.get_alignment_ranges()])+','
 
@@ -333,7 +333,7 @@ class Alignment:
     cigar = self.construct_cigar(min_intron_size)
     rnext = '*'
     pnext = 0
-    tlen = self.get_target_range().length()
+    tlen = self.get_target_range().length
     seq = self.get_query_sequence()
     if not seq: seq = '*'
     qual = self.get_query_quality()
@@ -363,7 +363,7 @@ class Alignment:
     if ar[0][1].start > 1: # soft clipped
       cig += str(ar[0][1].start-1)+'S'
     for i in range(len(ar)):
-      exlen = ar[i][0].length()
+      exlen = ar[i][0].length
       cig += str(exlen)+'M'
       if i < len(ar)-1:
         # we can look at distances
@@ -391,20 +391,25 @@ class Alignment:
     if min_intron < 1: 
       sys.stderr.write("ERROR minimum intron should be 1 base or longer\n")
       sys.exit()
-    tx = Transcript()
+    #tx = Transcript()
     rngs = [self.get_alignment_ranges()[0][0].copy()]
-    rngs[0].direction = None
+    #rngs[0].set_direction(None)
     for i in range(len(self.get_alignment_ranges())-1):
       dist = self.get_alignment_ranges()[i+1][0].start - rngs[-1].end-1
       #print 'dist '+str(dist)
       if dist >= min_intron:
         rngs.append(self.get_alignment_ranges()[i+1][0].copy())
-        rngs[-1].direction = None
+        #rngs[-1].set_direction(None)
       else:
         rngs[-1].end = self.get_alignment_ranges()[i+1][0].end
-    tx.set_exons_and_junctions_from_ranges(rngs)
-    tx.set_range()
-    tx.set_strand(self.get_strand())
-    tx.set_transcript_name(self.get_alignment_ranges()[0][1].chr)
-    tx.set_gene_name(self.get_alignment_ranges()[0][1].chr)
+    tx = Transcript(rngs,options=Transcript.Options(
+         direction=self.get_strand(),
+         name = self.get_alignment_ranges()[0][1].chr,
+         gene_name = self.get_alignment_ranges()[0][1].chr
+                                                  ))
+    #tx.set_exons_and_junctions_from_ranges(rngs)
+    #tx.set_range()
+    #tx.set_strand(self.get_strand())
+    #tx.set_transcript_name(self.get_alignment_ranges()[0][1].chr)
+    #tx.set_gene_name(self.get_alignment_ranges()[0][1].chr)
     return tx

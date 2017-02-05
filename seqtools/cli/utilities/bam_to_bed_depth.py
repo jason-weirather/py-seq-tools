@@ -16,7 +16,7 @@ from multiprocessing import cpu_count, Lock, Pool
 from tempfile import mkdtemp, gettempdir
 from seqtools.format.sam import BAMFile, SAMStream
 from seqtools.stream import LocusStream
-from seqtools.range import ranges_to_coverage, sort_genomic_ranges
+from seqtools.range.multi import ranges_to_coverage, sort_genomic_ranges
 
 current = 0
 glock = Lock()
@@ -43,11 +43,11 @@ def main(args):
     p = Pool(processes=args.threads)
   for entries in ls:
     bedarray = []
-    for e in entries.get_payload():
+    for e in entries.payload:
       if not e.is_aligned(): continue
       tx = e.get_target_transcript(min_intron=args.minimum_intron_size)
       for exon in tx.exons:
-        bedarray.append(exon.rng.copy())
+        bedarray.append(exon.copy())
     if len(bedarray) == 0: continue
     if args.threads > 1:
       p.apply_async(get_output,args=(bedarray,z,),callback=do_output)
@@ -85,7 +85,7 @@ def get_output(bedarray,z):
   covs = ranges_to_coverage(bedarray)
   olines = ''
   for c in covs:
-    olines += c.chr+"\t"+str(c.start-1)+"\t"+str(c.end)+"\t"+str(c.get_payload())+"\n"
+    olines += c.chr+"\t"+str(c.start-1)+"\t"+str(c.end)+"\t"+str(c.payload)+"\n"
   return [olines,z]
 
 def do_inputs():

@@ -2,13 +2,13 @@
 
 """
 import sys
-import seqtools.sequence2
+import seqtools.sequence
 
 _NT2NUM = {'A':2,'a':2,'C':1,'c':1,'G':3,'g':3,'T':0,'t':0}
 _NUM2NT = {2:'A',1:'C',3:'G',0:'T'};
 
 
-class Sequence2Bit(seqtools.sequence2.SequenceGeneric):
+class Sequence2Bit(seqtools.sequence.SequenceGeneric):
   """For low memory sequence storage
      we are limited to ATCGN for bases
   """

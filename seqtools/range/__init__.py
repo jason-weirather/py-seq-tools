@@ -13,10 +13,11 @@ class RangeGeneric(object):
      the slicing is 1-index as well for this object
   """
   def __init__(self,start,end,options=None):
-    if not options: options = RangeGeneric.Options()
-    self._start = start
-    self._end = end
+    if not options: options =RangeGeneric.default_options
+    self.start = start
+    self.end = end
     self._options = options
+    self._start_offset = 0
 
   @staticmethod
   def Options(**kwargs):
@@ -26,31 +27,14 @@ class RangeGeneric(object):
      if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
      return Opts(**dict(kwargs))
   
-  def __len__(self):
-    return self._end-self._start+1
-
-  #@property
-  #def length(self):
-  #  return len(self)
+  default_options = Options.__func__()
 
   @property
-  def start(self):
-    return self._start
-
-  @property
-  def start0(self):
-    return self._start-1
-
-  @property
-  def start1(self):
-    return self._start
-
-  @property
-  def end(self):
-    return self._end
+  def length(self):
+    return self.end-self.start+1
 
   def copy(self):
-    return type(self)(self._start,self._end,self._options)
+    return type(self)(self.start+self._start_offset,self.end,self._options)
 
   @property
   def payload(self):
@@ -62,27 +46,27 @@ class RangeGeneric(object):
 
     :param inpay: payload input
     """
-    self._options = options._replace(payload=inpay)
+    self._options = self._options._replace(payload=inpay)
 
   def __iter__(self):
     """Lets try to do it by makinga n iterator"""
-    for i in range(self._start,self._end+1):
+    for i in range(self.start,self.end+1):
       yield i
 
   def __getitem__(self,key):
     if key.step:
       raise ValueError('a step should not be used when slicing a sequence range')
     if isinstance(key,slice):
-      if key.start > self._end: return None
-      if key.stop < self._start: return None
-      return RangeGeneric(max(key.start,self._start),min(key.stop,self._end),self._options)
+      if key.start > self.end: return None
+      if key.stop < self.start: return None
+      return RangeGeneric(max(key.start,self.start),min(key.stop,self.end),self._options)
 
   def __setitem__(self,key):
     return
   def __delitem__(self,key):
     return
   def __str__(self):
-    return str(self._start)+'-'+str(self._end)+' '+str(self._options)
+    return str(self.start)+'-'+str(self.end)+' '+str(self._options)
 
 
 class GenomicRange(RangeGeneric):
@@ -107,17 +91,17 @@ class GenomicRange(RangeGeneric):
   """
   def __init__(self,chr,start,end,options=None):
     if not options: 
-      options = GenomicRange.Options()
+      options = GenomicRange.default_options
     super(GenomicRange,self).__init__(start,end,options)
-    self._chr = chr
+    self.chr = chr
 
   def __getitem__(self,key):
     if key.step:
       raise ValueError('a step should not be used when slicing a sequence range')
     if isinstance(key,slice):
-      if key.start > self._end: return None
-      if key.stop < self._start: return None
-      return GenomicRange(self._chr,max(key.start,self.start1),min(key.stop,self._end),self._options)
+      if key.start > self.end: return None
+      if key.stop < self.start: return None
+      return GenomicRange(self.chr,max(key.start,self.start),min(key.stop,self.end),self._options)
 
   @staticmethod
   def Options(**kwargs):
@@ -127,9 +111,7 @@ class GenomicRange(RangeGeneric):
      if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
      return Opts(**dict(kwargs))
 
-  @property
-  def chr(self):
-    return self._chr
+  default_options = Options.__func__()
 
   def __str__(self):
     return self.get_range_string()+' '+str(self._options)
@@ -141,7 +123,7 @@ class GenomicRange(RangeGeneric):
     :rtype: GenomicRange
 
     """
-    return type(self)(self.chr,self.start,self.end,self._options)
+    return type(self)(self.chr,self.start+self._start_offset,self.end,self._options)
     #return GenomicRange(self._chr,self._start,self._end,self._options)
 
   def get_range(self):
@@ -158,7 +140,7 @@ class GenomicRange(RangeGeneric):
     :return: list of [chr,start (0-indexed), end (1-indexed]
     :rtype: list
     """
-    arr = [self._chr,self._start-1,self._end]
+    arr = [self.chr,self.start-1,self.end]
     if self._options.dir:
       arr.append(self._options.dir)
     return arr 
@@ -189,7 +171,7 @@ class GenomicRange(RangeGeneric):
     :return: true if they are the same, false if they are not
     :rtype: bool
     """
-    if self.chr == gr.chr and self.start1 == gr.start1 and self.end == gr.end:
+    if self.chr == gr.chr and self.start == gr.start and self.end == gr.end:
       return True
     return False
 
@@ -199,7 +181,7 @@ class GenomicRange(RangeGeneric):
     :return: representation by string like chr2:801-900
     :rtype: string
     """
-    return self.chr+":"+str(self.start1)+"-"+str(self.end)
+    return self.chr+":"+str(self.start)+"-"+str(self.end)
 
   def get_bed_coordinates(self):
     """ Same as get bed array.
@@ -207,7 +189,7 @@ class GenomicRange(RangeGeneric):
 
     :return: bed array [chr,start-1, end]
     """
-    return [self.chr,self.start0,self.end]
+    return [self.chr,self.start-1,self.end]
 
   def get_genomic_coordinates(self):
     """These are the 1-indexed coordiantes in list form
@@ -216,7 +198,7 @@ class GenomicRange(RangeGeneric):
     :rtype: list
 
     """
-    return [self.chr,self.start1,self.end]
+    return [self.chr,self.start,self.end]
 
   def adjacent(self,rng2):
     """ Test for adjacency.  
@@ -228,8 +210,8 @@ class GenomicRange(RangeGeneric):
     """
     if self.chr != rng2.chr: return False
     if self.direction != rng2.direction and use_direction: return False
-    if self.end == rng2.start1-1:  return True
-    if self.start1-1 == rng2.end: return True
+    if self.end == rng2.start-1:  return True
+    if self.start-1 == rng2.end: return True
     return False
 
   def overlaps(self,in_genomic_range,padding=0):
@@ -245,28 +227,28 @@ class GenomicRange(RangeGeneric):
 
     """
     if padding > 0:
-      in_genomic_range = GenomicRange(in_genomic_range.chr,max([1,in_genomic_range.start1-padding]),in_genomic_range.end+padding)
+      in_genomic_range = GenomicRange(in_genomic_range.chr,max([1,in_genomic_range.start-padding]),in_genomic_range.end+padding)
     if self.chr != in_genomic_range.chr:
       return False
-    if self.end < in_genomic_range.start1:
+    if self.end < in_genomic_range.start:
       return False
-    if in_genomic_range.end < self.start1:
+    if in_genomic_range.end < self.start:
       return False
-    if self.start1 > in_genomic_range.end:
+    if self.start > in_genomic_range.end:
       return False
-    if in_genomic_range.start1 > self.end:
+    if in_genomic_range.start > self.end:
       return False
-    if self.start1 <= in_genomic_range.start1 and self.end >= in_genomic_range.start1:
+    if self.start <= in_genomic_range.start and self.end >= in_genomic_range.start:
       return True
-    if self.start1 <= in_genomic_range.end and self.end >= in_genomic_range.end:
+    if self.start <= in_genomic_range.end and self.end >= in_genomic_range.end:
       return True
-    if self.start1 >= in_genomic_range.start1 and self.end <= in_genomic_range.end:
+    if self.start >= in_genomic_range.start and self.end <= in_genomic_range.end:
       return True
-    if self.start1 <= in_genomic_range.start1 and self.end >= in_genomic_range.end:
+    if self.start <= in_genomic_range.start and self.end >= in_genomic_range.end:
       return True
-    if in_genomic_range.start1 <= self.start1 and in_genomic_range.end >= self.start1:
+    if in_genomic_range.start <= self.start and in_genomic_range.end >= self.start:
       return True
-    if in_genomic_range.start1 <= self.end and in_genomic_range.end >= self.end:
+    if in_genomic_range.start <= self.end and in_genomic_range.end >= self.end:
       return True
     sys.stderr.write("overlaps: unprogrammed error\n")
     return False
@@ -282,24 +264,24 @@ class GenomicRange(RangeGeneric):
     """
     if self.chr != in_genomic_range.chr:
       return 0
-    if self.end < in_genomic_range.start1:
+    if self.end < in_genomic_range.start:
       return 0
-    if in_genomic_range.end < self.start1:
+    if in_genomic_range.end < self.start:
       return 0
-    if self.start1 > in_genomic_range.end:
+    if self.start > in_genomic_range.end:
       return 0
-    if self.start1 >= in_genomic_range.start1 and self.end <= in_genomic_range.end:
-      return self.end-self.start1+1
-    if self.start1 <= in_genomic_range.start1 and self.end >= in_genomic_range.end:
-      return in_genomic_range.end-in_genomic_range.start1+1
-    if self.start1 <= in_genomic_range.start1 and self.end >= in_genomic_range.start1:
-      return self.end-in_genomic_range.start1+1
-    if self.start1 <= in_genomic_range.end and self.end >= in_genomic_range.end:
-      return in_genomic_range.end-self.start1+1
-    if in_genomic_range.start1 <= self.start1 and in_genomic_range.end >= self.start1:
-      return in_genomic_range.end-self.start1+1
-    if in_genomic_range.start1 <= self.end and in_genomic_range.end >= self.end:
-      return self.end-in_genomic_range.start1+1
+    if self.start >= in_genomic_range.start and self.end <= in_genomic_range.end:
+      return self.end-self_.start+1
+    if self_.start <= in_genomic_range.start and self.end >= in_genomic_range.end:
+      return in_genomic_range.end-in_genomic_range.start+1
+    if self.start <= in_genomic_range.start and self.end >= in_genomic_range.start:
+      return self.end-in_genomic_range.start+1
+    if self.start <= in_genomic_range.end and self.end >= in_genomic_range.end:
+      return in_genomic_range.end-self.start+1
+    if in_genomic_range.start <= self.start and in_genomic_range.end >= self.start:
+      return in_genomic_range.end-self.start+1
+    if in_genomic_range.start <= self.end and in_genomic_range.end >= self.end:
+      return self.end-in_genomic_range.start+1
     sys.stderr.write("overlap_size: unprogrammed error\n")
     return 0
 
@@ -351,8 +333,8 @@ class GenomicRange(RangeGeneric):
     if self.overlaps(range2,padding=overlap_size): return 0
     if self.chr < range2.chr: return -1
     elif self.chr > range2.chr: return 1
-    elif self.end < range2.start1: return -1
-    elif self.start1 > range2.end: return 1
+    elif self.end < range2.start: return -1
+    elif self.start > range2.end: return 1
     sys.stderr.write("ERROR: cmp function unexpcted state\n")
     sys.exit()
     return 0
@@ -373,9 +355,9 @@ class GenomicRange(RangeGeneric):
     if not self.overlaps(range2):
       outranges.append(self.copy())
       return outranges
-    if range2.start1 <= self.start1 and range2.end >= self.end:
+    if range2.start <= self.start and range2.end >= self.end:
       return outranges #delete all
-    if range2.start1 > self.start1: #left side
+    if range2.start > self.start: #left side
       nrng = type(self)(self.chr,self.start,range2.start1-1,self._options)
       outranges.append(nrng)
     if range2.end < self.end: #right side
@@ -386,7 +368,7 @@ class GenomicRange(RangeGeneric):
 
   def equals(self,rng):
     if self.chr != rng.chr: return False
-    if self.start1 != rng.start1: return False
+    if self.start != rng.start: return False
     if self.end != rng.end: return False
     return True
 
@@ -402,8 +384,8 @@ class GenomicRange(RangeGeneric):
     c = self.cmp(rng)
     if c == 0: return 0
     if c < 0:
-      return rng.start1 - self.end-1
-    return self.start1 - rng.end-1
+      return rng.start - self.end-1
+    return self.start - rng.end-1
 
 def GenomicRangeFromString(range_string,options):
   """Constructor for a GenomicRange object that takes a string"""
@@ -431,10 +413,10 @@ class Bed(GenomicRange):
   :type options: namedtuple
   """
 
-  def __init__(self,chrom,start,finish,options=None):
+  def __init__(self,chrom,start0,finish,options=None):
     if not options: options = Bed.Options()
-    super(Bed,self).__init__(chrom,start+1,finish,options)
-
+    super(Bed,self).__init__(chrom,start0+1,finish,options)
+    self._start_offset = -1 #override this to indicate on outputs to offset -1 on start
   @staticmethod
   def Options(**kwargs):
      """Create a new options namedtuple with only allowed keyword arguments"""
@@ -443,9 +425,6 @@ class Bed(GenomicRange):
      if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
      return Opts(**dict(kwargs))
 
-  @property
-  def start(self):
-    return self._start-1
 
   def copy(self):
     """Override copy to make another copy

@@ -50,10 +50,10 @@ def main(args):
     gpd = GPD(line)
     gpd.set_payload(z)
     if z%100 == 0:  sys.stderr.write(str(z)+"          \r")
-    if gpd.value('chrom') not in txome: txome[gpd.value('chrom')] = []
+    if gpd.entries.chrom not in txome: txome[gpd.entries.chrom] = []
     r = gpd.get_range()
     r.set_payload(gpd)
-    txome[gpd.value('chrom')].append(r)
+    txome[gpd.entries.chrom].append(r)
   rinf.close()
   sys.stderr.write(str(z)+"          \r")
   sys.stderr.write("\n")
@@ -92,7 +92,7 @@ def annotate_line(inputs):
   gpd.set_payload(z)
   v = gpd.get_range()
   if v.chr not in txome: return None
-  possible = [x.get_payload() for x in txome[v.chr] if x.overlaps(v)]
+  possible = [x.payload for x in txome[v.chr] if x.overlaps(v)]
   candidates = []
   if len(possible) == 0: return None
   for tx in possible:
@@ -119,7 +119,7 @@ def annotate_line(inputs):
   #line_z
   v = bests[0]
   ### we have the annotation
-  z = gpd.get_payload()
+  z = gpd.payload
   #line = line_z[0]
   #gpd = GPD(line)
   if not v: return None
@@ -134,7 +134,7 @@ def annotate_line(inputs):
   tx_length = v[8]
   return str(z)+"\t"+gpd.get_transcript_name()+"\t"+v[9].get_gene_name()+"\t"+v[9].get_transcript_name()+"\t"+type+"\t"+\
           str(exon_count)+"\t"+str(most_consecutive_exons)+"\t"+str(read_exon_count)+"\t"+str(tx_exon_count)+"\t"+\
-          str(overlap_size)+"\t"+str(read_length)+"\t"+str(tx_length)+"\t"+gpd.get_range().get_range_string()+"\t"+v[9].get_range().get_range_string()+"\t"+str(v[9].get_payload())+"\n"
+          str(overlap_size)+"\t"+str(read_length)+"\t"+str(tx_length)+"\t"+gpd.get_range().get_range_string()+"\t"+v[9].get_range().get_range_string()+"\t"+str(v[9].payload)+"\n"
 
 
 

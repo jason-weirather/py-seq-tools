@@ -1,4 +1,5 @@
 import os, re, gzip
+from collections import namedtuple
 import seqtools.sequence
 
 class FASTAStream:
@@ -14,7 +15,7 @@ class FASTAStream:
     self.buffer_size = custom_buffer_size
     self.working_string = self.fh.read(self.buffer_size)
     self.buffered_results = []
-    self.p = re.compile('>([^\n]+\n[^>]+)')
+    self.p = re.compile('(>[^\n]+\n[^>]+)')
     self.file_finished = False
     if not self.working_string: self.file_finished = True
 
@@ -56,7 +57,7 @@ class FASTAStream:
       return FASTA(m.group(1))
     return None
 
-class FASTA(seqtools.sequence.Seq):
+class FASTA(seqtools.sequence.Sequence):
   def __init__(self,fasta_text):
     # intput is a single fasta entry in text form
     self._fasta = fasta_text.rstrip()
@@ -64,14 +65,33 @@ class FASTA(seqtools.sequence.Seq):
     if len(fasta_lines) < 2:
       sys.stderr.write("ERROR not a fasta entry")
       sys.exit()
-    self.header = fasta_lines[0][1:]
-    self.name = re.match('\S+',self.header)
-    self.seq = ''.join(fasta_lines[1:])
-  def __getitem__(self,key):
-    if isinstance(key,slice):
-      newseq = self.seq[key.start:min(key.stop,len(self.seq))]
-      return FASTA('>'+self.header+"\n"+newseq)
-    return {'name':self.name,'seq':self.seq}[key]
+    header = fasta_lines[0][1:]
+    name = re.match('\S+',header)
+    opts = FASTA.Options(header=header,name=name)
+    super(FASTA,self).__init__(''.join(fasta_lines[1:]),opts)
+
+  @staticmethod
+  def Options(**kwargs):
+     """Create a new options namedtuple with only allowed keyword arguments"""
+     attributes = ['name','header','payload']
+     Opts = namedtuple('Opts',attributes)
+     if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
+     kwdict = dict(kwargs)
+     for k in [x for x in attributes if x not in kwdict.keys()]: 
+       kwdict[k] = None
+     return Opts(**kwdict)
+
+  default_options = Options.__func__()
+
+  @property
+  def header(self):
+    return self._options.header
+
+  #def __getitem__(self,key):
+  #  if isinstance(key,slice):
+  #    newseq = self.seq[key.start:min(key.stop,len(self.seq))]
+  #    return FASTA('>'+self.header+"\n"+newseq)
+  #  return {'name':self.name,'seq':self.seq}[key]
   def FASTA(self):
     #return '>'+self.header+"\n"+self.seq+"\n"    
     return self._fasta+"\n"
@@ -149,11 +169,10 @@ class FASTAData:
     p = re.compile('>([^\n]+)\n([^>]+)')
     pos = 0
     for m in p.finditer(dat):
-      m1 = re.match('(\S+)',m.group(1))
-      self._names.append(m1.group(1))
-      seq = m.group(2).replace("\n",'')
-      self._lengths[m1.group(1)] = len(seq)
-      self._seqs[m1.group(1)] = seq
+      f = FASTA(m.group(0))
+      self._names.append(f.name)
+      self._lengths[f.name] = f.length
+      self._seqs[f.name] = f
 
 class FASTAFile:
   """ Do random access with an indexed Fasta File

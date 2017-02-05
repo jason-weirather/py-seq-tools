@@ -12,7 +12,7 @@ def main(args):
     of = open(args.output,'w')
   stream = FASTQStream(inf)
   for fq in stream:
-    of.write('>'+fq.header+"\n"+fq.seq+"\n")
+    of.write('>'+fq.header+"\n"+fq.sequence+"\n")
   of.close()
 
 def do_inputs():

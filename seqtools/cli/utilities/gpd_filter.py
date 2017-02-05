@@ -38,12 +38,13 @@ def main(args):
       refs.append(gpd)
   inf = sys.stdin
   if args.input != '-':
-    inf = open(args.input)
+    if args.input[-3:] == '.gz': inf = gzip.open(args.input)
+    else: inf = open(args.input)
   for line in inf:
     if re.match('^#',line): continue
     is_good = True
     g = GPD(line.rstrip())
-    tot = g.get_length()
+    tot = g.length
     if args.min_length:
       if tot < args.min_length:
         is_good = False

@@ -2,6 +2,7 @@
     Lists of ranges. """
 import sys, re
 from collections import namedtuple
+from seqtools.range import GenomicRange
 
 def sort_ranges(inranges):
   """from an array of ranges, make a sorted array of ranges
@@ -102,7 +103,7 @@ def subtract_ranges(r1s,r2s,already_sorted=False):
   tot2 = 0
   for loc in mls:
     #[beds1,beds2] = loc.get_payload()
-    v = loc.get_payload()
+    v = loc.payload
     #print v
     [beds1,beds2] =v
     beds1 = beds1[:]
@@ -166,9 +167,9 @@ def union_range_array(bed1,beds2,payload=None,is_sorted=False):
     elif cval == 0:
       output.append(bed1.union(bed2))
       if payload==1:
-        output[-1].set_payload(bed1.get_payload())
+        output[-1].set_payload(bed1.payload)
       if payload==2:
-        output[-1].set_payload(bed2.get_payload())
+        output[-1].set_payload(bed2.payload)
     elif cval == 1: break
   if payload: return sort_ranges(output)
   return merge_ranges(output)
