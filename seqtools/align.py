@@ -1,6 +1,7 @@
 """This module contains the most basic classes for describing and working with alignments."""
 
 import re, sys
+from collections import namedtuple
 from seqtools.sequence import rc
 from seqtools.range import GenomicRange
 from seqtools.structure.transcript import Transcript, Exon, Junction
@@ -12,13 +13,13 @@ AlignmentOptions = namedtuple('AlignmentOptions',
    [
     'reference'
    ])
-class Alignment:
+class Alignment(object):
   """ Basic class for common elements of alignments. 
       You don't have to have a query sequence and a reference sequence 
       to do an alignment."""
-  def __init__(self,alignment_ranges,options):
+  def __init__(self,options):
     if not options: options = Alignment.Options()
-    self._alignment_ranges = alignment_ranges #access through function because of BAM
+    #self._alignment_ranges = alignment_ranges #access through function because of BAM
     self._options = options
 
     #self._query_sequence = None
@@ -29,8 +30,8 @@ class Alignment:
     #self._set_alignment_ranges()
     return
 
-   @staticmethod
-   def Options(**kwargs):
+  @staticmethod
+  def Options(**kwargs):
       """ A method for declaring options for the class"""
       construct = BufferedLineGeneratorOptions #IMPORTANT!  Set this
       names = construct._fields
@@ -50,7 +51,7 @@ class Alignment:
     :rtype: int
 
      """
-    return sum([x[0].length for x in self.get_alignment_ranges()])
+    return sum([x[0].length for x in self.alignment_ranges])
 
   #def _set_alignment_ranges(self):
   #  """
@@ -133,7 +134,7 @@ class Alignment:
     :rtype: GenomicRange
 
     """
-    a = self.get_alignment_ranges()
+    a = self.alignment_ranges
     return GenomicRange(a[0][0].chr,a[0][0].start,a[-1][0].end)
   
   ## Range on the query string ... is the reverse complemented query if its on the negative strand
@@ -149,7 +150,7 @@ class Alignment:
     :rtype: GenomicRange
 
     """
-    a = self.get_alignment_ranges()
+    a = self.alignment_ranges
     #return GenomicRange(a[0][1].chr,a[0][1].start,a[-1][1].end,self.get_strand())
     if self.get_strand() == '+':
       return GenomicRange(a[0][1].chr,a[0][1].start,a[-1][1].end,self.get_strand())
@@ -177,7 +178,7 @@ class Alignment:
   @property
   def alignment_ranges(self):
     """Return an array of alignment ranges."""
-    return self._alignment_ranges
+    raise ValueError('you must define this one in the child')
 
   def get_alignment_strings(self,min_intron_size=68):
     """Process the alignment to get information like

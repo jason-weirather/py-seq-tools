@@ -1,10 +1,11 @@
 """Classes to work with sam and files"""
-import sys, re, os
+import sys, re, os, itertools
 from collections import namedtuple
 
 import seqtools.align
 from seqtools.sequence import rc
 from seqtools.range import GenomicRange
+import seqtools.stream
 _sam_cigar_target_add = re.compile('[M=XDN]$')
 
 
@@ -44,28 +45,35 @@ class SAM(seqtools.align.Alignment):
   """
   def __init__(self,line,options=None):
     if not options: options = SAM.Options()
+    self._options = options
     self._line = line.rstrip()
     self._cigar = None # Cache for the cigar
     self._tags = None # Cache fro tags
     self._target_range = None
-    self.entries = self._parse_sam_line()
+    #self.entries = self._parse_sam_line()
+    self._alignment_ranges = None
+    self._entries = None
     if self.is_aligned():
-       arngs = self._get_alignment_ranges()
-       super(SAM,self).__init__(arngs,options)
-    #self._reference = reference
-    #self._reference_lengths = None # reference would also cover this
-    #self._target_range = None
-    #self._private_values = SAM.PrivateValues()
-    #self._parse_sam_line()
-    # Private values holds tags cigar and entries
-    #self._alignment_ranges = None
-    #self._set_alignment_ranges()
+       super(SAM,self).__init__(options)
     return
+
+  @property
+  def entries(self):
+     if self._entries: return self._entries
+     self._entries = self._parse_sam_line()
+     return self._entries
+  @property
+  def alignment_ranges(self):
+     """Put the heavy alignment ranges calculation called on demand and then cached"""
+     if not self.is_aligned(): raise ValueError("you can't get alignment ranges from something that didn't align")
+     if self._alignment_ranges: return self._alignment_ranges
+     self._alignment_ranges = self._get_alignment_ranges()
+     return self._alignment_ranges
 
   @staticmethod
   def Options(**kwargs):
      """ A method for declaring options for the class"""
-     construct = GPDOptions #IMPORTANT!  Set this
+     construct = SAMOptions #IMPORTANT!  Set this
      names = construct._fields
      d = {}
      for name in names: d[name] = None #default values
@@ -79,7 +87,7 @@ class SAM(seqtools.align.Alignment):
     f = self._line.rstrip().split("\t")
     #rname
     rname = None
-    f[2] != '*': rname = f[2]
+    if f[2] != '*': rname = f[2]
     #pos
     pos = int(f[3])
     if pos == 0: pos = None 
@@ -91,7 +99,7 @@ class SAM(seqtools.align.Alignment):
     if f[5] != '*': cigar = f[5]
     #rnext
     rnext = None
-    f[6] != '*': rnext = f[6]
+    if f[6] != '*': rnext = f[6]
     #pnext
     pnext = int(f[7])
     if pnext == 0: pnext = None 
@@ -100,15 +108,15 @@ class SAM(seqtools.align.Alignment):
     if tlen == 0: tlen = None 
     #seq
     seq = None
-    f[9] != '*': seq = f[9]
+    if f[9] != '*': seq = f[9]
     #qual
     qual = None
-    f[10] != '*': qual = f[10]
+    if f[10] != '*': qual = f[10]
     tags = None
     if len(f) > 11:
        tags = f[11:]
 
-    self.entries = SAMFields(
+    return  SAMFields(
        f[0], #qname
        int(f[1]), #flag
        rname, #rname
@@ -146,6 +154,10 @@ class SAM(seqtools.align.Alignment):
      self._tags = tags
      return self._tags
 
+  def get_aligned_bases_count(self):
+     if not self.is_aligned(): return 0
+     return super(SAM,self).get_aligned_bases_count()
+
   @property
   def target_sequence_length(self):
     """ Get the length of the target sequence.  length of the entire chromosome
@@ -173,7 +185,7 @@ class SAM(seqtools.align.Alignment):
 
     .. warning:: this returns the full query sequence, not just the aligned portion, but i also does not include hard clipped portions (only soft clipped)
     """
-    if not self.entries.seq return None
+    if not self.entries.seq: return None
     if self.check_flag(0x10): return rc(self.entries.seq)
     return self.entries.seq
 
@@ -324,44 +336,123 @@ class SAMHeader:
     for v in [x['info'] for x in self.tags if x['tag'] == 'SQ']:
       self._sequence_lengths[v['SN']] = int(v['LN'])
     return
-  def get_sequence_names(self):
+
+  def __str__(self): return self._text.rstrip()
+
+  def text(self): return self._text.rstrip()+"\n"
+
+  @property
+  def sequence_names(self):
     return self._sequence_lengths.keys()
-  #dictionary to get sequence lengths
+
   def get_sequence_lengths(self):
+    """return a dictionary of sequence lengths"""
     return self._sequence_lengths
+
   def get_sequence_length(self,sname):
+    """get a specific sequence length"""
     return self._sequence_lengths[sname]
+
+
+SAMGeneratorOptions = namedtuple('SAMGeneratorOptions',
+   ['buffer_size'])
+
+class SAMGenerator(seqtools.stream.BufferedLineGenerator):
+   """Generic class for a streaming SAM data
+
+      Borrows the _gen fucntion from BufferedLineGenerator to shorten things a bit
+   """
+   def __init__(self,stream,options=None):
+      if not options: options = SAMGenerator.Options()
+      self._options = options
+      self._stream = stream
+      self._buffer = ''
+      self._header_text = ''
+      # start falling through the header
+      done_header = False
+      while True:
+         data = self._stream.read(self._options.buffer_size)
+         if not data: break
+         self._buffer += data
+         last = 0
+         for m in re.finditer('\n',data):
+            ln = data[last:m.start()+1]
+            if is_header(ln): 
+               self._header_text += ln
+            else:
+               done_header = True
+            last = m.start()+1
+         if done_header: break
+      #leave the unprocessed portion of the buffer
+      self._buffer = self._buffer[len(self._header_text):]
+      #After this point it is a normal buffered line generator, using
+      #the SAM mapping function
+
+   @staticmethod
+   def Options(**kwargs):
+      """ A method for declaring options for the class"""
+      construct = SAMGeneratorOptions #IMPORTANT!  Set this
+      names = construct._fields
+      d = {}
+      for name in names: d[name] = None #default values
+      """set defaults here"""
+      d['buffer_size'] = 1000000
+      for k,v in kwargs.iteritems():
+         if k in names: d[k] = v
+         else: raise ValueError('Error '+k+' is not a property of these options')
+      """Create a set of options based on the inputs"""
+      return construct(**d)
+
+   def __iter__(self):
+      return itertools.imap(SAM,self._gen())
+
+   def has_header(self):
+      if len(self._header_text) > 0: return True
+      return False
+
+   @property
+   def header(self):
+      if not self.has_header(): return None
+      return SAMHeader(self._header_text)
+
+"""SAM line options that are not absolutely necessary for a sam line"""
+SAMStreamOptions = namedtuple('SAMStreamOptions',
+   ['reference' # reference dictionary
+               ])
 
 class SAMStream:
   """minimum_intron_size greater than zero will only show sam entries with introns (junctions)
   minimum_overhang greater than zero will require some minimal edge support to consider an intron (junction)
 
   :param fh: filehandle to go through
-  :param minimum_intron_size: (default 0)
-  :param minimum_overhang: require some minimum edge support to consider a junction.  Probably should make more use of this
-  :param reference: dictionary of reference sequences
+  :param options.reference: dictionary of reference sequences
   :type fh: stream
-  :type minimum_intron_size: int
-  :type minimum_overhang:
-  :type reference: dict()
+  :type options.reference: dict()
   """
-  def __init__(self,fh=None,minimum_intron_size=0,minimum_overhang=0,reference=None):
+  def __init__(self,stream,options=None):
+    if not options: options = SAMStream.Options()
     self.previous_line = None
     self.in_header = True
     self._reference = reference
-    self.minimum_intron_size = minimum_intron_size
-    self.minimum_overhang = minimum_overhang
-    if minimum_intron_size <= 0:
-      self.junction_only = False
-    else:
-      self.junction_only = True
-      self.minimum_intron_size = minimum_intron_size
     self._header = None
     self.header_text = ''
-    if fh:
-      self.fh = fh
-      self.assign_handle(fh)
-      self.get_header()
+    self._stream = stream
+    self.assign_handle(stream)
+    self.get_header()
+
+  @staticmethod
+  def Options(**kwargs):
+     """ A method for declaring options for the class"""
+     construct = SAMStreamOptions #IMPORTANT!  Set this
+     names = construct._fields
+     d = {}
+     for name in names: d[name] = None #default values
+     for k,v in kwargs.iteritems():
+       if k in names: d[k] = v
+       else: raise ValueError('Error '+k+' is not a property of these options')
+     """Create a set of options based on the inputs"""
+     return construct(**d)
+
 
   # return a string that is the header
   def get_header(self):
