@@ -217,8 +217,8 @@ class MultiLocusStream:
      Each element should be sorted by position
      Streams need to have this method:
 
-     1. read_entry()
-     2. get_range()
+     1. next()
+     2. .range property
 
      :param streams: list of streams
      :type streams: list
