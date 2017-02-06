@@ -6,19 +6,42 @@ from seqtools.range import GenomicRange
 from seqtools.structure.transcript import Transcript, Exon, Junction
 
 from string import maketrans
+
+
+AlignmentOptions = namedtuple('AlignmentOptions',
+   [
+    'reference'
+   ])
 class Alignment:
   """ Basic class for common elements of alignments. 
       You don't have to have a query sequence and a reference sequence 
       to do an alignment."""
-  def __init__(self):
-    self._alignment_ranges = None #access through function because of BAM
-    self._query_sequence = None
-    self._query_quality = None
-    self._query_length = 0
-    self._target_length = 0
-    self._reference = None
-    self._set_alignment_ranges()
+  def __init__(self,alignment_ranges,options):
+    if not options: options = Alignment.Options()
+    self._alignment_ranges = alignment_ranges #access through function because of BAM
+    self._options = options
+
+    #self._query_sequence = None
+    #self._query_quality = None
+    #self._query_length = 0
+    #self._target_length = 0
+    #self._reference = None
+    #self._set_alignment_ranges()
     return
+
+   @staticmethod
+   def Options(**kwargs):
+      """ A method for declaring options for the class"""
+      construct = BufferedLineGeneratorOptions #IMPORTANT!  Set this
+      names = construct._fields
+      d = {}
+      for name in names: d[name] = None #default values
+      """set defaults here"""
+      for k,v in kwargs.iteritems():
+         if k in names: d[k] = v
+         else: raise ValueError('Error '+k+' is not an options property')
+      """Create a set of options based on the inputs"""
+      return construct(**d)
 
   def get_aligned_bases_count(self):
     """The sum of the aligned bases.
@@ -29,23 +52,25 @@ class Alignment:
      """
     return sum([x[0].length for x in self.get_alignment_ranges()])
 
-  def _set_alignment_ranges(self):
-    """
-    .. warning:: Must be overridden
+  #def _set_alignment_ranges(self):
+  #  """
+  #  .. warning:: Must be overridden
+  #
+  #  """
+  #  self._alignment_ranges = None
+  #  sys.stderr.write("ERROR: needs overridden\n")
+  #  sys.stderr.exit()
 
-    """
-    self._alignment_ranges = None
-    sys.stderr.write("ERROR: needs overridden\n")
-    sys.stderr.exit()
   # Post: Return sequence string, or None if not set
-  def get_query_sequence(self):
+
+  @property
+  def query_sequence(self):
     """
     .. warning:: Must be overridden
 
     """
-    sys.stderr.write("ERROR: needs overridden\n")
-    sys.stderr.exit()
-    return self._query_sequence
+    return self._options.query_sequence
+
   def set_query_sequence(self,seq):
     """Assign the query sequence.
     
@@ -53,50 +78,61 @@ class Alignment:
     :type seq: string
 
     """
-    self._query_sequence = seq
+    self._options = self._options.replace(query_sequence = seq)
 
-  def get_target_length(self):
+  @property
+  def target_sequence_length(self):
     """
     .. warning:: Must be overridden
 
     """
     sys.stderr.write("ERROR: needs overridden\n")
     sys.stderr.exit()
-  def get_query_length(self):
+
+  @property
+  def query_sequence_length(self):
     """
     .. warning:: Must be overridden
 
     """
     sys.stderr.write("ERROR: needs overridden\n")
     sys.stderr.exit()
-  def get_strand(self):
+
+  @property
+  def strand(self):
     """
     .. warning:: Must be overridden
 
     """
     sys.stderr.write("ERROR: needs overridden\n")
     sys.stderr.exit()
-    return self._query_direction
 
-  # can be overridden
-  # Post: Return quality string, or None if not set
-  def get_query_quality(self):
-    """Get the quality.
-
-    :returns:  quality
-    :rtype: string
+  @property
+  def direction(self):
+    """
+    .. warning:: Must be overridden
 
     """
-    return self._query_quality
+    sys.stderr.write("ERROR: needs overridden\n")
+    sys.stderr.exit()
 
-  def get_target_range(self):
+  @property
+  def query_quality(self):
+    """
+    .. warning:: Must be overridden
+
+    """
+    sys.stderr.write("ERROR: needs overridden\n")
+    sys.stderr.exit()
+
+  @property
+  def target_range(self):
     """Get the range covered on the target/reference strand
 
     :returns: Genomic range of the target strand
     :rtype: GenomicRange
 
     """
-
     a = self.get_alignment_ranges()
     return GenomicRange(a[0][0].chr,a[0][0].start,a[-1][0].end)
   
@@ -104,8 +140,9 @@ class Alignment:
   #def get_query_range(self):
   #  a = self._alignment_ranges
   #  return GenomicRange(a[0][1].chr,a[0][1].start,a[-1][1].end,self.get_strand())
-
-  def get_actual_query_range(self):
+  
+  @property
+  def actual_query_range(self):
     """This is the actual query range for the positive strand
 
     :returns: Range of query positive strand covered
@@ -117,16 +154,17 @@ class Alignment:
     if self.get_strand() == '+':
       return GenomicRange(a[0][1].chr,a[0][1].start,a[-1][1].end,self.get_strand())
     #must be - strand
-    return GenomicRange(a[0][1].chr,self.get_query_length()-a[-1][1].end+1,self.get_query_length()-a[0][1].start+1,self.get_strand())
+    return GenomicRange(a[0][1].chr,self.get_query_length()-a[-1][1].end+1,self.get_query_length()-a[0][1].start+1,dir=self.strand)
 
-  def get_reference(self):
-    """Return the reference sequence
+  @property
+  def reference(self):
+    """Return the reference dictionary
 
-    :returns: reference sequence
-    :rtype: string
+    :returns: reference dictionary
+    :rtype: dict()
 
     """
-    return self._reference
+    return self._options.reference
   def set_reference(self,ref):
     """Set the reference sequence
 
@@ -136,7 +174,8 @@ class Alignment:
     """
     self._reference = ref
 
-  def get_alignment_ranges(self):
+  @property
+  def alignment_ranges(self):
     """Return an array of alignment ranges."""
     return self._alignment_ranges
 
@@ -146,17 +185,16 @@ class Alignment:
 
     :returns: String representation of the alignment in an easy to read format
     :rtype: string
-
     """
-    qseq = self.get_query_sequence()
+    qseq = self.query_sequence
     if not qseq:
       sys.exit("ERROR: Query sequence must be accessable to get alignment strings\n")
       sys.exit()
-    ref = self.get_reference()
-    qual = self.get_query_quality()
+    ref = self._options.reference
+    qual = self.query_quality
     if not qual: 
       qual = 'I'*len(qseq) # for a placeholder quality
-    if self.get_strand() == '-': 
+    if self.strand == '-': 
       qseq = rc(qseq)
       qual = qual[::-1]
     tarr = []
@@ -165,14 +203,14 @@ class Alignment:
     tdone = ''
     qdone = ''
     ydone = '' #query quality
-    for i in range(len(self.get_alignment_ranges())):
-      [t,q] = self.get_alignment_ranges()[i]
+    for i in range(len(self.alignment_ranges)):
+      [t,q] = self.alignment_ranges[i]
       textra = ''
       qextra = ''
       yextra = ''
       if i >= 1:
-        dift = t.start-self.get_alignment_ranges()[i-1][0].end-1
-        difq = q.start-self.get_alignment_ranges()[i-1][1].end-1
+        dift = t.start-self.alignment_ranges[i-1][0].end-1
+        difq = q.start-self.alignment_ranges[i-1][1].end-1
         if dift < min_intron_size:
           if dift > 0:
             textra = ref[t.chr][t.start-dift-1:t.start-1].upper()
@@ -196,13 +234,13 @@ class Alignment:
       tarr.append(tdone)
       qarr.append(qdone)
       yarr.append(ydone)
-    if self.get_query_quality() == '*': yarr = [x.replace('I',' ') for x in yarr]
+    if self.query_quality == '*': yarr = [x.replace('I',' ') for x in yarr]
     #query, target, query_quality
     return [qarr,tarr,yarr]
 
   def _analyze_alignment(self,min_intron_size=68):
     [qstrs,tstrs,ystrs] = self.get_alignment_strings(min_intron_size=min_intron_size)
-    matches = sum([x[0].length for x in self.get_alignment_ranges()]) 
+    matches = sum([x[0].length for x in self.alignment_ranges]) 
     misMatches = 0
     for i in range(len(qstrs)):
       misMatches += sum([int(qstrs[i][j]!=tstrs[i][j] and qstrs[i][j]!='-' and tstrs[i][j]!='-' and tstrs[i][j]!='N') for j in range(len(qstrs[i]))])
@@ -231,10 +269,10 @@ class Alignment:
 
     """
     has_qual = True
-    if not self.get_query_quality(): has_qual = False
+    if not self.query_quality: has_qual = False
     trantab = maketrans('01',' *')
     [qstrs,tstrs,ystrs] = self.get_alignment_strings(min_intron_size=min_intron_size)
-    print 'Alignment for Q: '+str(self.get_alignment_ranges()[0][1].chr)
+    print 'Alignment for Q: '+str(self.alignment_ranges[0][1].chr)
     for i in range(len(qstrs)):
       print 'Exon '+str(i+1)
       #+' T: '+self._alignment_ranges[i][0].get_range_string()+' Q: '+str(self._alignment_ranges[i][1].start)+'-'+str(self._alignment_ranges[i][1].end)
@@ -257,8 +295,7 @@ class Alignment:
 
     """
     from seqtools.format.psl import PSL
-    if not self.get_alignment_ranges(): return None
-    matches = sum([x[0].length for x in self.get_alignment_ranges()]) # 1. Matches - Number of matching bases that aren't repeats
+    matches = sum([x[0].length for x in self.alignment_ranges]) # 1. Matches - Number of matching bases that aren't repeats
     misMatches = 0 # 2. Mismatches - Number of baess that don't match
     repMatches = 0 # 3. repMatches - Number of matching baess that are part of repeats
     nCount = 0 # 4. nCount - Number of 'N' bases
@@ -266,8 +303,8 @@ class Alignment:
     qBaseInsert = 0 # 6. qBaseInsert - Number of bases inserted into query
     tNumInsert = 0 # 7. Number of inserts in target
     tBaseInsert = 0 # 8. Number of bases inserted into target
-    sub = self.get_query_sequence()
-    ref = self.get_reference()
+    sub = self.query_sequence
+    ref = self._options.reference
     if sub and ref:
       v = self._analyze_alignment(min_intron_size=min_intron_size)
       matches = v['matches']
@@ -277,19 +314,19 @@ class Alignment:
       qBaseInsert = v['qBaseInsert'] # 6. qBaseInsert - Number of bases inserted into query
       tNumInsert = v['tNumInsert'] # 7. Number of inserts in target
       tBaseInsert = v['tBaseInsert'] # 8. Number of bases inserted into target
-    strand = self.get_strand() # 9. strand 
-    qName = self.get_alignment_ranges()[0][1].chr # 10. qName - Query sequence name
-    qSize = self.get_query_length()
-    qStart = self.get_alignment_ranges()[0][1].start-1
-    qEnd = self.get_alignment_ranges()[-1][1].end
-    tName = self.get_alignment_ranges()[0][0].chr
-    tSize = self.get_target_length()
-    tStart = self.get_alignment_ranges()[0][0].start-1
-    tEnd = self.get_alignment_ranges()[-1][0].end
-    blockCount = len(self.get_alignment_ranges())
-    blockSizes = ','.join([str(x[0].length) for x in self.get_alignment_ranges()])+','
-    qStarts = ','.join([str(x[1].start-1) for x in self.get_alignment_ranges()])+','
-    tStarts = ','.join([str(x[0].start-1) for x in self.get_alignment_ranges()])+','
+    strand = self.strand # 9. strand 
+    qName = self.alignment_ranges[0][1].chr # 10. qName - Query sequence name
+    qSize = self.query_length
+    qStart = self.alignment_ranges[0][1].start-1
+    qEnd = self.alignment_ranges[-1][1].end
+    tName = self.alignment_ranges[0][0].chr
+    tSize = self.target_sequence_length
+    tStart = self.alignment_ranges[0][0].start-1
+    tEnd = self.alignment_ranges[-1][0].end
+    blockCount = len(self.alignment_ranges)
+    blockSizes = ','.join([str(x[0].length) for x in self.alignment_ranges])+','
+    qStarts = ','.join([str(x[1].start-1) for x in self.alignment_ranges])+','
+    tStarts = ','.join([str(x[0].start-1) for x in self.alignment_ranges])+','
 
     psl_string = str(matches)+"\t"+\
     str(misMatches)+"\t"+\
@@ -312,7 +349,7 @@ class Alignment:
     blockSizes+"\t"+\
     qStarts+"\t"+\
     tStarts
-    return PSL(psl_string,query_sequence=self.get_query_sequence(),reference=self.get_reference(),query_quality=self.get_query_quality())
+    return PSL(psl_string,query_sequence=self.query_sequence,reference=self._options.reference,query_quality=self.query_quality)
 
   #clearly this should be overwritten by the SAM class to give itself
   def get_SAM(self,min_intron_size=68):
@@ -324,23 +361,26 @@ class Alignment:
     """
     from seqtools.format.sam import SAM
     #ar is target then query
-    qname = self.get_alignment_ranges()[0][1].chr
+    qname = self.alignment_ranges[0][1].chr
     flag = 0
-    if self.get_strand() == '-': flag = 16
-    rname = self.get_alignment_ranges()[0][0].chr
-    pos = self.get_alignment_ranges()[0][0].start
+    if self.strand == '-': flag = 16
+    rname = self.alignment_ranges[0][0].chr
+    pos = self.alignment_ranges[0][0].start
     mapq = 255
     cigar = self.construct_cigar(min_intron_size)
     rnext = '*'
     pnext = 0
-    tlen = self.get_target_range().length
-    seq = self.get_query_sequence()
+    tlen = 0 # possible to set if we have a reference
+    if self._options.reference:
+       if rname in self._options.reference: 
+          tlen = len(self._options.reference[rname])
+    seq = self.query_sequence
     if not seq: seq = '*'
-    qual = self.get_query_quality()
+    qual = self.query_quality
     if not qual: qual = '*'
     #seq = '*'
     #qual = '*'
-    if self.get_strand() == '-':
+    if self.strand == '-':
       seq = rc(seq)
       qual = qual[::-1]
     ln = qname + "\t" + str(flag) + "\t" + rname + "\t" + \
@@ -358,7 +398,7 @@ class Alignment:
     """
 
     # goes target query
-    ar = self.get_alignment_ranges()
+    ar = self.alignment_ranges
     cig = ''
     if ar[0][1].start > 1: # soft clipped
       cig += str(ar[0][1].start-1)+'S'
@@ -392,20 +432,20 @@ class Alignment:
       sys.stderr.write("ERROR minimum intron should be 1 base or longer\n")
       sys.exit()
     #tx = Transcript()
-    rngs = [self.get_alignment_ranges()[0][0].copy()]
+    rngs = [self.alignment_ranges[0][0].copy()]
     #rngs[0].set_direction(None)
-    for i in range(len(self.get_alignment_ranges())-1):
-      dist = self.get_alignment_ranges()[i+1][0].start - rngs[-1].end-1
+    for i in range(len(self.alignment_ranges)-1):
+      dist = self.alignment_ranges[i+1][0].start - rngs[-1].end-1
       #print 'dist '+str(dist)
       if dist >= min_intron:
-        rngs.append(self.get_alignment_ranges()[i+1][0].copy())
+        rngs.append(self.alignment_ranges[i+1][0].copy())
         #rngs[-1].set_direction(None)
       else:
-        rngs[-1].end = self.get_alignment_ranges()[i+1][0].end
+        rngs[-1].end = self.alignment_ranges[i+1][0].end
     tx = Transcript(rngs,options=Transcript.Options(
-         direction=self.get_strand(),
-         name = self.get_alignment_ranges()[0][1].chr,
-         gene_name = self.get_alignment_ranges()[0][1].chr
+         direction=self.strand,
+         name = self.alignment_ranges[0][1].chr,
+         gene_name = self.alignment_ranges[0][1].chr
                                                   ))
     #tx.set_exons_and_junctions_from_ranges(rngs)
     #tx.set_range()
