@@ -5,6 +5,7 @@ from collections import namedtuple
 import seqtools.align
 from seqtools.sequence import rc
 from seqtools.range import GenomicRange
+from seqtools.format.sam.header import SAMHeader
 import seqtools.stream
 _sam_cigar_target_add = re.compile('[M=XDN]$')
 
@@ -302,7 +303,7 @@ class SAM(seqtools.align.Alignment):
     if self._target_range: return self._target_range # check cache
     global _sam_cigar_target_add
     tlen = sum([x[0] for x in self.cigar if _sam_cigar_target_add.match(x[1])])
-    self._target_range = GenomicRange(self.value('rname'),self.value('pos'),self.value('pos')+tlen-1)
+    self._target_range = GenomicRange(self.entries.rname,self.entries.pos,self.entries.pos+tlen-1)
     return self._target_range
 
   def check_flag(self,inbit):
@@ -319,40 +320,6 @@ class SAM(seqtools.align.Alignment):
     .. warning:: this should probably not exist if the constructor takes a line
     """
     return self._line
-
-class SAMHeader:
-  """class to retain information about a SAMheader and access data from it"""
-  def __init__(self,header_text):
-    self._text = header_text
-    self.tags = []
-    self._sequence_lengths = {}
-    for line in self._text.split("\n"):
-      if len(line) == 0: continue
-      tag = line[1:3]
-      rem = line[4:]
-      self.tags.append({'tag':tag,'info':{}})
-      for c in [{'field':x[0:2],'value':x[3:]} for x in rem.split("\t")]:
-        self.tags[-1]['info'][c['field']] = c['value']
-    for v in [x['info'] for x in self.tags if x['tag'] == 'SQ']:
-      self._sequence_lengths[v['SN']] = int(v['LN'])
-    return
-
-  def __str__(self): return self._text.rstrip()
-
-  def text(self): return self._text.rstrip()+"\n"
-
-  @property
-  def sequence_names(self):
-    return self._sequence_lengths.keys()
-
-  def get_sequence_lengths(self):
-    """return a dictionary of sequence lengths"""
-    return self._sequence_lengths
-
-  def get_sequence_length(self,sname):
-    """get a specific sequence length"""
-    return self._sequence_lengths[sname]
-
 
 SAMGeneratorOptions = namedtuple('SAMGeneratorOptions',
    ['buffer_size'])
@@ -396,7 +363,7 @@ class SAMGenerator(seqtools.stream.BufferedLineGenerator):
       d = {}
       for name in names: d[name] = None #default values
       """set defaults here"""
-      d['buffer_size'] = 1000000
+      d['buffer_size'] = 10000000
       for k,v in kwargs.iteritems():
          if k in names: d[k] = v
          else: raise ValueError('Error '+k+' is not a property of these options')
@@ -417,26 +384,22 @@ class SAMGenerator(seqtools.stream.BufferedLineGenerator):
 
 """SAM line options that are not absolutely necessary for a sam line"""
 SAMStreamOptions = namedtuple('SAMStreamOptions',
-   ['reference' # reference dictionary
+   ['buffer_size' # reference dictionary
                ])
 
-class SAMStream:
+class SAMStream(object):
   """minimum_intron_size greater than zero will only show sam entries with introns (junctions)
   minimum_overhang greater than zero will require some minimal edge support to consider an intron (junction)
 
-  :param fh: filehandle to go through
-  :param options.reference: dictionary of reference sequences
-  :type fh: stream
-  :type options.reference: dict()
+  :param stream: filehandle to go through
+  :param options.buffer_size: buffer_size - read this many bytes at a time
+  :type stream: stream
+  :type options.buffer_size: 
   """
   def __init__(self,stream,options=None):
     if not options: options = SAMStream.Options()
-    self.previous_line = None
-    self.in_header = True
-    self._reference = reference
-    self._header = None
-    self.header_text = ''
-    self._stream = stream
+    self._options = options
+    self._stream = SAMGenerator(stream,options=self._options)
     self.assign_handle(stream)
     self.get_header()
 
@@ -447,67 +410,32 @@ class SAMStream:
      names = construct._fields
      d = {}
      for name in names: d[name] = None #default values
+     d['buffer_size'] = 10000000
      for k,v in kwargs.iteritems():
        if k in names: d[k] = v
        else: raise ValueError('Error '+k+' is not a property of these options')
      """Create a set of options based on the inputs"""
      return construct(**d)
 
+  def has_header(self): return self._stream.has_header()
 
-  # return a string that is the header
-  def get_header(self):
-    """Return the object representing the header"""
-    if not self._header:
-      self._header = SAMHeader(self.header_text)
-      return self._header
-    return self._header
-
-
-  def set_junction_only(self,mybool=True):
-    self.junction_only = mybool
-
-  def assign_handle(self,fh):
-    if self.in_header:
-      while True:
-        self.previous_line = fh.readline()
-        if is_header(self.previous_line):
-          self.header_text += self.previous_line
-          #self.header.append(self.previous_line)
-        else:
-          self.in_header = False
-          self.previous_line = self.previous_line
-          break
-      # make sure our first line is
-      if self.junction_only:
-        while True:
-          if not self.previous_line: break
-          if is_junction_line(self.previous_line,self.minimum_intron_size,self.minimum_overhang): break
-          self.previous_line = self.fh.readline()
+  @property
+  def header(self):
+      if not self.has_header(): return None
+      return SAMHeader(self._stream._header_text)
 
   def __iter__(self):
     return self
 
   def next(self):
     r = self.read_entry()
-    if not r:
-      raise StopIteration
-    else:
-      return r
+    if not r: raise StopIteration
+    else: return r
 
   def read_entry(self):
-    if not self.previous_line: return False
-    out = self.previous_line
-    self.previous_line = self.fh.readline()
-    if self.junction_only:
-      while True:
-        if not self.previous_line: break
-        if is_junction_line(self.previous_line,self.minimum_intron_size,self.minimum_overhang): break
-        self.previous_line = self.fh.readline()
-    if out:
-      s = SAM(out,reference=self._reference)
-      s.get_range()
-      return s
-    return None
+    try: r = self._stream.next()
+    except StopIteration: r = None
+    return r
 
 def is_junction_line(line,minlen=68,minoverhang=0):
   prog = re.compile('([0-9]+)([NMX=])')

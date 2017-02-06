@@ -235,4 +235,4 @@ class MappingGeneric(object):
         rngs.append(self._rngs[i+1].copy())
       else:
         rngs[-1].end = self._rngs[i+1].end
-    return self.__init__(rngs,self._options)
+    return type(self)(rngs,self._options)

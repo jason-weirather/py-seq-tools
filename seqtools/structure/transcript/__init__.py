@@ -10,7 +10,14 @@ import seqtools.graph
 from math import sqrt
 from seqtools.structure.transcript.converters import transcript_to_gpd_line, transcript_to_fake_psl_line
 
-
+TranscriptOptions = namedtuple('TranscriptOptions',
+   ['direction',
+    'ref',
+    'sequence',
+    'name',
+    'gene_name',
+    'payload'
+   ])
 class Transcript(seqtools.structure.MappingGeneric):
   """Class to describe a transcript
 
@@ -38,15 +45,23 @@ class Transcript(seqtools.structure.MappingGeneric):
   """
 
   def __init__(self,rngs,options=None):
-    if not options: options = {'direction':None,
-         'ref':None,
-         'sequence':None,
-         'name':None,
-         'gene_name':None,
-         'payload':None}
     super(Transcript,self).__init__(rngs,options)
     self._rngs = rngs
     self._options = options
+
+  @staticmethod
+  def Options(**kwargs):
+      """ A method for declaring options for the class"""
+      construct = TranscriptOptions #IMPORTANT!  Set this
+      names = construct._fields
+      d = {}
+      for name in names: d[name] = None #default values
+      """set defaults here"""
+      for k,v in kwargs.iteritems():
+         if k in names: d[k] = v
+         else: raise ValueError('Error '+k+' is not an options property')
+      """Create a set of options based on the inputs"""
+      return construct(**d)
   
 
   def __getitem__(self,key):
@@ -115,9 +130,9 @@ class Transcript(seqtools.structure.MappingGeneric):
     sys.exit()
     return self._junctions
 
-  def get_gpd_line(self,transcript_name=None,gene_name=None,strand=None):
+  def get_gpd_line(self,transcript_name=None,gene_name=None,direction=None):
     """Get the genpred format string representation of the mapping"""
-    return transcript_to_gpd_line(self,transcript_name,gene_name,strand)
+    return transcript_to_gpd_line(self,transcript_name=transcript_name,gene_name=gene_name,direction=direction)
 
   def set_gene_name(self,name):
     """assign a gene name

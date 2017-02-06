@@ -1,9 +1,9 @@
 """a module provide functions to conver transcripts to other formats
 
 """
-import sys
+import sys, uuid
 
-def transcript_to_gpd_line(self,transcript_name=None,gene_name=None,strand=None):
+def transcript_to_gpd_line(tx,transcript_name=None,gene_name=None,direction=None):
     """Get the genpred format string representation of the mapping
 
     :param transcript_name:
@@ -15,32 +15,28 @@ def transcript_to_gpd_line(self,transcript_name=None,gene_name=None,strand=None)
     :return: GPD line
     :rtype: string
     """
-    self._initialize()
-    tname = self._transcript_name
-    gname = self._gene_name
-    dir = self._direction
+    tname = tx._options.name
+    if transcript_name: tname = transcript_name
+    gname = tx._options.gene_name
+    if gene_name: gname = gene_name
+    dir = tx._options.direction
+    if direction: dir = direction
     # check for if we just have a single name
-    if not tname and not gname:
-      if self._name:
-        tname = self._name
-        gname = self._name
-    if not tname: tname = transcript_name
-    if not gname: gname = gene_name
-    if not dir: dir = strand
-    if not tname or not gname or strand:
-      sys.stderr.write("ERROR:  transcript name and gene name and direction must be set to output a gpd line or use get_fake_gpd_line()\n")
+    if not tname: tname = str(uuid.uuid4())
+    if not gname:
+        gname = tname
     out = ''
     out += tname + "\t"
     out += gname + "\t"
-    out += self.exons[0].rng.chr + "\t"
+    out += tx.exons[0].chr + "\t"
     out += dir + "\t"
-    out += str(self.exons[0].rng.start-1) + "\t"
-    out += str(self.exons[-1].rng.end) + "\t"
-    out += str(self.exons[0].rng.start-1) + "\t"
-    out += str(self.exons[-1].rng.end) + "\t"
-    out += str(len(self.exons)) + "\t"
-    out += str(','.join([str(x.rng.start-1) for x in self.exons]))+','+"\t"
-    out += str(','.join([str(x.rng.end) for x in self.exons]))+','
+    out += str(tx.exons[0].start-1) + "\t"
+    out += str(tx.exons[-1].end) + "\t"
+    out += str(tx.exons[0].start-1) + "\t"
+    out += str(tx.exons[-1].end) + "\t"
+    out += str(len(tx.exons)) + "\t"
+    out += str(','.join([str(x.start-1) for x in tx.exons]))+','+"\t"
+    out += str(','.join([str(x.end) for x in tx.exons]))+','
     return out
 
 def transcript_to_fake_psl_line(self,ref):
