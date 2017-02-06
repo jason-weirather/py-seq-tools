@@ -3,7 +3,6 @@
 import sys, re
 from collections import namedtuple
 
-
 class RangeGeneric(object):
   """A generic range object
 
@@ -11,12 +10,15 @@ class RangeGeneric(object):
 
      Slicing is permitted and returns a new RangeGeneric but keep in mind
      the slicing is 1-index as well for this object
+
+     For these basic range classes I won't use an options helper class
+     because i prefer to keep these as lightweight as possible.  they can
+     have payloads, but I think i'll leave out fancier attributes 
   """
-  def __init__(self,start,end,options=None):
-    if not options: options = {'payload':None}
+  def __init__(self,start,end,payload=None):
     self.start = start
     self.end = end
-    self._options = options
+    self.payload = None
     self._start_offset = 0
 
   @property
@@ -24,17 +26,14 @@ class RangeGeneric(object):
     return self.end-self.start+1
 
   def copy(self):
-    return type(self)(self.start+self._start_offset,self.end,self._options)
-
-  @property
-  def payload(self): return self._options['payload']
+    return type(self)(self.start+self._start_offset,self.end,self.payload)
 
   def set_payload(self,inpay):
     """Set the payload.  Stored in a list to try to keep it as a reference
 
     :param inpay: payload input
     """
-    self.options['payload']=inpay
+    self.payload=inpay
 
   def __iter__(self):
     """Lets try to do it by makinga n iterator"""
@@ -49,14 +48,15 @@ class RangeGeneric(object):
       if key.stop < self.start: return None
       return RangeGeneric(max(key.start,self.start),
                           min(key.stop,self.end),
-                          self._options)
+                          self.payload,
+                          self.dir)
 
   def __setitem__(self,key):
     return
   def __delitem__(self,key):
     return
   def __str__(self):
-    return str(self.start)+'-'+str(self.end)+' '+str(self._options)
+    return str(self.start)+'-'+str(self.end)+' '+str(self.payload)+' '+str(self.dir)
 
 
 class GenomicRange(RangeGeneric):
@@ -79,10 +79,8 @@ class GenomicRange(RangeGeneric):
   :type options.payload: Object
 
   """
-  def __init__(self,chr,start,end,options=None):
-    if not options: options = {'payload':None,
-                               'dir':None}
-    super(GenomicRange,self).__init__(start,end,options)
+  def __init__(self,chr,start,end,payload=None,dir=None):
+    super(GenomicRange,self).__init__(start,end,payload=payload)
     self.chr = chr
     self.dir = dir
 
@@ -95,7 +93,8 @@ class GenomicRange(RangeGeneric):
       return GenomicRange(self.chr,
                           max(key.start,self.start),
                           min(key.stop,self.end),
-                          self._options)
+                          self.payload,
+                          self.dir)
 
   def __str__(self):
     return self.get_range_string()+' '+str(self._options)
@@ -110,15 +109,21 @@ class GenomicRange(RangeGeneric):
     return type(self)(self.chr,
                       self.start+self._start_offset,
                       self.end,
-                      self._options)
+                      self.payload,
+                      self.dir)
 
-  def get_range(self):
+  @property
+  def range(self):
     """For compatability with some range-based tools that need to call this function
+
+       Its necessary to make a new one without options since payload may get used
+
+       So if you want to do something similar to copy but specifically returns a GenomicRange object and no options, this is it
 
     :return: this object
     :rtype: GenomicRange
     """
-    return self
+    return GenomicRange(self.chr,self.start,self.end)
 
   def get_bed_array(self):
     """Return a basic three meber bed array representation of this range
@@ -127,8 +132,8 @@ class GenomicRange(RangeGeneric):
     :rtype: list
     """
     arr = [self.chr,self.start-1,self.end]
-    if self._options['dir']:
-      arr.append(self._options['dir'])
+    if self.dir:
+      arr.append(self.dir)
     return arr 
 
   @property
@@ -139,7 +144,7 @@ class GenomicRange(RangeGeneric):
     :rtype: char
 
     """
-    return self._options['dir']
+    return self.dir
 
   def set_direction(self,dir):
     """ set he direction
@@ -147,7 +152,7 @@ class GenomicRange(RangeGeneric):
     :param dir: direction + or -
     :type dir: char
     """
-    self._options['dir'] = dir
+    self.dir = dir
 
   def equals(self,gr):
     """ check for equality. does not consider direction
@@ -285,7 +290,7 @@ class GenomicRange(RangeGeneric):
     """
     if self.chr != range2.chr:
       return None
-    o = type(self)(self.chr,min(self.start,range2.start),max(self.end,range2.end),self._options)
+    o = type(self)(self.chr,min(self.start,range2.start),max(self.end,range2.end),self.payload,self.dir)
     return o
 
   def intersect(self,range2):
@@ -301,7 +306,7 @@ class GenomicRange(RangeGeneric):
 
     """
     if not self.overlaps(range2): return None
-    return type(self)(self.chr,max(self.start,range2.start),min(self.end,range2.end),self._options)
+    return type(self)(self.chr,max(self.start,range2.start),min(self.end,range2.end),self.payload,self.dir)
 
   def cmp(self,range2,overlap_size=0):
     """the comparitor for ranges
@@ -344,11 +349,11 @@ class GenomicRange(RangeGeneric):
     if range2.start <= self.start and range2.end >= self.end:
       return outranges #delete all
     if range2.start > self.start: #left side
-      nrng = type(self)(self.chr,self.start,range2.start1-1,self._options)
+      nrng = type(self)(self.chr,self.start,range2.start1-1,self.payload,self.dir)
       outranges.append(nrng)
     if range2.end < self.end: #right side
       #ugly addon to make it work for either 0 or 1 index start
-      nrng = type(self)(self.chr,range2.end+1-(self.start1-self.start),self.end,self._options)
+      nrng = type(self)(self.chr,range2.end+1-(self.start1-self.start),self.end,self.payload,self.dir)
       outranges.append(nrng)
     return outranges
 
@@ -373,7 +378,7 @@ class GenomicRange(RangeGeneric):
       return rng.start - self.end-1
     return self.start - rng.end-1
 
-def GenomicRangeFromString(range_string,options):
+def GenomicRangeFromString(range_string,payload=None,dir=None):
   """Constructor for a GenomicRange object that takes a string"""
   m = re.match('^(.+):(\d+)-(\d+)$',range_string)
   if not m:  
@@ -382,7 +387,7 @@ def GenomicRangeFromString(range_string,options):
   chr = m.group(1)
   start = int(m.group(2))
   end = int(m.group(3))
-  return GenomicRange(chr,start,end,options)
+  return GenomicRange(chr,start,end,payload,dir)
 
 class Bed(GenomicRange):
   """ Bed format is a chromosome, start (0-index), end (1-index). 
@@ -399,21 +404,10 @@ class Bed(GenomicRange):
   :type options: namedtuple
   """
 
-  def __init__(self,chrom,start0,finish,options=None):
-    if not options: options = {'dir':None,
-                               'payload':None}
-    super(Bed,self).__init__(chrom,start0+1,finish,options)
+  def __init__(self,chrom,start0,finish,payload=None,dir=None):
+    super(Bed,self).__init__(chrom,start0+1,finish,payload,dir)
     self._start_offset = -1 #override this to indicate on outputs to offset -1 on start
 
-  def copy(self):
-    """Override copy to make another copy
-
-    :returns: a new copy of this object
-    :rtype: Bed
-
-    """
-    return type(self)(self.chr,self.start,self.end,self._options)
-
   def __str__(self):
-    return str(self.chr)+"\t"+str(self.start)+"\t"+str(self.end)+"\t"+str(self._options)
+    return str(self.chr)+"\t"+str(self.start-1)+"\t"+str(self.end)+"\t"+str(self.payload)+"\t"+str(self.dir)
 

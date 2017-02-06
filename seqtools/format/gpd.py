@@ -4,6 +4,29 @@ from seqtools.range import GenomicRange
 from subprocess import Popen, PIPE
 from collections import namedtuple
 
+
+"""GPD options must be declared at the top level of the module to
+   prevent problems with pickeling"""
+GPDOptions = namedtuple('GPDOptions',
+   ['sequence',
+    'ref',
+    'payload'])
+
+"""GPDFields namedtuple must be defined at the top level to 
+   facilitate serialization"""
+GPDFields = namedtuple('GPDFields',
+   ['gene_name',
+    'name',
+    'chrom',
+    'strand',
+    'txStart',
+    'txEnd',
+    'cdsStart',
+    'cdsEnd',
+    'exonCount',
+    'exonStarts',
+    'exonEnds'])
+
 class GPD(seqtools.structure.transcript.Transcript):
   """ This whole format is a subclass of the Transcript subclass
 
@@ -11,25 +34,37 @@ class GPD(seqtools.structure.transcript.Transcript):
   :type gpd_line: string
   """
   def __init__(self,gpd_line,options=None):
-    if not options: options = {'sequence':None,
-                               'ref':None,
-                               'payload':None}
+    if not options: options = GPD.Options()
+    self._options = options
     # Only store the line and ID at first.  
     self._line = gpd_line.rstrip()
     m = re.match('[^\t]+\t[^\t]+\t([^\t]+)\t[^\t]+\t([^\t]+)\t([^\t]+)',gpd_line)
     self.entries = GPD._line_to_entry(self._line)
 
-    exs = [GenomicRange(self.entries['chrom'], 
-                        self.entries['exonStarts'][i]+1,
-                        self.entries['exonEnds'][i]) for i in range(0,self.entries['exonCount'])]
+    exs = [GenomicRange(self.entries.chrom, 
+                        self.entries.exonStarts[i]+1,
+                        self.entries.exonEnds[i]) for i in range(0,self.entries.exonCount)]
     super(GPD,self).__init__(exs,{
-      'direction':self.entries['strand'],
-      'name':self.entries['name'],
-      'gene_name':self.entries['gene_name'],
-      'sequence':options['sequence'],
-      'ref':options['ref'],
-      'payload':options['payload']
+      'direction':self.entries.strand,
+      'name':self.entries.name,
+      'gene_name':self.entries.gene_name,
+      'sequence':options.sequence,
+      'ref':options.ref,
+      'payload':options.payload
     })
+
+  @staticmethod
+  def Options(**kwargs):
+     """ A method for declaring options for the class"""
+     construct = GPDOptions #IMPORTANT!  Set this
+     names = construct._fields
+     d = {}
+     for name in names: d[name] = None #default values
+     for k,v in kwargs.iteritems():
+       if k in names: d[k] = v
+       else: raise ValueError('Error '+k+' is not a property of these options')
+     """Create a set of options based on the inputs"""
+     return construct(**d)
 
   def __str__(self):
     return self.get_gpd_line()  
@@ -47,18 +82,18 @@ class GPD(seqtools.structure.transcript.Transcript):
     f = line.rstrip().split("\t")
     starts = [int(x) for x in f[9].rstrip(",").split(",")]
     finishes =  [int(x) for x in f[10].rstrip(",").split(",")]
-    return {
-      'gene_name':f[0],
-      'name':f[1],
-      'chrom':f[2],
-      'strand':f[3],
-      'txStart':int(f[4]),
-      'txEnd':int(f[5]),
-      'cdsStart':int(f[6]),
-      'cdsEnd':int(f[7]),
-      'exonCount':int(f[8]),
-      'exonStarts':starts,
-      'exonEnds':finishes}
+    return GPDFields(
+      f[0],
+      f[1],
+      f[2],
+      f[3],
+      int(f[4]),
+      int(f[5]),
+      int(f[6]),
+      int(f[7]),
+      int(f[8]),
+      starts,
+      finishes)
 
 class GPDStream:
   """Iterate over GPD entries"""
