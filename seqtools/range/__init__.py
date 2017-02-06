@@ -97,7 +97,7 @@ class GenomicRange(RangeGeneric):
                           self.dir)
 
   def __str__(self):
-    return self.get_range_string()+' '+str(self._options)
+    return self.get_range_string()+' '+str(self.payload)+' '+str(self.dir)
 
   def copy(self):
     """Create a new copy of selfe.  does not do a deep copy for payload
