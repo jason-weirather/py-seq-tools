@@ -214,6 +214,16 @@ class LocusStream(object):
 
 
 class MultiLocusStream:
+   """Take an array streams
+      Each element should be sorted by position
+      Streams need to have this method:
+
+      1. next()
+      2. .range property
+
+      :param streams: list of streams
+      :type streams: list
+   """
    def __init__(self,streams):
       self._streams = streams
       self._buffers = [None for x in streams]
@@ -241,6 +251,7 @@ class MultiLocusStream:
       while added:
          for i in range(0,len(outputs)):
             added = False
+            if not self._buffers[i]: continue # this one is spent
             if self._buffers[i].range.overlaps(current.range):
                added = True
                outputs[i].append(self._buffers[i])
@@ -254,73 +265,6 @@ class MultiLocusStream:
       current.payload = outputs
       return current
       #print current.get_range_string()
-
-class MultiLocusStream2:
-   """Take an array streams
-      Each element should be sorted by position
-      Streams need to have this method:
-
-      1. next()
-      2. .range property
-
-      :param streams: list of streams
-      :type streams: list
-   """
-   def __init__(self,streams):
-      sys.stderr.write(str(len(streams))+" streams\n")
-      self.streams = streams
-      self.buffers = []
-      # seed the buffers
-      for i in range(0,len(self.streams)):
-        try: entry = self.streams[i].next()
-        except StopIteration: entry = None
-        self.buffers.append(entry)
-      #self.set_current_range()
-
-   def __iter__(self):
-      return self
-
-   def next(self):
-      r = self.read_entry()
-      if not r: raise StopIteration
-      else:
-         return r
-
-   def read_entry(self):
-      """get the next aggrogate of streams
-
-      :return: range containing a list of entries from each stream that are from the overlapping part
-      :rtype: GenomicRange
-      """
-      output = []
-      for i in self.buffers: output.append([])
-      rngs = [x.range for x in self.buffers if x]
-      #print rngs
-      if len(rngs) == 0: return None
-      srngs = sorted(rngs,key=lambda x: (x.chr,x.start,x.end))
-      print '-----'
-      print [x.get_range_string() for x in srngs]
-      mrngs = merge_ranges(srngs)
-      print [x.get_range_string() for x in mrngs]
-      current_range = mrngs[0]
-      got_overlap = True
-      while got_overlap == True:
-         got_overlap = False
-         for i in range(0,len(self.buffers)):
-            if not self.buffers[i]: continue #end of this one
-            v = self.buffers[i].range.cmp(current_range)
-            if v==0:
-               got_overlap = True
-               if self.buffers[i].range.overlaps(current_range):
-                  current_range = current_range.merge(self.buffers[i].range)
-               output[i].append(self.buffers[i])
-               try: entry = self.streams[i].next()
-               except StopIteration: self.buffers[i] = None
-               #self.buffers[i] = self.streams[i].read_entry()
-               #print str([len(x) for x in output])+"\t"+current_range.get_range_string()
-            #print str(i)+":"+str(v)
-      current_range.set_payload(output)
-      return current_range
 
 class GZippedOutputFile:
   """ use gzip utility to compress output
