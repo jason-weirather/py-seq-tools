@@ -1,5 +1,5 @@
 """Classes to work with sam and bam files"""
-import struct, zlib, sys, re
+import struct, zlib, sys, re, itertools
 from collections import namedtuple
 import seqtools.format.sam
 from seqtools.format.sam.header import SAMHeader
@@ -215,6 +215,7 @@ class BAMFile:
     self._path = filename
     self._fh = BGZF(filename)
 
+    self._cached_data = []
     self._line_number = 0 # entry line number ... after header.  starts with 1
 
 
@@ -246,43 +247,23 @@ class BAMFile:
     self._fh.close()
 
   def __iter__(self):
-    return self
+    return itertools.imap(self.make_val,iter(self._gen()))
 
-  def read_entry(self):
-    e = self.read_entry2()
-    #print e
-    #if self._output_range: # check and see if we are past out put range
-    #  if not e.is_aligned(): 
-    #    e = None
-    #  else:
-    #    rng2 = e.get_target_range()
-    #    if self._output_range.chr != rng2.chr: e = None 
-    #    if self._output_range.cmp(rng2) == 1: e = None
-    if not e:
-      return None
-    else: return e
-
-  def next(self):
-    e = self.read_entry()
-    if not e:
-      raise StopIteration
-    else: return e
-
-  def read_entry2(self):
+  def _gen(self):
+   while True:
     bstart = self._fh.get_block_start()
     innerstart = self._fh.get_inner_start()
     b = self._fh.read(4) # get block size bytes
-    if not b: return None
+    if not b: raise StopIteration
     block_size = struct.unpack('<i',b)[0]
-    #print 'block_size '+str(block_size)
     self._line_number += 1
-    bam = BAM(self._fh.read(block_size),self._ref_names,options = BAM.Options(
-      blockStart=bstart,innerStart=innerstart,header=self.header))
-    return bam
+    yield (self._fh.read(block_size),self._ref_names,bstart,innerstart)
 
-  #def _set_output_range(self,rng):
-  #  self._output_range = rng
-  #  return
+  def make_val(self,vars):
+    data, names, blk, inner = vars
+    return BAM(data,names,options = BAM.Options(
+               blockStart=blk,innerStart=inner))
+    return vars
 
   # only get a single
   def fetch_by_coord(self,coord):
@@ -460,7 +441,7 @@ class BGZF:
   """
   def __init__(self,filename,blockStart=None,innerStart=None):
     self.path = filename
-    self.fh = open(filename,'rb')
+    self.fh = open(filename,'rb',1000000)
     if blockStart: self.fh.seek(blockStart)
     self._block_start = 0
     self._buffer = self._load_block()
