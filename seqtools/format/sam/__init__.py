@@ -354,6 +354,12 @@ class SAM(seqtools.align.Alignment):
      self._tags = tags
      return self._tags
 
+  @property
+  def auxillary_string(self):
+    v = self._line.rstrip().split("\t")
+    if len(v) > 11: return v[11:]
+    return None
+
 SAMGeneratorOptions = namedtuple('SAMGeneratorOptions',
    ['buffer_size'])
 

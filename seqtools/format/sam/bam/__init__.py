@@ -105,25 +105,8 @@ class BAM(samtools.format.sam.SAM):
     :rtype: list is a pair [int, int]
     """
     return [self._options.blockStart,self._options.innerStart]
-  #def get_block_start(self):
-  #  return self._options.blockStart
-  #def get_inner_start(self):
-  #  return self._options.innerStart
-  #def get_file_position_string(self):
-  #  return 'blockStart: '+str(self._file_position['blockStart'])+" "\
-  #         +'innerStart: '+str(self._file_position['innerStart'])
 
-  #def get_tag(self,key):
-  #  """retrieve the value of a single tag by its key. 
-  #
-  #  .. warning:: Not sure if it accommodates multiple of the same keys"""
-  #  cur = self._private_values.get_tags()
-  #  if not cur:
-  #    v1,v2 = _bin_to_extra(self.value('extra_bytes'))
-  #    self._private_values.set_tags(v1) #keep the cigar array in a special palce
-  #    self._private_values.set_entry('remainder',v2)
-  #  return self._private_values.get_tags()[key]['value']
-
+  ### The getters for all the fields
   @property
   def qname(self): return self.bentries.qname
   @property
@@ -172,10 +155,22 @@ class BAM(samtools.format.sam.SAM):
 
   @property
   def qual(self):
-    if seq._qual: return self._qual
-    self._qual = _bin_to_qual(self.value('qual_bytes'))
+    if self._qual: return self._qual
+    self._qual = _bin_to_qual(self.bentries.qual_bytes)
     if not self._qual: self._qual = '*'
     return self._qual
+
+  @property
+  def tags(self):
+    if self._tags: return self._tags
+    self._tags, self._auxillary_string = _bin_to_extra(self.bentries.extra_bytes)
+    return self._tags
+
+  @property 
+  def auxillary_string(self):
+    if self._auxillary_string: return self._auxillary_string
+    self._tags, self._auxillary_string = _bin_to_extra(self.bentries.extra_bytes)
+    return self._auxillary_string
 
 # reference is a dict
 class BAMFile:
