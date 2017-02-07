@@ -1,5 +1,5 @@
 """Classes to work with sam and bam files"""
-import struct, zlib, sys, re
+import struct, zlib, sys, re, collections
 import seqtools.format.sam
 #from seqtools.sequence import rc
 from cStringIO import StringIO
@@ -7,6 +7,28 @@ from string import maketrans
 _bam_ops = maketrans('012345678','MIDNSHP=X')
 _bam_char = maketrans('abcdefghijklmnop','=ACMGRSVTWYHKDBN')
 _bam_value_type = {'c':[1,'<b'],'C':[1,'<B'],'s':[2,'<h'],'S':[2,'<H'],'i':[4,'<i'],'I':[4,'<I']}
+
+
+"""BAM entry (much like a sam line)"""
+BAMOptions = namedtuple('BAMOptions',
+   ['reference', # reference dictionary
+    'blockStart',
+    'innerStart',
+    'payload'])
+
+BAMFields = namedtuple('BAMFields',
+   ['qname',
+    'flag',
+    'rname',
+    'pos',
+    'mapq',
+    'cigar_bytes',
+    'rnext',
+    'pnext',
+    'tlen',
+    'seq_bytes',
+    'qual_bytes',
+    'extra_bytes'])
 
 class BAM(samtools.format.sam.SAM):
   """Very much like a sam entry but optimized for access from a bam
@@ -31,97 +53,129 @@ class BAM(samtools.format.sam.SAM):
   :type reference: dict()
   :type line_number: int
   """
-  def __init__(self,bin_data,ref_names,fileName=None,blockStart=None,innerStart=None,ref_lengths=None,reference=None,line_number=None):
-    part_dict = _parse_bam_data_block(bin_data,ref_names)
-    #self._bamfileobj = bamfileobj #this is most like our parent
+  def __init__(self,bin_data,header,options=None)
+    if not options: options = BAM.Options()
+    self._bin_data = bin_data
+    self._header = header
+
+    self._bentries = None
     self._line = None
-    self._line_number = line_number # the line number in the bam file
-    self._reference = reference
     self._target_range = None
+    self._tags = None
+    self._seq = None
+    self._qual = None
+    self._cigar = None
+    self._cigar_string = None
     self._alignment_ranges = None #should be accessed by method because of BAM
-    self._ref_lengths = ref_lengths
-    self._file_position = {'fileName':fileName,'blockStart':blockStart,'innerStart':innerStart} # The most special information about the bam
-    self._private_values = BAM.PrivateValues() # keep from accidently accessing some variables other than by methods
-    self._private_values.set_entries_dict(part_dict)
-    #self._set_alignment_ranges()
+
     return
 
-  def get_alignment_ranges(self):
-    """return the basics for defining an alignment"""
-    if not self._alignment_ranges:
-      self._set_alignment_ranges()
-    return self._alignment_ranges
+  #Alignment Ranges are calculated in SAM
 
-  def get_line_number(self):
-    return self._line_number
-  def get_target_length(self):
+  @property
+  def bentries(self):
+    if self._bentries: return self._bentries 
+    self._bentries = _parse_bam_data_block(bin_data,header) #the binary data and the header is enough to parse 
+    return self.bentries
+
+  @staticmethod
+  def Options(**kwargs):
+     """ A method for declaring options for the class"""
+     construct = SAMOptions #IMPORTANT!  Set this
+     names = construct._fields
+     d = {}
+     for name in names: d[name] = None #default values
+     for k,v in kwargs.iteritems():
+       if k in names: d[k] = v
+       else: raise ValueError('Error '+k+' is not a property of these options')
+     """Create a set of options based on the inputs"""
+     return construct(**d)
+
+
+  def get_target_sequence_length(self):
     """length of the entire chromosome"""
-    return self._ref_lengths[self.value('rname')]
-  def get_filename(self):
-    return self._file_position['fileName']
+    if self.tlen:
+      return self.tlen
+    return self._header.sequence_lengths[self.bentries.rname]
+
   def get_coord(self):
     """get the current coordinate
 
     :return: [blockStart, innerStart]
     :rtype: list is a pair [int, int]
     """
-    return [self._file_position['blockStart'],self._file_position['innerStart']]
-  def get_block_start(self):
-    return self._file_position['blockStart']
-  def get_inner_start(self):
-    return self._file_position['innerStart']
-  def get_file_position_string(self):
-    return 'fileName: '+self._file_position['fileName']+" "\
-           'blockStart: '+str(self._file_position['blockStart'])+" "\
-           'innerStart: '+str(self._file_position['innerStart'])
-  def get_tag(self,key):
-    """retrieve the value of a single tag by its key.  
+    return [self._options.blockStart,self._options.innerStart]
+  #def get_block_start(self):
+  #  return self._options.blockStart
+  #def get_inner_start(self):
+  #  return self._options.innerStart
+  #def get_file_position_string(self):
+  #  return 'blockStart: '+str(self._file_position['blockStart'])+" "\
+  #         +'innerStart: '+str(self._file_position['innerStart'])
 
-    .. warning:: Not sure if it accommodates multiple of the same keys"""
-    cur = self._private_values.get_tags()
-    if not cur:
-      v1,v2 = _bin_to_extra(self.value('extra_bytes'))
-      self._private_values.set_tags(v1) #keep the cigar array in a special palce
-      self._private_values.set_entry('remainder',v2)
-    return self._private_values.get_tags()[key]['value']
-  def get_cigar(self): 
+  #def get_tag(self,key):
+  #  """retrieve the value of a single tag by its key. 
+  #
+  #  .. warning:: Not sure if it accommodates multiple of the same keys"""
+  #  cur = self._private_values.get_tags()
+  #  if not cur:
+  #    v1,v2 = _bin_to_extra(self.value('extra_bytes'))
+  #    self._private_values.set_tags(v1) #keep the cigar array in a special palce
+  #    self._private_values.set_entry('remainder',v2)
+  #  return self._private_values.get_tags()[key]['value']
+
+  @property
+  def qname(self): return self.bentries.qname
+  @property
+  def flag(self): return self.bentries.flag
+  @property
+  def rname(self): return self.bentries.rname
+  @property
+  def pos(self): return self.bentries.pos
+  @property
+  def mapq(self): return self.bentries.mapq
+
+  @property
+  def cigar(self): 
     """produce the cigar in list form
 
     :return: Cigar list of [value (int), type (char)] pairs
     :rtype: list
     """
-    cur = self._private_values.get_cigar()
-    if not cur:
-      v1,v2 = _bin_to_cigar(self.value('cigar_bytes'))
-      self._private_values.set_cigar(v1) #keep the cigar array in a special palce
-      self._private_values.set_entry('cigar',v2)
-    return self._private_values.get_cigar()
+    if self._cigar: return self._cigar
+    v1,v2 = _bin_to_cigar(self.bentries.cigar_bytes)
+    self._cigar_string = v2
+    self._cigar = v1
+    return self._cigar
 
-  def value(self,key):
-    """Access basic attributes of BAM by key"""
-    if not self._private_values.is_entry_key(key):
-      if key == 'seq':
-        v = _bin_to_seq(self.value('seq_bytes'))
-        if not v: v = '*'
-        self._private_values.set_entry('seq',v)
-        return v
-      elif key == 'qual':
-        v = _bin_to_qual(self.value('qual_bytes'))
-        if not v: v = '*'
-        self._private_values.set_entry('qual',v)
-        return v
-      elif key == 'cigar':
-        v1,v2 = _bin_to_cigar(self.value('cigar_bytes'))
-        self._private_values.set_cigar(v1) #keep the cigar array in a special palce
-        self._private_values.set_entry('cigar',v2)
-        return v2
-      elif key == 'remainder':
-        v1,v2 = _bin_to_extra(self.value('extra_bytes'))
-        self._private_values.set_tags(v1) #keep the cigar array in a special palce
-        self._private_values.set_entry('remainder',v2)
-        return v2
-    return self._private_values.get_entry(key)
+  @property
+  def cigar_string(self):
+    if self._cigar_string: return self._cigar_string
+    v1,v2 = _bin_to_cigar(self.bentries.cigar_bytes)
+    self._cigar_string = v2
+    self._cigar = v1
+    return self._cigar_string
 
+  @property
+  def rnext(self): return self.bentries.rnext  
+  @property
+  def pnext(self): return self.bentries.pnext  
+  @property
+  def tlen(self): return self.bentries.tlen
+  
+  @property
+  def seq(self):
+    if self._seq: return self._seq
+    self._seq = _bin_to_seq(self.bentries.seq_bytes)
+    if not self._seq: self._seq = '*'
+    return self._seq
+
+  @property
+  def qual(self):
+    if seq._qual: return self._qual
+    self._qual = _bin_to_qual(self.value('qual_bytes'))
+    if not self._qual: self._qual = '*'
+    return self._qual
 
 # reference is a dict
 class BAMFile:
@@ -242,38 +296,50 @@ class BAMFile:
     self.header_text = self.fh.read(l_text).rstrip('\0')
     self.n_ref = struct.unpack('<i',self.fh.read(4))[0]
 
-def _parse_bam_data_block(bin_in,ref_names):
-  v = {}
+def _parse_bam_data_block(bin_in,header):
+  ref_names = header.sequence_names
   data = StringIO(bin_in)
   rname_num = struct.unpack('<i',data.read(4))[0]
-  v['rname'] = ref_names[rname_num] #refID to check in ref names
-  v['pos'] = struct.unpack('<i',data.read(4))[0] + 1 #POS
+  v_rname = ref_names[rname_num] #refID to check in ref names
+  v_pos = struct.unpack('<i',data.read(4))[0] + 1 #POS
   bin_mq_nl = struct.unpack('<I',data.read(4))[0]
   bin =  bin_mq_nl >> 16 
-  v['mapq'] = (bin_mq_nl & 0xFF00) >> 8 #mapq
+  v_mapq = (bin_mq_nl & 0xFF00) >> 8 #mapq
   l_read_name = bin_mq_nl & 0xFF #length of qname
   flag_nc = struct.unpack('<I',data.read(4))[0] #flag and n_cigar_op
-  v['flag'] = flag_nc >> 16
+  v_flag = flag_nc >> 16
   n_cigar_op = flag_nc & 0xFFFF
   l_seq = struct.unpack('<i',data.read(4))[0]
   rnext_num = struct.unpack('<i',data.read(4))[0]
   if rnext_num == -1:
-    v['rnext'] = '*'
+    v_rnext = '*'
   else:
-    v['rnext'] = ref_names[rnext_num] #next_refID in ref_names
-  v['pnext'] = struct.unpack('<i',data.read(4))[0]+1 #pnext
+    v_rnext = ref_names[rnext_num] #next_refID in ref_names
+  v_pnext = struct.unpack('<i',data.read(4))[0]+1 #pnext
   tlen = struct.unpack('<i',data.read(4))[0]
-  v['tlen'] = tlen
-  v['qname'] = data.read(l_read_name).rstrip('\0') #read_name or qname
+  v_tlen = tlen
+  v_qname = data.read(l_read_name).rstrip('\0') #read_name or qname
   #print 'n_cigar_op '+str(n_cigar_op)
-  v['cigar_bytes'] = data.read(n_cigar_op*4)
+  v_cigar_bytes = data.read(n_cigar_op*4)
   #print 'cigar bytes '+str(len(v['cigar_bytes']))
-  v['seq_bytes'] = data.read((l_seq+1)/2)
-  v['qual_bytes'] = data.read(l_seq)
-  v['extra_bytes'] = data.read()
+  v_seq_bytes = data.read((l_seq+1)/2)
+  v_qual_bytes = data.read(l_seq)
+  v_extra_bytes = data.read()
   #last second tweak
-  if v['rnext'] == v['rname']: v['rnext'] = '='
-  return v
+  if v_rnext == v_rname: v_rnext = '='
+  return BAMFields(
+     v_qname,
+     v_flag,
+     v_rname,
+     v_pos,
+     v_mapq,
+     v_cigar_bytes,
+     v_rnext,
+     v_pnext,
+     v_tlen,
+     v_seq_bytes,
+     v_qual_bytes,
+     v_extra_bytes)
 
 def _bin_to_qual(qual_bytes):
   if len(qual_bytes) == 0: return '*'

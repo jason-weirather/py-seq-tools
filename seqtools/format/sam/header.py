@@ -26,7 +26,8 @@ class SAMHeader:
   def sequence_names(self):
     return self._sequence_lengths.keys()
 
-  def get_sequence_lengths(self):
+  @property
+  def sequence_lengths(self):
     """return a dictionary of sequence lengths"""
     return self._sequence_lengths
 
