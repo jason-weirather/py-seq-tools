@@ -1,16 +1,12 @@
 """Classes to work with sam and bam files"""
-import struct, zlib, sys, re, os, gzip, random
-import seqtools.align
+import struct, zlib, sys, re
 import seqtools.format.sam
-from seqtools.sequence import rc
+#from seqtools.sequence import rc
 from cStringIO import StringIO
 from string import maketrans
-from seqtools.range import GenomicRange
-from subprocess import Popen, PIPE
 _bam_ops = maketrans('012345678','MIDNSHP=X')
 _bam_char = maketrans('abcdefghijklmnop','=ACMGRSVTWYHKDBN')
 _bam_value_type = {'c':[1,'<b'],'C':[1,'<B'],'s':[2,'<h'],'S':[2,'<H'],'i':[4,'<i'],'I':[4,'<I']}
-_sam_cigar_target_add = re.compile('[M=XDN]$')
 
 class BAM(samtools.format.sam.SAM):
   """Very much like a sam entry but optimized for access from a bam
