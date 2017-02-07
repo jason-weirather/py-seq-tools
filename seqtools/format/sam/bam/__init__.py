@@ -106,6 +106,23 @@ class BAM(samtools.format.sam.SAM):
     """
     return [self._options.blockStart,self._options.innerStart]
 
+  def __str__(self):
+    return self.get_sam_line
+
+  def get_sam_line(self):
+    return "\t".join([str(x) for x in
+      [qname,
+      flag,
+      rname,
+      pos,
+      mapq,
+      cigar_string,
+      rnext,
+      pnext,
+      tlen,
+      seq,
+      qual,
+      auxillary_string]])
   ### The getters for all the fields
   @property
   def qname(self): return self.bentries.qname
