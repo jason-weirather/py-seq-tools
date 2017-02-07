@@ -441,9 +441,7 @@ class SAMStream(object):
   def __init__(self,stream,options=None):
     if not options: options = SAMStream.Options()
     self._options = options
-    self._stream = SAMGenerator(stream,options=self._options)
-    self.assign_handle(stream)
-    self.get_header()
+    self._stream = iter(SAMGenerator(stream,options=self._options))
 
   @staticmethod
   def Options(**kwargs):
