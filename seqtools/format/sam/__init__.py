@@ -150,9 +150,9 @@ class SAM(seqtools.align.Alignment):
     if not self.is_aligned():
       raise ValueError("no length for reference when read is not not aligned")
     if self.tlen: return self.tlen #simplest is if tlen is set
-    if self._reference_lengths:
-      if self.rname in self._reference_lengths:
-        return self._reference_lengths[self.rname]
+    if self.header:
+      if self.rname in self.header.sequence_lengths:
+        return self.header.sequence_lengths[self.rname]
     elif self._reference:
       return len(self._reference[self.rname])
     else:
@@ -299,6 +299,9 @@ class SAM(seqtools.align.Alignment):
     .. warning:: this should probably not exist if the constructor takes a line
     """
     return self._line
+  @property
+  def header(self):
+    return self._options.header
 
   ##### PUT GETTERS FOR MAIN PROPERTIES HERE ####
   @property

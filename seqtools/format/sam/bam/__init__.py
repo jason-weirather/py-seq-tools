@@ -1,6 +1,8 @@
 """Classes to work with sam and bam files"""
-import struct, zlib, sys, re, collections
+import struct, zlib, sys, re
+from collections import namedtuple
 import seqtools.format.sam
+from seqtools.format.sam.header import SAMHeader
 #from seqtools.sequence import rc
 from cStringIO import StringIO
 from string import maketrans
@@ -12,6 +14,7 @@ _bam_value_type = {'c':[1,'<b'],'C':[1,'<B'],'s':[2,'<h'],'S':[2,'<H'],'i':[4,'<
 """BAM entry (much like a sam line)"""
 BAMOptions = namedtuple('BAMOptions',
    ['reference', # reference dictionary
+    'header',
     'blockStart',
     'innerStart',
     'payload'])
@@ -30,7 +33,7 @@ BAMFields = namedtuple('BAMFields',
     'qual_bytes',
     'extra_bytes'])
 
-class BAM(samtools.format.sam.SAM):
+class BAM(seqtools.format.sam.SAM):
   """Very much like a sam entry but optimized for access from a bam
   Slows down for accessing things that need more decoding like
   sequence, quality, cigar string, and tags
@@ -53,11 +56,13 @@ class BAM(samtools.format.sam.SAM):
   :type reference: dict()
   :type line_number: int
   """
-  def __init__(self,bin_data,header,options=None)
+  def __init__(self,bin_data,ref_names,options=None):
     if not options: options = BAM.Options()
+    self._options = options
     self._bin_data = bin_data
-    self._header = header
+    self._ref_names = ref_names
 
+    self._auxillary_string = None
     self._bentries = None
     self._line = None
     self._target_range = None
@@ -67,7 +72,6 @@ class BAM(samtools.format.sam.SAM):
     self._cigar = None
     self._cigar_string = None
     self._alignment_ranges = None #should be accessed by method because of BAM
-
     return
 
   #Alignment Ranges are calculated in SAM
@@ -75,13 +79,13 @@ class BAM(samtools.format.sam.SAM):
   @property
   def bentries(self):
     if self._bentries: return self._bentries 
-    self._bentries = _parse_bam_data_block(bin_data,header) #the binary data and the header is enough to parse 
+    self._bentries = _parse_bam_data_block(self._bin_data,self._ref_names) #the binary data and the header is enough to parse 
     return self.bentries
 
   @staticmethod
   def Options(**kwargs):
      """ A method for declaring options for the class"""
-     construct = SAMOptions #IMPORTANT!  Set this
+     construct = BAMOptions #IMPORTANT!  Set this
      names = construct._fields
      d = {}
      for name in names: d[name] = None #default values
@@ -92,12 +96,6 @@ class BAM(samtools.format.sam.SAM):
      return construct(**d)
 
 
-  def get_target_sequence_length(self):
-    """length of the entire chromosome"""
-    if self.tlen:
-      return self.tlen
-    return self._header.sequence_lengths[self.bentries.rname]
-
   def get_coord(self):
     """get the current coordinate
 
@@ -107,22 +105,22 @@ class BAM(samtools.format.sam.SAM):
     return [self._options.blockStart,self._options.innerStart]
 
   def __str__(self):
-    return self.get_sam_line
+    return self.get_sam_line()
 
   def get_sam_line(self):
     return "\t".join([str(x) for x in
-      [qname,
-      flag,
-      rname,
-      pos,
-      mapq,
-      cigar_string,
-      rnext,
-      pnext,
-      tlen,
-      seq,
-      qual,
-      auxillary_string]])
+      [self.qname,
+       self.flag,
+       self.rname,
+       self.pos,
+       self.mapq,
+       self.cigar_string,
+       self.rnext,
+       self.pnext,
+       self.tlen,
+       self.seq,
+       self.qual,
+       self.auxillary_string]])
   ### The getters for all the fields
   @property
   def qname(self): return self.bentries.qname
@@ -190,6 +188,13 @@ class BAM(samtools.format.sam.SAM):
     return self._auxillary_string
 
 # reference is a dict
+"""BAM File streamer"""
+BAMFileOptions = namedtuple('BAMFileOptions',
+   ['reference', # reference dictionary
+    'blockStart',
+    'innerStart',
+    'payload'])
+
 class BAMFile:
   """iterable class to open and access a bam file
 
@@ -204,36 +209,41 @@ class BAMFile:
   :type cnt: int
   :type reference: dict()
   """
-  def __init__(self,filename,blockStart=None,innerStart=None,cnt=None,reference=None):
-    self.path = filename
-    self._reference = reference # dict style accessable reference
-    self.fh = BGZF(filename)
+  def __init__(self,filename,options=None):
+    if not options: options = BAMFile.Options()
+    self._options = options
+    self._path = filename
+    self._fh = BGZF(filename)
+
     self._line_number = 0 # entry line number ... after header.  starts with 1
-    # start reading the bam file
-    self.header_text = None
-    self._header = None
-    self.n_ref = None
-    self._read_top_header()
-    self.ref_names = []
-    self.ref_lengths = {}
-    self._output_range = None
-    #self.index = index_obj
-    self._read_reference_information()
-    # prepare for specific work
-    if self.path and blockStart is not None and innerStart is not None:
-      self.fh.seek(blockStart,innerStart)
-      #if self.index:
-      #  lnum = self.index.get_coord_line_number([blockStart,innerStart])
-      #  if lnum:
-      #    self._line_number = lnum-1 #make it zero indexed
-  def close(self):
-    self.fh.close()
-  # return a string that is the header
-  def get_header(self):
-    if not self._header:
-      self._header = SAMHeader(self.header_text)
-      return self._header
+
+
+    self._header_text, self._n_ref = self._read_top_header()
+    self._ref_lengths, self._ref_names = self._read_reference_information()
+    self._header = SAMHeader(self._header_text)
+
+    if self._options.blockStart is not None and self._options.innerStart is not None:
+      self._fh.seek(blockStart,innerStart)
+
+  @staticmethod
+  def Options(**kwargs):
+     """ A method for declaring options for the class"""
+     construct = BAMFileOptions #IMPORTANT!  Set this
+     names = construct._fields
+     d = {}
+     for name in names: d[name] = None #default values
+     for k,v in kwargs.iteritems():
+       if k in names: d[k] = v
+       else: raise ValueError('Error '+k+' is not a property of these options')
+     """Create a set of options based on the inputs"""
+     return construct(**d)
+
+  @property
+  def header(self):
     return self._header
+
+  def close(self):
+    self._fh.close()
 
   def __iter__(self):
     return self
@@ -241,13 +251,13 @@ class BAMFile:
   def read_entry(self):
     e = self.read_entry2()
     #print e
-    if self._output_range: # check and see if we are past out put range
-      if not e.is_aligned(): 
-        e = None
-      else:
-        rng2 = e.get_target_range()
-        if self._output_range.chr != rng2.chr: e = None 
-        if self._output_range.cmp(rng2) == 1: e = None
+    #if self._output_range: # check and see if we are past out put range
+    #  if not e.is_aligned(): 
+    #    e = None
+    #  else:
+    #    rng2 = e.get_target_range()
+    #    if self._output_range.chr != rng2.chr: e = None 
+    #    if self._output_range.cmp(rng2) == 1: e = None
     if not e:
       return None
     else: return e
@@ -259,19 +269,20 @@ class BAMFile:
     else: return e
 
   def read_entry2(self):
-    bstart = self.fh.get_block_start()
-    innerstart = self.fh.get_inner_start()
-    b = self.fh.read(4) # get block size bytes
+    bstart = self._fh.get_block_start()
+    innerstart = self._fh.get_inner_start()
+    b = self._fh.read(4) # get block size bytes
     if not b: return None
     block_size = struct.unpack('<i',b)[0]
     #print 'block_size '+str(block_size)
     self._line_number += 1
-    bam = BAM(self.fh.read(block_size),self.ref_names,fileName=self.path,blockStart=bstart,innerStart=innerstart,ref_lengths=self.ref_lengths,reference=self._reference,line_number = self._line_number)
+    bam = BAM(self._fh.read(block_size),self._ref_names,options = BAM.Options(
+      blockStart=bstart,innerStart=innerstart,header=self.header))
     return bam
 
-  def _set_output_range(self,rng):
-    self._output_range = rng
-    return
+  #def _set_output_range(self,rng):
+  #  self._output_range = rng
+  #  return
 
   # only get a single
   def fetch_by_coord(self,coord):
@@ -296,20 +307,26 @@ class BAMFile:
     return b2
 
   def _read_reference_information(self):
-    for n in range(self.n_ref):
-      l_name = struct.unpack('<i',self.fh.read(4))[0]
-      name = self.fh.read(l_name).rstrip('\0')
-      l_ref = struct.unpack('<i',self.fh.read(4))[0]
-      self.ref_lengths[name] = l_ref
-      self.ref_names.append(name)
-  def _read_top_header(self):
-    magic = self.fh.read(4)
-    l_text = struct.unpack('<i',self.fh.read(4))[0]
-    self.header_text = self.fh.read(l_text).rstrip('\0')
-    self.n_ref = struct.unpack('<i',self.fh.read(4))[0]
+    """Reads the reference names and lengths"""
+    ref_lengths = {}
+    ref_names = []
+    for n in range(self._n_ref):
+      l_name = struct.unpack('<i',self._fh.read(4))[0]
+      name = self._fh.read(l_name).rstrip('\0')
+      l_ref = struct.unpack('<i',self._fh.read(4))[0]
+      ref_lengths[name] = l_ref
+      ref_names.append(name)
+    return ref_lengths, ref_names
 
-def _parse_bam_data_block(bin_in,header):
-  ref_names = header.sequence_names
+  def _read_top_header(self):
+    """Read the header text and number of reference seqs"""
+    magic = self._fh.read(4)
+    l_text = struct.unpack('<i',self._fh.read(4))[0]
+    header_text = self._fh.read(l_text).rstrip('\0')
+    n_ref = struct.unpack('<i',self._fh.read(4))[0]
+    return header_text, n_ref
+
+def _parse_bam_data_block(bin_in,ref_names):
   data = StringIO(bin_in)
   rname_num = struct.unpack('<i',data.read(4))[0]
   v_rname = ref_names[rname_num] #refID to check in ref names
@@ -428,7 +445,7 @@ def _bin_to_extra(extra_bytes):
         aval = struct.unpack(_bam_value_type[array_type][1],by)
   return [tags,rem.rstrip("\t")]
 
-
+BGZFChunk = namedtuple('BGZFChunk',['block_size','data'])
 class BGZF:
   """ Methods adapted from biopython's bgzf.py
 
@@ -446,8 +463,6 @@ class BGZF:
     self.fh = open(filename,'rb')
     if blockStart: self.fh.seek(blockStart)
     self._block_start = 0
-    #self.pointer = 0
-    #holds block_size and data
     self._buffer = self._load_block()
     self._buffer_pos = 0
     if innerStart: self._buffer_pos = innerStart
@@ -468,28 +483,28 @@ class BGZF:
     done = 0 #number of bytes that have been read so far
     v = ''
     while True:
-      if size-done < len(self._buffer['data']) - self._buffer_pos:
-        v +=  self._buffer['data'][self._buffer_pos:self._buffer_pos+(size-done)]
+      if size-done < len(self._buffer.data) - self._buffer_pos:
+        v +=  self._buffer.data[self._buffer_pos:self._buffer_pos+(size-done)]
         self._buffer_pos += (size-done)
         #self.pointer += size
         return v
       else: # we need more buffer
-        vpart = self._buffer['data'][self._buffer_pos:]
+        vpart = self._buffer.data[self._buffer_pos:]
         self._buffer = self._load_block()
         v += vpart
         self._buffer_pos = 0
-        if len(self._buffer['data'])==0: return v
+        if len(self._buffer.data)==0: return v
         done += len(vpart)
 
   def _load_block(self):
     #pointer_start = self.fh.tell()
-    if not self.fh: return {'block_size':0,'data':''}
+    if not self.fh: return BGZFChunk(block_size=0,data='')
     self._block_start = self.fh.tell()
     magic = self.fh.read(4)
     if len(magic) < 4:
       #print 'end?'
       #print len(self.fh.read())
-      return {'block_size':0,'data':''}
+      return BGZFChunk(block_size=0,data='')
     gzip_mod_time, gzip_extra_flags, gzip_os,extra_len = struct.unpack("<LBBH",self.fh.read(8))
     pos = 0
     block_size = None
@@ -516,4 +531,4 @@ class BGZF:
     if crc != expected_crc:
       sys.stderr.write("ERROR crc fail\n")
       sys.exit()
-    return {'block_size':block_size, 'data':data}
+    return BGZFChunk(block_size=block_size,data=data)
