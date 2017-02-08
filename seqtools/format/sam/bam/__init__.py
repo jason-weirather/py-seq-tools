@@ -9,6 +9,13 @@ from string import maketrans
 _bam_ops = maketrans('012345678','MIDNSHP=X')
 _bam_char = maketrans('abcdefghijklmnop','=ACMGRSVTWYHKDBN')
 _bam_value_type = {'c':[1,'<b'],'C':[1,'<B'],'s':[2,'<h'],'S':[2,'<H'],'i':[4,'<i'],'I':[4,'<I']}
+#_bc = namedtuple('bytestring',['byte','code'])
+#_bam_value_type = namedtuple('value_type_factory',['c','C','s','S','i','I'])(
+#   _bc(1,'<b'), _bc(1,'<B'),  
+#   _bc(2,'<h'), _bc(2,'<H'),
+#   _bc(4,'<i'), _bc(4,'<I'))
+
+TagInfo = namedtuple('tag_info',['type', 'value'])
 
 
 """BAM entry (much like a sam line)"""
@@ -243,13 +250,14 @@ def _bin_to_qual(qual_bytes):
 
 def _bin_to_seq(seq_bytes):
   if len(seq_bytes) == 0: return None
-  global _bam_char
+  #global _bam_char
   #print len(seq_bytes)
-  seq = ''.join([''.join([''.join([chr(z+97).translate(_bam_char) for z in  [y>>4,y&0xF]]) for y in struct.unpack('<B',x)]) for x in seq_bytes]).rstrip('=')
+  seq = ''.join([''.join(
+           [''.join([chr(z+97).translate(_bam_char) for z in  [y>>4,y&0xF]]) for y in struct.unpack('<B',x)]) for x in seq_bytes]).rstrip('=')
   return seq
 
 def _bin_to_cigar(cigar_bytes):
-  global _bam_ops
+  #global _bam_ops
   if len(cigar_bytes) == 0: return [[],'*']
   cigar_packed = [struct.unpack('<I',x)[0] for x in \
              [cigar_bytes[i:i+4] for i in range(0,len(cigar_bytes),4)]]
@@ -257,12 +265,13 @@ def _bin_to_cigar(cigar_bytes):
   cigar_seq = ''.join([''.join([str(x[0]),x[1]]) for x in cigar_array])
   return [cigar_array,cigar_seq]
 
-#Pre all the reamining bytes of an entry
-#Post an array of 
-# 1. A dict keyed by Tag with {'type':,'value':} where value is a string unless type is i
-# 2. A string of the remainder
 def _bin_to_extra(extra_bytes):
-  global _bam_value_type
+  """Pre all the reamining bytes of an entry
+  Post an array of 
+   1. A dict keyed by Tag with {'type':,'value':} where value is a string unless type is i
+   2. A string of the remainder
+  """
+  #global _bam_value_type
   extra = StringIO(extra_bytes)
   tags = {}
   rem = ''
@@ -281,19 +290,22 @@ def _bin_to_extra(extra_bytes):
         #print c
         m = p.match(c)
       rem += vre+"\t"
-      tags[tag] = {'type':val_type,'value':vre}
+      tags[tag] = TagInfo(val_type, vre)
+      #tags[tag] = {'type':val_type,'value':vre}
     elif val_type == 'A':
       rem += tag+':'
       rem += val_type+':'
       vre = extra.read(1)
       rem += vre+"\t"      
-      tags[tag] = {'type':val_type,'value':vre}      
+      tags[tag] = TagInfo(val_type, vre)
+      #tags[tag] = {'type':val_type,'value':vre}      
     elif val_type in _bam_value_type:
       rem += tag+':'
       rem += 'i'+':'
       val = struct.unpack(_bam_value_type[val_type][1],extra.read(_bam_value_type[val_type][0]))[0]
       rem += str(val)+"\t"
-      tags[tag] = {'type':val_type,'value':val}
+      tags[tag] = TagInfo(val_type, val)
+      #tags[tag] = {'type':val_type,'value':val}
     elif val_type == 'B':
       sys.sterr.write("WARNING array not implmented\n")
       continue
