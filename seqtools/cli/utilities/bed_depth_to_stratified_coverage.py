@@ -1,6 +1,6 @@
-#!/usr/bin/python
+"""Convert a bed depth to an equivalent stratified version"""
 import sys, argparse, gzip
-from Bio.Format.Fasta import FastaData
+from seqtools.format.fasta import FASTAData
 import random
 
 g_version = None
@@ -10,7 +10,7 @@ def main(args):
   myrandom.seed(args.seed)
   sum = 0
   if args.reference_genome:
-    ref = FastaData(open(args.reference_genome).read())
+    ref = FASTAData(open(args.reference_genome).read())
     for name in ref.keys():
       sum += len(ref[name])
   else:

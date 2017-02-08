@@ -96,7 +96,7 @@ class BAMFile(BAMFileGeneric):
     self._fetch_headers() #called after ._fh is set
 
     if self._options.blockStart is not None and self._options.innerStart is not None:
-      self._fh.seek(blockStart,innerStart)
+      self._fh.seek(self._options.blockStart,self._options.innerStart)
 
   @staticmethod
   def Options(**kwargs):
@@ -110,6 +110,9 @@ class BAMFile(BAMFileGeneric):
        else: raise ValueError('Error '+k+' is not a property of these options')
      """Create a set of options based on the inputs"""
      return construct(**d)
+
+  def read_entry(self):
+     return self.make_val(self._gen().next())
 
   def _gen(self):
    while True:

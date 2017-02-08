@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-"""
+""" Convert a gpd to file to a bed12 format with a header that can be views on UCSC genome browser
+
 pre: genepred filename, an optional integer for smoothing size
      The smoothing is done to combine adjacent "exons" within that size definition to get rid of small deletions or indels
 post: a bed file where each line has chromosome, index 1 start, and index 1 end coordinates and the gene_name from each psl line is listed
@@ -68,24 +69,24 @@ def main(args):
       if args.minintron:
         gpd = GPD(gpd.smooth_gaps(args.minintron).get_gpd_line())
       exoncount = gpd.get_exon_count()
-      ostring  = gpd.value('chrom') + "\t" 
-      ostring += str(gpd.value('exonStarts')[0]) + "\t"
-      ostring += str(gpd.value('exonEnds')[exoncount-1]) + "\t"
+      ostring  = gpd.entries.chrom + "\t" 
+      ostring += str(gpd.entries.exonStarts[0]) + "\t"
+      ostring += str(gpd.entries.exonEnds[exoncount-1]) + "\t"
       if args.namefield == 1:
-        ostring += gpd.value('gene_name') + "\t"
+        ostring += gpd.entries.gene_name + "\t"
       else: 
-        ostring += gpd.value('name')+"\t"
+        ostring += gpd.entries.name+"\t"
       ostring += '1000' + "\t"
-      ostring += gpd.value('strand') + "\t" 
-      ostring += str(gpd.value('exonStarts')[0]) + "\t"
-      ostring += str(gpd.value('exonEnds')[exoncount-1]) + "\t"      
+      ostring += gpd.entries.strand + "\t" 
+      ostring += str(gpd.entries.exonStarts[0]) + "\t"
+      ostring += str(gpd.entries.exonEnds[exoncount-1]) + "\t"      
       ostring += color+"\t"
       ostring += str(exoncount) + "\t"
       for i in range(0,exoncount):
-        ostring += str(gpd.value('exonEnds')[i]-gpd.value('exonStarts')[i]) + ','
+        ostring += str(gpd.entries.exonEnds[i]-gpd.entries.exonStarts[i]) + ','
       ostring += "\t"
       for i in range(0,exoncount):
-        ostring += str(gpd.value('exonStarts')[i]-gpd.value('exonStarts')[0])+','
+        ostring += str(gpd.entries.exonStarts[i]-gpd.entries.exonStarts[0])+','
       of.write(ostring+"\n")
       #for i in range(0,len(genepred_entry['exonStarts'])):
   gpd_handle.close()

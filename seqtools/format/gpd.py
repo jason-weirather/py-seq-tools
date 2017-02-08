@@ -44,14 +44,15 @@ class GPD(seqtools.structure.transcript.Transcript):
     exs = [GenomicRange(self.entries.chrom, 
                         self.entries.exonStarts[i]+1,
                         self.entries.exonEnds[i]) for i in range(0,self.entries.exonCount)]
-    super(GPD,self).__init__(exs,{
-      'direction':self.entries.strand,
-      'name':self.entries.name,
-      'gene_name':self.entries.gene_name,
-      'sequence':options.sequence,
-      'ref':options.ref,
-      'payload':options.payload
-    })
+    super(GPD,self).__init__(exs,
+                             super(GPD,self).Options(
+      direction = self.entries.strand,
+      name = self.entries.name,
+      gene_name = self.entries.gene_name,
+      sequence = options.sequence,
+      ref = options.ref,
+      payload = options.payload)
+    )
 
   @staticmethod
   def Options(**kwargs):

@@ -1,8 +1,8 @@
-#!/usr/bin/python
+"""Convert ordered genepred file into bed depth file"""
 import sys, argparse, gzip, re
-from Bio.Format.GPD import GPDStream
-from Bio.Stream import LocusStream
-from Bio.Range import ranges_to_coverage
+from seqtools.format.gpd import GPDStream
+from seqtools.stream import LocusStream
+from seqtools.range.multi import ranges_to_coverage
 
 from multiprocessing import cpu_count, Pool
 
@@ -32,13 +32,13 @@ def main(args):
 
 def do_locus(locus):
   exranges = []
-  for entry in locus.get_payload():
+  for entry in locus.payload:
     for exon in entry.exons:
-      exranges.append(exon.get_range())
+      exranges.append(exon)
   covs = ranges_to_coverage(exranges)
   output = []
   for cov in covs:    
-    output.append("\t".join([str(x) for x in cov.get_bed_coordinates()])+"\t"+str(+cov.get_payload())+"\n")
+    output.append("\t".join([str(x) for x in cov.get_bed_coordinates()])+"\t"+str(+cov.payload)+"\n")
   return output
 
 def generate_gpd (loci):

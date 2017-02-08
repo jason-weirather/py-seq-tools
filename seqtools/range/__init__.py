@@ -262,8 +262,8 @@ class GenomicRange(RangeGeneric):
     if self.start > in_genomic_range.end:
       return 0
     if self.start >= in_genomic_range.start and self.end <= in_genomic_range.end:
-      return self.end-self_.start+1
-    if self_.start <= in_genomic_range.start and self.end >= in_genomic_range.end:
+      return self.end-self.start+1
+    if self.start <= in_genomic_range.start and self.end >= in_genomic_range.end:
       return in_genomic_range.end-in_genomic_range.start+1
     if self.start <= in_genomic_range.start and self.end >= in_genomic_range.start:
       return self.end-in_genomic_range.start+1
@@ -290,7 +290,7 @@ class GenomicRange(RangeGeneric):
     """
     if self.chr != range2.chr:
       return None
-    o = type(self)(self.chr,min(self.start,range2.start),max(self.end,range2.end),self.payload,self.dir)
+    o = type(self)(self.chr,min(self.start,range2.start)+self._start_offset,max(self.end,range2.end),self.payload,self.dir)
     return o
 
   def intersect(self,range2):
@@ -306,7 +306,7 @@ class GenomicRange(RangeGeneric):
 
     """
     if not self.overlaps(range2): return None
-    return type(self)(self.chr,max(self.start,range2.start),min(self.end,range2.end),self.payload,self.dir)
+    return type(self)(self.chr,max(self.start,range2.start)+self._start_offset,min(self.end,range2.end),self.payload,self.dir)
 
   def cmp(self,range2,overlap_size=0):
     """the comparitor for ranges
@@ -349,11 +349,11 @@ class GenomicRange(RangeGeneric):
     if range2.start <= self.start and range2.end >= self.end:
       return outranges #delete all
     if range2.start > self.start: #left side
-      nrng = type(self)(self.chr,self.start,range2.start1-1,self.payload,self.dir)
+      nrng = type(self)(self.chr,self.start+self._start_offset,range2.start-1,self.payload,self.dir)
       outranges.append(nrng)
     if range2.end < self.end: #right side
       #ugly addon to make it work for either 0 or 1 index start
-      nrng = type(self)(self.chr,range2.end+1-(self.start1-self.start),self.end,self.payload,self.dir)
+      nrng = type(self)(self.chr,range2.end+1+self._start_offset,self.end,self.payload,self.dir)
       outranges.append(nrng)
     return outranges
 
@@ -410,4 +410,3 @@ class Bed(GenomicRange):
 
   def __str__(self):
     return str(self.chr)+"\t"+str(self.start-1)+"\t"+str(self.end)+"\t"+str(self.payload)+"\t"+str(self.dir)
-

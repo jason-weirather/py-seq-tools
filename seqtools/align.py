@@ -4,7 +4,8 @@ import re, sys
 from collections import namedtuple
 from seqtools.sequence import rc
 from seqtools.range import GenomicRange
-from seqtools.structure.transcript import Transcript, Exon, Junction
+from seqtools.structure.transcript import Transcript
+#, Exon, Junction
 
 from string import maketrans
 

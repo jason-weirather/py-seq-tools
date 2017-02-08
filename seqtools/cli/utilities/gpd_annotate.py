@@ -18,7 +18,7 @@
    15. reference line number
 """
 
-import sys, argparse, gzip, re
+import sys, argparse, gzip, re, itertools
 from seqtools.format.gpd import GPD
 from multiprocessing import cpu_count, Pool, Lock
 
@@ -51,7 +51,7 @@ def main(args):
     gpd.set_payload(z)
     if z%100 == 0:  sys.stderr.write(str(z)+"          \r")
     if gpd.entries.chrom not in txome: txome[gpd.entries.chrom] = []
-    r = gpd.get_range()
+    r = gpd.range
     r.set_payload(gpd)
     txome[gpd.entries.chrom].append(r)
   rinf.close()
@@ -66,13 +66,17 @@ def main(args):
 
   #def annotate_line(gpd,txome,args):
   sys.stderr.write("annotating\n")
-  p = Pool(processes=args.threads)
+  if args.threads > 1:
+    p = Pool(processes=args.threads)
   csize = 100
   #for v in generate_tx(inf,args):
   #  res = annotate_line(v)
   #  if not res: continue
   #  print res.rstrip()
-  results2 = p.imap(func=annotate_line,iterable=generate_tx(inf,args),chunksize=csize)
+  if args.threads > 1:
+    results2 = p.imap(func=annotate_line,iterable=generate_tx(inf,args),chunksize=csize)
+  else:
+    results2 = itertools.imap(annotate_line,generate_tx(inf,args))
   #sys.stderr.write("done map\n")
   for res in results2:
     if not res: continue
@@ -90,7 +94,7 @@ def annotate_line(inputs):
   (line,z,args) = inputs
   gpd = GPD(line)
   gpd.set_payload(z)
-  v = gpd.get_range()
+  v = gpd.range
   if v.chr not in txome: return None
   possible = [x.payload for x in txome[v.chr] if x.overlaps(v)]
   candidates = []
@@ -113,7 +117,7 @@ def annotate_line(inputs):
     if not eo: continue
     ecnt = eo.match_exon_count()
     osize = gpd.overlap_size(tx)
-    candidates.append([full,subset,ecnt,econsec,gpd.get_exon_count(),tx.get_exon_count(),osize,gpd.get_length(),tx.get_length(),tx])
+    candidates.append([full,subset,ecnt,econsec,gpd.get_exon_count(),tx.get_exon_count(),osize,gpd.length,tx.length,tx])
   if len(candidates)==0: return None
   bests = sorted(candidates,key=lambda x: (-x[0],-x[1],-x[3],-x[2],-min(float(x[6])/float(x[7]),float(x[6])/float(x[8]))))
   #line_z
@@ -132,9 +136,9 @@ def annotate_line(inputs):
   overlap_size = v[6]
   read_length = v[7]
   tx_length = v[8]
-  return str(z)+"\t"+gpd.get_transcript_name()+"\t"+v[9].get_gene_name()+"\t"+v[9].get_transcript_name()+"\t"+type+"\t"+\
+  return str(z)+"\t"+gpd.transcript_name+"\t"+v[9].gene_name+"\t"+v[9].transcript_name+"\t"+type+"\t"+\
           str(exon_count)+"\t"+str(most_consecutive_exons)+"\t"+str(read_exon_count)+"\t"+str(tx_exon_count)+"\t"+\
-          str(overlap_size)+"\t"+str(read_length)+"\t"+str(tx_length)+"\t"+gpd.get_range().get_range_string()+"\t"+v[9].get_range().get_range_string()+"\t"+str(v[9].payload)+"\n"
+          str(overlap_size)+"\t"+str(read_length)+"\t"+str(tx_length)+"\t"+gpd.range.get_range_string()+"\t"+v[9].range.get_range_string()+"\t"+str(v[9].payload)+"\n"
 
 
 

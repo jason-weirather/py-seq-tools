@@ -13,7 +13,8 @@ import argparse, sys, os, gzip
 from shutil import rmtree, copy
 from multiprocessing import cpu_count, Pool
 from tempfile import mkdtemp, gettempdir
-from seqtools.format.sam import BAMFile, SAM, check_flag
+from seqtools.format.sam import SAM, check_flag
+from seqtools.format.sam.bam.files import BAMFile
 from subprocess import Popen, PIPE
 
 def main(args):
@@ -32,8 +33,7 @@ def main(args):
   z = 0
   sys.stderr.write("read basics\n")
   for e in bf:
-    flag = e.value('flag')
-    entries.append([e.get_block_start(),e.get_inner_start(),e.value('qname'),flag])
+    entries.append([e.blockStart,e.innerStart,e.qname,e.flag])
     z+=1
     if z%1000==0:
       sys.stderr.write(str(z)+"       \r")
@@ -133,13 +133,15 @@ class Queue:
     return self.val
 
 def do_chunk(coords,ecount,args):
-  bf = BAMFile(args.input,blockStart=coords[0],innerStart=coords[1])
+  bf = BAMFile(args.input,BAMFile.Options(
+                             blockStart=coords[0],
+                             innerStart=coords[1]))
   results = []
   for i in range(0,ecount):
     e = bf.read_entry()
     if e.is_aligned():
-      rng = e.get_target_range()
-      results.append([rng.get_range_string(),e.get_aligned_bases_count()])
+      results.append([e.target_range.get_range_string(),
+                      e.get_aligned_bases_count()])
     else:
       results.append(['',0])
   return results

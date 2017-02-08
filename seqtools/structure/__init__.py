@@ -9,6 +9,12 @@ from seqtools.sequence import rc
 import seqtools.graph
 from math import sqrt
 
+MappingGenericOptions = namedtuple('MappingGenericOptions',
+   [
+    'ref',
+    'sequence',
+    'name',
+    'payload'])
 class MappingGeneric(object):
   """Class to describe the mapping of a transcript
 
@@ -31,10 +37,24 @@ class MappingGeneric(object):
      :type options.name: String
   """
   def __init__(self,rngs,options=None):
-    if not options: options = {'payload':None}
+    if not options: options = MappingGeneric.Options()
     self._rngs = rngs
     self._options = options
     self._id = str(uuid.uuid4())
+
+  @staticmethod
+  def Options(**kwargs):
+      """ A method for declaring options for the class"""
+      construct = MappingGenericOptions #IMPORTANT!  Set this
+      names = construct._fields
+      d = {}
+      for name in names: d[name] = None #default values
+      """set defaults here"""
+      for k,v in kwargs.iteritems():
+         if k in names: d[k] = v
+         else: raise ValueError('Error '+k+' is not an options property')
+      """Create a set of options based on the inputs"""
+      return construct(**d)
 
   @property
   def exons(self):
@@ -43,6 +63,7 @@ class MappingGeneric(object):
 
   @property
   def length(self):
+    """The mapped length"""
     return sum([x.length for x in self._rngs])
 
   @property
@@ -66,7 +87,7 @@ class MappingGeneric(object):
     :param val: payload to be stored
     :type val: Anything that can be put in a list
     """
-    self._options['payload'] = val
+    self._options = self._options._replace(payload = val)
 
   @property
   def payload(self):
@@ -75,7 +96,7 @@ class MappingGeneric(object):
     :return: payload
     :rtype: anything that can be stored in a list
     """
-    return self._options['payload']
+    return self._options.payload
 
   @property
   def id(self):
@@ -108,10 +129,9 @@ class MappingGeneric(object):
     :return: overlap size in base pairs
     :rtype: int
     """
-    self._initialize()
     total = 0
-    for e1 in [x.get_range() for x in self.exons]:
-      for e2 in [x.get_range() for x in tx2.exons]:
+    for e1 in self.exons:
+      for e2 in tx2.exons:
         total += e1.overlap_size(e2)
     return total
 

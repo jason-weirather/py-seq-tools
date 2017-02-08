@@ -111,6 +111,15 @@ class BAM(seqtools.format.sam.SAM):
     """
     return [self._options.blockStart,self._options.innerStart]
 
+  @property
+  def blockStart(self):
+    """Maybe none if not set"""
+    return self._options.blockStart
+  @property
+  def innerStart(self):
+    """Maybe none if not set"""
+    return self._options.innerStart
+
   def __str__(self):
     return self.get_sam_line()
 

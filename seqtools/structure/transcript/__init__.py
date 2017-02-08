@@ -45,9 +45,9 @@ class Transcript(seqtools.structure.MappingGeneric):
   """
 
   def __init__(self,rngs,options=None):
+    if not options: options = Transcript.Options()
     super(Transcript,self).__init__(rngs,options)
     self._rngs = rngs
-    self._options = options
 
   @staticmethod
   def Options(**kwargs):
@@ -95,7 +95,7 @@ class Transcript(seqtools.structure.MappingGeneric):
     :param dir: direction + or -
     :type dir: char
     """
-    self._direction = dir
+    self._options = self._options._replace(direction = dir)
 
   @property
   def strand(self):
@@ -104,12 +104,12 @@ class Transcript(seqtools.structure.MappingGeneric):
     :return: direction + or -
     :rtype: char
     """
-    return self._direction
+    return self._options.direction
 
   @property
   def direction(self):
     """alias for strand"""
-    return self._direction
+    return self._options.direction
 
   @property
   def chr(self):
@@ -126,9 +126,11 @@ class Transcript(seqtools.structure.MappingGeneric):
   @property
   def junctions(self):
     """Can be inferred from the exons, this is not implemented yet"""
-    sys.stderr.write("Error not implemented junctions\n")
-    sys.exit()
-    return self._junctions
+    if len(self.exons) < 2: return []
+    junctions = []
+    for i in range(1,len(self.exons)):
+      junctions.append(Junction(self.exons[i-1],self.exons[i]))
+    return junctions
 
   def get_gpd_line(self,transcript_name=None,gene_name=None,direction=None):
     """Get the genpred format string representation of the mapping"""
@@ -142,14 +144,15 @@ class Transcript(seqtools.structure.MappingGeneric):
     """
     self._options = self._options._replace(gene_name = name)
 
-  def get_gene_name(self):
+  @property
+  def gene_name(self):
     """retrieve the gene name
 
     :return: gene name
     :rtype: string
     """
-    self._options.gene_name
-    return self._gene_name
+    return self._options.gene_name
+
   def set_transcript_name(self,name):
     """assign a transcript name
 
@@ -158,7 +161,8 @@ class Transcript(seqtools.structure.MappingGeneric):
     """
     self._options = self._options._replace(name = name)
 
-  def get_transcript_name(self):
+  @property
+  def transcript_name(self):
     """retrieve the transcript name
 
     :return: transcript name
@@ -210,7 +214,7 @@ class Transcript(seqtools.structure.MappingGeneric):
     :return: ExonOverlap report
     :rtype: Transcript.ExonOverlap
     """
-    return Transcript.ExonOverlap(self,tx,multi_minover,multi_endfrac,multi_midfrac,single_minover,single_frac,multi_consec=multi_consec)
+    return ExonOverlap(self,tx,multi_minover,multi_endfrac,multi_midfrac,single_minover,single_frac,multi_consec=multi_consec)
 
 class ExonOverlap:
     """class to describe exon overlap
@@ -350,16 +354,16 @@ class ExonOverlap:
     def calculate_overlap(self1):
       """Create the array that describes how junctions overlap"""
       overs = []
-      if not self1.tx_obj1.get_range().overlaps(self1.tx_obj2.get_range()): return # if they dont overlap wont find anything
+      if not self1.tx_obj1.range.overlaps(self1.tx_obj2.range): return # if they dont overlap wont find anything
       for i in range(0,len(self1.tx_obj1.exons)):
         for j in range(0,len(self1.tx_obj2.exons)):
-          osize = self1.tx_obj1.exons[i].rng.overlap_size(self1.tx_obj2.exons[j].rng)
+          osize = self1.tx_obj1.exons[i].range.overlap_size(self1.tx_obj2.exons[j].range)
           ofrac = 0
           if osize > 0:
-            ofrac = min(float(osize)/float(self1.tx_obj1.exons[i].rng.length())\
-                       ,float(osize)/float(self1.tx_obj2.exons[j].rng.length()))
+            ofrac = min(float(osize)/float(self1.tx_obj1.exons[i].range.length)\
+                       ,float(osize)/float(self1.tx_obj2.exons[j].range.length))
 
-          if self1.tx_obj1.get_exon_count() == 1 or self1.tx_obj2.get_exon_count == 1:
+          if self1.tx_obj1.get_exon_count() == 1 or self1.tx_obj2.get_exon_count() == 1:
             # use single exon rules
             if osize >= self1.single_minover and ofrac >= self1.single_frac:
               #print 'single exon match'
@@ -468,7 +472,7 @@ class JunctionOverlap:
     def calculate_overlap(self1):
       """Create the array that describes how junctions overlap"""
       overs = []
-      if not self1.tx_obj1.get_range().overlaps(self1.tx_obj2.get_range()): return # if they dont overlap wont find anything
+      if not self1.tx_obj1.range.overlaps(self1.tx_obj2.range): return # if they dont overlap wont find anything
       for i in range(0,len(self1.tx_obj1.junctions)):
         for j in range(0,len(self1.tx_obj2.junctions)):
           if self1.tx_obj1.junctions[i].overlaps(self1.tx_obj2.junctions[j],self1.tolerance):
@@ -576,7 +580,7 @@ class Junction:
     self.right_exon = ex
     ex.left_junc = self
 
-class Exon:
+class Exon99:
   """class to describe an exon
 
   :param rng:
@@ -592,7 +596,7 @@ class Exon:
     return pickle.dumps(self)
   def load_serialized(self,instr):
     self = pickle.loads(instr)
-  def get_range(self):
+  def range(self):
     return self.rng
   def get_length(self):
     return self.rng.length()
@@ -648,23 +652,23 @@ def trim_ordered_range_list(ranges,start,finish):
     rng = inrng.copy() # we will be passing it along and possibly be cutting it
     done = False;
     #print 'exon length '+str(rng.length())
-    if start >= index and start < index+original_rng.length(): # we are in this one
+    if start >= index and start < index+original_rng.length: # we are in this one
       rng.start = original_rng.start+(start-index) # fix the start
       #print 'fixstart '+str(original_rng.start)+' to '+str(rng.start)
-    if finish > index and finish <= index+original_rng.length():
+    if finish > index and finish <= index+original_rng.length:
       rng.end = original_rng.start+(finish-index)-1
       done = True
       #print 'fixend '+str(original_rng.end)+' to '+str(rng.end)
  
-    if finish <= index+original_rng.length(): # we are in the last exon we need
-      index+= original_rng.length()
+    if finish <= index+original_rng.length: # we are in the last exon we need
+      index+= original_rng.length
       keep_ranges.append(rng)
       break
-    if index+original_rng.length() < start: # we don't need any bases from this
-      index += original_rng.length()
+    if index+original_rng.length < start: # we don't need any bases from this
+      index += original_rng.length
       continue # we don't use this exon
     keep_ranges.append(rng)
-    index += original_rng.length()
+    index += original_rng.length
     if index > finish: break
     if done: break
   return keep_ranges
