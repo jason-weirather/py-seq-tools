@@ -231,9 +231,9 @@ class MultiLocusStream:
          try: x = self._streams[i].next()
          except StopIteration: x = None 
          if x:
-            rng = x.range
-            rng.set_payload(x)
-            self._buffers[i] = rng
+            #rng = x.range
+            #rng.set_payload(x)
+            self._buffers[i] = x
    def __iter__(self):
       return self
    def next(self):
