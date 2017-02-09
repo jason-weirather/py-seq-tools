@@ -18,6 +18,9 @@ class BAMFileGeneric(object):
     self._ref_names = []
     self._fh = None # must be set by child init after super call
 
+  @property
+  def path(self): return self._path
+
   def _fetch_headers(self):
     """Needs ._fh handle to stream to be set by child"""
     self._header_text, self._n_ref = self._read_top_header()
@@ -43,6 +46,7 @@ class BAMFileGeneric(object):
   def _get_block(self):
     """Just read a single block from your current location in _fh"""
     b = self._fh.read(4) # get block size bytes
+    #print self._fh.tell()
     if not b: raise StopIteration
     block_size = struct.unpack('<i',b)[0]
     return self._fh.read(block_size)
@@ -111,6 +115,10 @@ class BAMFile(BAMFileGeneric):
      """Create a set of options based on the inputs"""
      return construct(**d)
 
+  @property
+  def reference(self):
+    return self._options.reference
+
   def read_entry(self):
      return self.make_val(self._gen().next())
 
@@ -123,7 +131,7 @@ class BAMFile(BAMFileGeneric):
   def make_val(self,vars):
     data, names, blk, inner = vars
     return BAM(data,names,options = BAM.Options(
-               blockStart=blk,innerStart=inner))
+               blockStart=blk,innerStart=inner,reference=self._options.reference))
     return vars
 
   # only get a single
@@ -132,8 +140,12 @@ class BAMFile(BAMFileGeneric):
 
     .. warning:: creates a new instance of a BAMFile object when maybe the one we had would have worked
     """
+    #print coord
+    #print self.path
     #b2 = BAMFile(self.path,blockStart=coord[0],innerStart=coord[1],index_obj=self.index,reference=self._reference)
-    b2 = BAMFile(self.path,blockStart=coord[0],innerStart=coord[1],reference=self._reference)
+    b2 = BAMFile(self.path,BAMFile.Options(blockStart=coord[0],innerStart=coord[1],reference=self.reference))
+    #for bam in b2: print type(bam)
+    #print 'hi'
     bam = b2.read_entry()
     b2.close()
     b2 = None
@@ -145,7 +157,7 @@ class BAMFile(BAMFileGeneric):
 
     .. warning:: creates a new instance of a BAMFile object when maybe the one we had would have worked
     """
-    b2 = BAMFile(self.path,blockStart=coord[0],innerStart=coord[1],reference=self._reference)
+    b2 = BAMFile(self.path,BAMFile.Options(blockStart=coord[0],innerStart=coord[1],reference=self.reference))
     return b2
 
 """BAM File streamer that allows for random access"""
@@ -213,7 +225,7 @@ class BAMFileAlt(BAMFileGeneric):
 
   def make_val(self,vars):
     data, names = vars
-    return BAM(data,names,options = BAM.Options())
+    return BAM(data,names,options = BAM.Options(reference=self._options.reference))
     return vars
 
 
@@ -232,17 +244,17 @@ class BGZF:
   """
   def __init__(self,filename=None,filehandle=None,blockStart=None,innerStart=None,check_crc=False):
     self.path = None
+    self._buffer_pos = 0
+    self._block_start = 0
     if filename:
        self.path = filename
        self.fh = open(filename,'rb',1000000)
+       if blockStart is not None and innerStart is not None: 
+         self.seek(blockStart,innerStart)
     elif filehandle:
        self.fh = filehandle
-    if blockStart: self.fh.seek(blockStart)
-    self._block_start = 0
     self.check_crc = check_crc
     self._buffer = self._load_block()
-    self._buffer_pos = 0
-    if innerStart: self._buffer_pos = innerStart
   def close(self):
     self.fh.close()
   def get_block_start(self):
@@ -278,6 +290,9 @@ class BGZF:
     if not self.fh: return BGZFChunk(block_size=0,data='')
     self._block_start = self.fh.tell()
     magic = self.fh.read(4)
+    #print struct.unpack("<I",magic)[0]
+    #print self.get_block_start()
+    #print self.get_inner_start()
     if len(magic) < 4:
       #print 'end?'
       #print len(self.fh.read())

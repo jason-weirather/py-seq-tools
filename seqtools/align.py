@@ -215,7 +215,7 @@ class Alignment(object):
         difq = q.start-self.alignment_ranges[i-1][1].end-1
         if dift < min_intron_size:
           if dift > 0:
-            textra = ref[t.chr][t.start-dift-1:t.start-1].upper()
+            textra = str(ref[t.chr][t.start-dift-1:t.start-1]).upper()
             qextra = '-'*dift
             yextra = '\0'*dift
           elif difq > 0:
@@ -229,7 +229,7 @@ class Alignment(object):
           tdone = ''
           qdone = ''
           ydone = ''
-      tdone += textra+ref[t.chr][t.start-1:t.end].upper()
+      tdone += textra+str(ref[t.chr][t.start-1:t.end]).upper()
       qdone += qextra+qseq[q.start-1:q.end].upper()
       ydone += yextra+qual[q.start-1:q.end]
     if len(tdone) > 0: 

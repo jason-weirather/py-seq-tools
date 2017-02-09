@@ -66,7 +66,7 @@ class FASTA(seqtools.sequence.Sequence):
       sys.stderr.write("ERROR not a fasta entry")
       sys.exit()
     header = fasta_lines[0][1:]
-    name = re.match('\S+',header)
+    name = re.match('(\S+)',header).group(1)
     opts = FASTA.Options(header=header,name=name)
     super(FASTA,self).__init__(''.join(fasta_lines[1:]),opts)
 

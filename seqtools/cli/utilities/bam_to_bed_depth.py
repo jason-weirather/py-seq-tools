@@ -14,7 +14,8 @@ import argparse, sys, os
 from shutil import rmtree
 from multiprocessing import cpu_count, Lock, Pool
 from tempfile import mkdtemp, gettempdir
-from seqtools.format.sam import BAMFile, SAMStream
+from seqtools.format.sam.bam.files import BAMFile
+from seqtools.format.sam import SAMStream
 from seqtools.stream import LocusStream
 from seqtools.range.multi import ranges_to_coverage, sort_genomic_ranges
 

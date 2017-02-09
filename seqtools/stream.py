@@ -132,7 +132,7 @@ class OrderedStream(object):
    :type stream: an iterable stream
    """
    def __init__(self,stream):
-      self._stream = stream
+      self._stream = iter(stream)
       self._previous = None
       self._ln = 0
    def __iter__(self):

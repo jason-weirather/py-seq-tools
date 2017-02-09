@@ -684,11 +684,11 @@ class AlignmentErrors:
     self._context_query_errors = None
     self._context_target_errors = None
     astrings = self._alignment.get_alignment_strings(min_intron_size=self._min_intron_size)
-    if self._alignment.get_query_quality(): self._has_quality = True
+    if self._alignment.query_quality: self._has_quality = True
     if len(astrings) == 0: return None
     alns = []
     for i in range(len(astrings[0])):
-      if self._alignment.get_strand() == '+':
+      if self._alignment.strand == '+':
         alns.append({'query':astrings[0][i],'target':astrings[1][i],'query_quality':astrings[2][i]})
       else:
         alns.insert(0,{'query':rc(astrings[0][i]),'target':rc(astrings[1][i]),'query_quality':astrings[2][i][::-1]})
@@ -822,7 +822,6 @@ class AlignmentErrors:
         tb = otype[2][0][0]
         qb = otype[2][1][0]
         r[tbefore][tafter][t]['types'][qb] += float(1)
-        #print op  
       elif otype[0] == 'deletion':
         tb = otype[2][0][0]
         qb = otype[2][1][0]
@@ -926,7 +925,6 @@ class AlignmentErrors:
         tb = otype[2][0][0]
         qb = otype[2][1][0]
         r[tbefore][tafter][t]['types'][tb] += float(1)
-        #print op  
       elif otype[0] == 'insertion':
         tb = otype[2][0][0]
         qb = otype[2][1][0]
@@ -995,7 +993,6 @@ class AlignmentErrors:
     prob = 0
     be = BaseError('query')
     be.set_observable(h.get_target(),h.get_query())
-    #print pos
     if i != 0 and pos == 0: # check for a total deletion before
       prev = x['prev-hpa']
       if len(prev.get_query()) == 0: # total deletion
@@ -1005,7 +1002,6 @@ class AlignmentErrors:
         foll = x['next-hpa']
         if len(foll.get_query()) == 0: # total deletion
           be.set_unobserved_after(len(foll.get_target()),0,foll.get_target()[0],0.5)
-    #else: print h
     return be
 
   def get_target_errors(self):
@@ -1041,7 +1037,6 @@ class AlignmentErrors:
     prob = 0
     be = BaseError('target')
     be.set_observable(h.get_target(),h.get_query())
-    #print pos
     if i != 0 and pos == 0: # check for a total deletion before
       prev = x['prev-hpa']
       if len(prev.get_target()) == 0: # total insertion
@@ -1096,7 +1091,7 @@ class AlignmentErrors:
     for x in alns:
       z += 1
       exon_num = z
-      if self._alignment.get_strand() == '-':
+      if self._alignment.strand == '-':
         exon_num = (len(alns)-z)+1
       buffer = {'query':x['query'][0],'target':x['target'][0],'query_quality':x['query_quality'][0],'exon':exon_num}
       if buffer['query'] == '-': buffer['nt'] = buffer['target']

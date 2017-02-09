@@ -1,7 +1,7 @@
 """bamindex class describes a custom index format used by AlignQC"""
 import gzip, sys, random, os
 from seqtools.range import GenomicRange
-from seqtools.format.sam import BAMFile
+from seqtools.format.sam.bam.files import BAMFile
 
 class BAMIndex:
   """Index file is a gzipped TSV file with these fields:
