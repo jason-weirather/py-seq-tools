@@ -53,11 +53,11 @@ class Graph:
     :rtype: Edge[] edge list
     """
     if type == "both":
-      return [self.__edges[x] for x in self.__edges if node.get_id() in self.__edges[x].get_node_ids()]
+      return [self.__edges[x] for x in self.__edges if node.id in self.__edges[x].get_node_ids()]
     elif type == "outgoing":
-      return [self.__edges[x] for x in self.__edges if node.get_id() == self.__edges[x].get_node_ids()[0]]
+      return [self.__edges[x] for x in self.__edges if node.id == self.__edges[x].get_node_ids()[0]]
     elif type == "incoming":
-      return [self.__edges[x] for x in self.__edges if node.get_id() == self.__edges[x].get_node_ids()[1]]
+      return [self.__edges[x] for x in self.__edges if node.id == self.__edges[x].get_node_ids()[1]]
     sys.stderr.write("ERROR: type is not a type "+type+"\n")
     sys.exit()
 
@@ -79,7 +79,7 @@ class Graph:
     #if node.has_edges():
     #  sys.stderr.write("ERROR: nodes can only be added to a graph before edges are set\n")
     #  sys.exit()
-    self.__nodes[node.get_id()] = node
+    self.__nodes[node.id] = node
     return
 
   def get_children(self,node):
@@ -93,7 +93,7 @@ class Graph:
     if self.find_cycle() or self.__directionless:
       sys.stderr.write("ERROR: do cannot find a branch when there are cycles in the graph\n")
       sys.exit()
-    v = self.__get_children(node.get_id())
+    v = self.__get_children(node.id)
     return [self.__nodes[i] for i in v]
 
   #assumes you have no cycles and its a directional graph
@@ -133,16 +133,14 @@ class Graph:
 
     """
     #make sure nodes are in the nodes
-    if edge.get_node1().get_id() not in self.__nodes:
+    if edge.get_node1().id not in self.__nodes:
       sys.stderr.write("ERROR: node should be in graph\n")
       sys.exit()
-      #self.__nodes[edge.get_node1().get_id()] = edge.get_node1()
-    if edge.get_node2().get_id() not in self.__nodes:
+    if edge.get_node2().id not in self.__nodes:
       sys.stderr.write("ERROR: node should be in graph\n")
       sys.exit()
-      #self.__nodes[edge.get_node2().get_id()] = edge.get_node2()
     # now add edge
-    id = edge.get_id()
+    id = edge.id
     #sys.stderr.write(id+"\n")
     if id in self.__edges:
       sys.stderr.write("WARNING edge is already there. not adding again\n")
@@ -154,13 +152,13 @@ class Graph:
     if ids[1] in self.__parent_to_child[ids[0]] and verbose==True:
       if verbose: sys.stderr.write("Warning repeat edge.\n")
       return
-    self.__parent_to_child[ids[0]][ids[1]] = edge.get_id()
+    self.__parent_to_child[ids[0]][ids[1]] = edge.id
     #if edge.is_directionless():
     if ids[1] not in self.__child_to_parent:
       self.__child_to_parent[ids[1]] = {}
     if ids[0] in self.__child_to_parent[ids[1]] and verbose == True:
       sys.stderr.write("WARNING overwriting repeat edge.\n")
-    self.__child_to_parent[ids[1]][ids[0]] = edge.get_id()
+    self.__child_to_parent[ids[1]][ids[0]] = edge.id
     return
 
   def get_status_string(self):
@@ -179,7 +177,7 @@ class Graph:
     :param node:
     :type node: Node
     """
-    nid = node.get_id()
+    nid = node.id
     #remove edges associated with this node
     edges = self.get_node_edges(node,type="both")
     for e in edges:
@@ -197,25 +195,25 @@ class Graph:
     #sys.stderr.write(str(self.__edges.keys())+" edges\n")
     #sys.stderr.write(str(self.get_report())+" remove edge\n")
     #sys.stderr.write(str([x.get_node_ids() for x in self.__edges.values()])+" remove edge\n")
-    if edge.get_id() not in self.__edges:
+    if edge.id not in self.__edges:
       sys.stderr.write("WARNING: edge already removed\n")
       return
     nodeids = edge.get_node_ids()
     node1 = self.__nodes[nodeids[0]]
     node2 = self.__nodes[nodeids[1]]
     edges_to_remove = set()
-    if node1.get_id() in self.__parent_to_child:
-      if node2.get_id() in self.__parent_to_child[node1.get_id()]:
-        edges_to_remove.add(self.__parent_to_child[node1.get_id()][node2.get_id()])
-        del self.__parent_to_child[node1.get_id()][node2.get_id()]
-      if len(self.__parent_to_child[node1.get_id()]) == 0:
-        del self.__parent_to_child[node1.get_id()]
-    if node2.get_id() in self.__child_to_parent: 
-        if node1.get_id() in self.__child_to_parent[node2.get_id()]:
-          edges_to_remove.add(self.__child_to_parent[node2.get_id()][node1.get_id()])
-          del self.__child_to_parent[node2.get_id()][node1.get_id()]
-        if len(self.__child_to_parent[node2.get_id()]) == 0:
-          del self.__child_to_parent[node2.get_id()]
+    if node1.id in self.__parent_to_child:
+      if node2.id in self.__parent_to_child[node1.id]:
+        edges_to_remove.add(self.__parent_to_child[node1.id][node2.id])
+        del self.__parent_to_child[node1.id][node2.id]
+      if len(self.__parent_to_child[node1.id]) == 0:
+        del self.__parent_to_child[node1.id]
+    if node2.id in self.__child_to_parent: 
+        if node1.id in self.__child_to_parent[node2.id]:
+          edges_to_remove.add(self.__child_to_parent[node2.id][node1.id])
+          del self.__child_to_parent[node2.id][node1.id]
+        if len(self.__child_to_parent[node2.id]) == 0:
+          del self.__child_to_parent[node2.id]
     if len(edges_to_remove) == 0:
       sys.stderr.write("WARNING no edges removed\n")
     #sys.stderr.write(str(len(self.__edges.keys()))+" edges\n")
@@ -240,18 +238,17 @@ class Graph:
       if len(res) == 1: 
         sys.stderr.write("ERROR: Unexpected Self-cycle.\n")
         sys.exit()
-      resids = [x.get_id() for x in res]
+      resids = [x.id for x in res]
       # merge edges unless that edge is to one of the nodes we are removing
       for i in range(1,len(res)):
-        for v in res[i].get_payload(): res[0].get_payload().append(v)
-        if res[i].get_id() in self.__parent_to_child:
-          for e2id in self.__parent_to_child[res[i].get_id()]:
+        for v in res[i].payload: res[0].payload.append(v)
+        if res[i].id in self.__parent_to_child:
+          for e2id in self.__parent_to_child[res[i].id]:
             if e2id not in resids:
               nedge = Edge(res[0],res[i])
-              #sys.stderr.write("adding :"+nedge.get_id()+"\n")
-              if res[0].get_id() not in self.__parent_to_child:
+              if res[0].id not in self.__parent_to_child:
                 self.add_edge(nedge,verbose=False)
-              elif res[1].get_id() not in self.__parent_to_child[res[0].get_id()]:
+              elif res[1].id not in self.__parent_to_child[res[0].id]:
                 self.add_edge(nedge,verbose=False)
         #      #if self.__directionless:
         #      #  sys.stderr.write('adding_edge2'+"\n")
@@ -289,7 +286,7 @@ class Graph:
     if self.find_cycle():
       sys.stderr.write("ERROR: Can't find paths when a cycle is present.\n")
       sys.exit()
-    id = node.get_id()
+    id = node.id
     nprev = prev[:]
     nprev.append(node)
     if id in self.__parent_to_child:
@@ -325,17 +322,15 @@ class Graph:
     """
     visited_nodes = set()
     ns = self.get_nodes()
-    #exclude_ids = exclude_ids | set([x.get_id() for x in g.get_nodes()])
     node_sets = []
     z = 0
     for n in ns:
       z += 1
       if verbose: sys.stderr.write("partitioning: "+str(z)+'/'+str(len(ns))+"       \r")
-      nids = set([y.get_id() for y in self.connected_nodes(n,exclude_ids=visited_nodes)])
+      nids = set([y.id for y in self.connected_nodes(n,exclude_ids=visited_nodes)])
       node_sets.append(nids)
       visted_nodes = visited_nodes | nids
     if verbose: sys.stderr.write("\n")
-    #node_sets = [set([y.get_id() for y in self.connected_nodes(x)]) for x in ns]
     results = []
     tot = len(node_sets)
     while len(node_sets) > 0:
@@ -363,9 +358,6 @@ class Graph:
         for e in self.get_node_edges(self.__nodes[nid],type="outgoing"):
           g.add_node(e.get_node2())
           g.add_edge(Edge(e.get_node1(),e.get_node2()),verbose=False)
-      #for v in [x.get_payload() for x in g.get_nodes()]:
-      #  for txs in v:
-      #es    print txs.get_gene_name()
       g_results.append(g)
     return g_results
 
@@ -381,28 +373,21 @@ class Graph:
     """
     r =  _depth_traverse_node(self,node,visited=exclude_ids)
     if not r: return []
-    #sys.stderr.write(str(node.get_id())+"\n")
-    #sys.stderr.write(str(self.__nodes.keys())+"\n")
-    #sys.stderr.write("\n"+self.get_report()+"\n")
-    #sys.stderr.write(str(self.__child_to_parent.keys())+"\n")
-    #sys.stderr.write(str([x for x in r])+"\n")
     return [self.__nodes[x] for x in r]
 
 def _depth_traverse_node(g,node,visited=None):
   #print visited
   if not visited: visited = set()
-  if node.get_id() in visited:
+  if node.id in visited:
     return visited
-  visited.add(node.get_id())
-  #ns = [x for x in g.get_nodes() if x.get_id() not in visited]
-  #if len(ns) == 0: return
+  visited.add(node.id)
   es = g.get_node_edges(node)
   if not es: return visited
   tot = set()
   tot = tot | visited
   for e in es:
     n2 = e.get_node2()
-    if n2.get_id() in tot: continue
+    if n2.id in tot: continue
     v = _depth_traverse_node(g,n2,tot)
     tot = tot | v
   return tot
@@ -440,7 +425,7 @@ class Edge:
     :returns: list of [id1,id2]
     :rtype: list
     """
-    return [self.__node1.get_id(),self.__node2.get_id()]
+    return [self.__node1.id,self.__node2.id]
   def is_directionless(self):
      """get the direction status of the edge"""
      return self.__directionless
@@ -458,9 +443,14 @@ class Edge:
     :rtype: Node
     """
     return self.__node2
-  def get_id(self):
-    """ get the internal id of the edge. probably uuid4"""
+
+  @property
+  def id(self):
     return self.__id
+
+  #def get_id(self):
+  #  """ get the internal id of the edge. probably uuid4"""
+  #  return self.__id
 
 #payload is a list. When nodes get merged lists are concatonated.
 class Node:
@@ -481,18 +471,17 @@ class Node:
   #  if len(self.__incoming_edges.keys()) > 0: return True
   #  if len(self.__outgoing_edges.keys()) > 0: return True
   #  return False
-  def get_payload(self):
+  @property
+  def payload(self):
     """ return whats curently held in payload"""
     return self.__payload
   def set_payload(self,payload):
     """ set the payload to anything you want"""
     self.__payload = payload
-  def get_id(self):
-    """return the uuid4 id"""
+
+  @property
+  def id(self):
     return self.__id
-  #def set_child_node(self,node2):
-  #  e = Edge(self,node2)
-  #  self.__outgoing_edges[e.get_id()] = e
-  #def set_parent_node(self,node2):
-  #  e = Edge(node2,self)
-  #  self.__incoming_edges[e.get_id()] = e
+  #def get_id(self):
+  #  """return the uuid4 id"""
+  #  return self.__id

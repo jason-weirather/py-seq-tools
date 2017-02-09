@@ -3,7 +3,8 @@
 """
 import sys, random, string, uuid
 from collections import namedtuple
-from seqtools.range import GenomicRange, ranges_to_coverage, merge_ranges
+from seqtools.range import GenomicRange
+from seqtools.range.multi import ranges_to_coverage, merge_ranges
 from seqtools.sequence import rc
 import seqtools.graph
 from math import sqrt
@@ -16,7 +17,7 @@ class TranscriptLoci:
     #self.transcripts = []
     self.merge_rules = TranscriptLociMergeRules('is_any_overlap')
     self.merge_rules.set_juntol(10)
-    self.g = seqtools.Graph.Graph()   
+    self.g = seqtools.graph.Graph()   
 
   def __str__(self):
     return str(len(self.g.get_nodes()))+ " nodes"  
@@ -28,18 +29,15 @@ class TranscriptLoci:
     :type tx_id: string
     """
     txs = self.get_transcripts()
-    if tx_id not in [x.get_id() for x in txs]:
+    if tx_id not in [x.id for x in txs]:
       return
-    tx = [x for x in txs if x.get_id()==tx_id][0]
+    tx = [x for x in txs if x.id==tx_id][0]
     for n in [x for x in self.g.get_nodes()]:
-      if tx_id not in [y.get_id() for y in n.get_payload()]:
+      if tx_id not in [y.id for y in n.payload]:
         continue
-      n.get_payload().remove(tx)
-      if len(n.get_payload())==0:
+      n.payload.remove(tx)
+      if len(n.payload)==0:
         self.g.remove_node(n)      
-      #sys.stderr.write("\n"+str(n.get_payload())+"\n")
-      # 
-      #sys.stderr.write("\n"+str(len(n.get_payload()))+"\n")
   def set_merge_rules(self,mr):  
     """Define rules for how to merge transcripts
 
@@ -52,14 +50,14 @@ class TranscriptLoci:
     """ using all the transcripts find the depth """
     bedarray = []
     for tx in self.get_transcripts():
-      for ex in [x.rng for x in tx.exons]: bedarray.append(ex)
+      for ex in [x.range for x in tx.exons]: bedarray.append(ex)
     cov = ranges_to_coverage(bedarray)
     results = {}
     for tx in self.get_transcripts():
-      tlen = tx.get_length()
+      tlen = tx.range.length
       bcov = []
-      for ex in [x.rng for x in tx.exons]:     
-        excov = [[x.overlap_size(ex),x.get_payload()] for x in cov]
+      for ex in [x.range for x in tx.exons]:     
+        excov = [[x.overlap_size(ex),x.payload] for x in cov]
         for coved in [x for x in excov if x[0] > 0]:
           bcov.append(coved)
       total_base_coverage = sum([x[0]*x[1] for x in bcov])
@@ -67,7 +65,7 @@ class TranscriptLoci:
       minimum_bases_covered = sum([x[0] for x in bcov if x[1] >= mindepth])
       fraction_covered_at_minimum = float(minimum_bases_covered)/float(tlen)
       res = {'tx':tx,'average_coverage':average_coverage,'fraction_covered':fraction_covered_at_minimum,'mindepth':mindepth,'length_covered':minimum_bases_covered}
-      results[tx.get_id()] = res
+      results[tx.id] = res
       #print average_coverage
       #print fraction_covered_at_minimum
       #print tlen
@@ -77,22 +75,23 @@ class TranscriptLoci:
     #  print c
     return results
 
-  def get_range(self):
+  @property
+  def range(self):
     """Return the range the transcript loci covers
 
     :return: range
     :rtype: GenomicRange
     """
-    chrs = set([x.get_range().chr for x in self.get_transcripts()])
+    chrs = set([x.range.chr for x in self.get_transcripts()])
     if len(chrs) != 1: return None
-    start = min([x.get_range().start for x in self.get_transcripts()])
-    end = max([x.get_range().end for x in self.get_transcripts()])
+    start = min([x.range.start for x in self.get_transcripts()])
+    end = max([x.range.end for x in self.get_transcripts()])
     return GenomicRange(list(chrs)[0],start,end)
 
   def get_transcripts(self):
     """ a list of the transcripts in the locus"""
     txs = []
-    for pays in [x.get_payload() for x in self.g.get_nodes()]:
+    for pays in [x.payload for x in self.g.get_nodes()]:
       for pay in pays:
         txs.append(pay)
     return txs
@@ -103,13 +102,6 @@ class TranscriptLoci:
     :return: list of loci
     :rtype: TranscriptLoci[]
     """
-    #names = []
-    #for entries in [x.get_payload() for x in self.g.get_nodes()]:
-    #  for entry in entries:
-    #    names.append(entry.get_gene_name())
-
-    #sys.stderr.write('-------partition_loci-----'+"\n")
-    #sys.stderr.write(self.g.get_report()+"\n")
     self.g.merge_cycles()
     #sys.stderr.write(self.g.get_report()+"\n")
     gs = self.g.partition_graph(verbose=verbose)
@@ -118,7 +110,7 @@ class TranscriptLoci:
       tl = TranscriptLoci()
       tl.merge_rules = self.merge_rules
       ns = g.get_nodes()
-      for n in [x.get_payload() for x in ns]:
+      for n in [x.payload for x in ns]:
         for tx in n:
           tl.add_transcript(tx)
       if len(tl.g.get_nodes()) > 0:
@@ -139,19 +131,18 @@ class TranscriptLoci:
     :param tx: transcript to add
     :type tx: Transcript
     """
-    for y in [x.get_payload() for x in self.g.get_nodes()]:
-      if tx.get_id in [z.get_id() for z in y]:
-        #if tx.get_id() in [[y.get_id() for y in x.get_payload()] for x in self.g.get_nodes()]:
+    for y in [x.payload for x in self.g.get_nodes()]:
+      if tx.id in [z.id for z in y]:
         sys.stderr.write("WARNING tx is already in graph\n")
         return True
     # transcript isn't part of graph yet
-    n = seqtools.Graph.Node([tx])
+    n = seqtools.graph.Node([tx])
 
     other_nodes = self.g.get_nodes()
     self.g.add_node(n)
     # now we need to see if its connected anywhere
     for n2 in other_nodes:
-     tx2s = n2.get_payload()
+     tx2s = n2.payload
      for tx2 in tx2s:
       # do exon overlap
       er = self.merge_rules.get_exon_rules()
@@ -161,22 +152,22 @@ class TranscriptLoci:
         eo = tx.exon_overlap(tx2,multi_minover=er['multi_minover'],multi_endfrac=er['multi_endfrac'],multi_midfrac=er['multi_midfrac'],single_minover=er['single_minover'],single_frac=er['single_frac'])
         if self.merge_rules.get_merge_type() == 'is_compatible':
           if eo.is_compatible():
-            self.g.add_edge(seqtools.Graph.Edge(n,n2),verbose=False)
-            self.g.add_edge(seqtools.Graph.Edge(n2,n),verbose=False)
+            self.g.add_edge(seqtools.graph.Edge(n,n2),verbose=False)
+            self.g.add_edge(seqtools.graph.Edge(n2,n),verbose=False)
         elif self.merge_rules.get_merge_type() == 'is_subset':
           r = eo.is_subset()
           if r == 2 or r == 1:
-            self.g.add_edge(seqtools.Graph.Edge(n,n2),verbose=False)
+            self.g.add_edge(seqtools.graph.Edge(n,n2),verbose=False)
           if r == 3 or r == 1:
-            self.g.add_edge(seqtools.Graph.Edge(n2,n),verbose=False)
+            self.g.add_edge(seqtools.graph.Edge(n2,n),verbose=False)
         elif self.merge_rules.get_merge_type() == 'is_full_overlap':
           if eo.is_full_overlap():
-            self.g.add_edge(seqtools.Graph.Edge(n,n2),verbose=False)
-            self.g.add_edge(seqtools.Graph.Edge(n2,n),verbose=False)
+            self.g.add_edge(seqtools.graph.Edge(n,n2),verbose=False)
+            self.g.add_edge(seqtools.graph.Edge(n2,n),verbose=False)
         elif self.merge_rules.get_merge_type() == 'is_any_overlap':
           if eo.match_exon_count() > 0:
-            self.g.add_edge(seqtools.Graph.Edge(n,n2),verbose=False)
-            self.g.add_edge(seqtools.Graph.Edge(n2,n),verbose=False)        
+            self.g.add_edge(seqtools.graph.Edge(n,n2),verbose=False)
+            self.g.add_edge(seqtools.graph.Edge(n2,n),verbose=False)        
             
       if self.merge_rules.get_use_junctions():
         # do junction overlap
@@ -184,22 +175,22 @@ class TranscriptLoci:
         #print jo.match_junction_count()
         if self.merge_rules.get_merge_type() == 'is_compatible':
           if jo.is_compatible():
-            self.g.add_edge(seqtools.Graph.Edge(n,n2),verbose=False)
-            self.g.add_edge(seqtools.Graph.Edge(n2,n),verbose=False)
+            self.g.add_edge(seqtools.graph.Edge(n,n2),verbose=False)
+            self.g.add_edge(seqtools.graph.Edge(n2,n),verbose=False)
         elif self.merge_rules.get_merge_type() == 'is_subset':
           r = jo.is_subset()
           if r == 2 or r == 1:
-            self.g.add_edge(seqtools.Graph.Edge(n,n2),verbose=False)
+            self.g.add_edge(seqtools.graph.Edge(n,n2),verbose=False)
           if r == 3 or r == 1:
-            self.g.add_edge(Seqtools.Graph.Edge(n2,n),verbose=False)
+            self.g.add_edge(Seqtools.graph.Edge(n2,n),verbose=False)
         elif self.merge_rules.get_merge_type() == 'is_full_overlap':
           if jo.is_full_overlap():
-            self.g.add_edge(seqtools.Graph.Edge(n,n2),verbose=False)
-            self.g.add_edge(seqtools.Graph.Edge(n2,n),verbose=False)
+            self.g.add_edge(seqtools.graph.Edge(n,n2),verbose=False)
+            self.g.add_edge(seqtools.graph.Edge(n2,n),verbose=False)
         elif self.merge_rules.get_merge_type() == 'is_any_overlap':
           if jo.match_junction_count() > 0:
-            self.g.add_edge(seqtools.Graph.Edge(n,n2),verbose=False)
-            self.g.add_edge(seqtools.Graph.Edge(n2,n),verbose=False)        
+            self.g.add_edge(seqtools.graph.Edge(n,n2),verbose=False)
+            self.g.add_edge(seqtools.graph.Edge(n2,n),verbose=False)        
     return True
   #def add_transcript_group(self,txg):
   #  self.transcript_groups.append(txg)      
@@ -259,9 +250,9 @@ class TranscriptGroup:
     out.junctions = [x.get_junction() for x in self.junction_groups]
     # check for single exon transcript
     if len(out.junctions) == 0:
-      leftcoord = min([x.exons[0].rng.start for x in self.transcripts])
-      rightcoord = max([x.exons[-1].rng.end for x in self.transcripts])
-      e = Exon(GenomicRange(x.exons[0].rng.chr,leftcoord,rightcoord))
+      leftcoord = min([x.exons[0].range.start for x in self.transcripts])
+      rightcoord = max([x.exons[-1].range.end for x in self.transcripts])
+      e = Exon(GenomicRange(x.exons[0].range.chr,leftcoord,rightcoord))
       e.set_is_leftmost()
       e.set_is_rightmost()
       out.exons.append(e)
@@ -282,7 +273,7 @@ class TranscriptGroup:
       sys.stderr.write("ERROR no left exon\n")
       sys.exit()
     e_left = Exon(GenomicRange(out.junctions[0].left.chr,\
-                               min([x.get_range().start for x in left_exons]),
+                               min([x.range.start for x in left_exons]),
                                out.junctions[0].left.start))
     e_left.set_right_junc(out.junctions[0])
     out.exons.insert(0,e_left)
@@ -293,13 +284,13 @@ class TranscriptGroup:
       sys.exit()
     e_right = Exon(GenomicRange(out.junctions[-1].right.chr,\
                                out.junctions[-1].right.end,\
-                               max([x.get_range().end for x in right_exons])))
+                               max([x.range.end for x in right_exons])))
     e_right.set_left_junc(out.junctions[-1])
     out.exons.append(e_right)
     return out
 
   def add_transcript(self,tx,juntol=0,verbose=True):
-    if tx.get_id() in self._transcript_ids: return True
+    if tx.id in self._transcript_ids: return True
     # check existing transcripts for compatability
     for t in self.transcripts:
       ov = t.junction_overlap(tx,juntol)
@@ -356,7 +347,7 @@ class TranscriptGroup:
       #  jg = TranscriptGroup.JunctionGroup(self)
       #  jg.add_junction(curr_tx,i)
       #  self.junctions.append(jg)
-    self._transcript_ids.add(tx.get_id())
+    self._transcript_ids.add(tx.id)
     return True
 
   class JunctionGroup:
@@ -452,7 +443,7 @@ class Transcriptome:
   def __str__(self):
     ostr = ''
     ostr += "Transcriptome containing "+str(len(self.transcripts))+" transcripts "
-    ostr += "covering "+str(sum([x.get_length() for x in self.transcripts]))+" bases"
+    ostr += "covering "+str(sum([x.range.length for x in self.transcripts]))+" bases"
     return ostr
 
 def trim_ordered_range_list(ranges,start,finish):
