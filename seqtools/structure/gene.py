@@ -54,7 +54,7 @@ class TranscriptLoci:
     cov = ranges_to_coverage(bedarray)
     results = {}
     for tx in self.get_transcripts():
-      tlen = tx.range.length
+      tlen = tx.length #mapped length
       bcov = []
       for ex in [x.range for x in tx.exons]:     
         excov = [[x.overlap_size(ex),x.payload] for x in cov]
@@ -443,7 +443,7 @@ class Transcriptome:
   def __str__(self):
     ostr = ''
     ostr += "Transcriptome containing "+str(len(self.transcripts))+" transcripts "
-    ostr += "covering "+str(sum([x.range.length for x in self.transcripts]))+" bases"
+    ostr += "covering "+str(sum([x.length for x in self.transcripts]))+" bases"
     return ostr
 
 def trim_ordered_range_list(ranges,start,finish):
