@@ -8,7 +8,7 @@ with open(path.join(this_folder,'README.md'),encoding='utf-8') as inf:
 
 setup(
   name='seq-tools',
-  version='0.2.0',
+  version='0.3.0',
   description='Python tools for working with biological sequence data',
   long_description=long_description,
   url='https://github.com/jason-weirather/py-seq-tools',
