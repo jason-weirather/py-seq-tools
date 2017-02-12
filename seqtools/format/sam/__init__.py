@@ -14,7 +14,7 @@ _sam_cigar_target_add = re.compile('[M=XDN]$')
 SAMOptions = namedtuple('SAMOptions',
    ['reference', # reference dictionary
     'reference_lengths', # lengths of chromosomes in reference dictionary
-    'sam_header',
+    'header',
     'payload'])
 
 SAMFields = namedtuple('SAMFields',
@@ -56,6 +56,10 @@ class SAM(seqtools.align.Alignment):
     if self.is_aligned():
        super(SAM,self).__init__(options)
     return
+
+  @property
+  def sam_line(self):
+     return self._line
 
   @property
   def entries(self):
@@ -153,8 +157,8 @@ class SAM(seqtools.align.Alignment):
     if self.header:
       if self.rname in self.header.sequence_lengths:
         return self.header.sequence_lengths[self.rname]
-    elif self._reference:
-      return len(self._reference[self.rname])
+    elif self.reference:
+      return len(self.reference[self.rname])
     else:
       raise ValueError("some reference needs to be set to go from psl to bam\n")
     raise ValueError("No reference available")
@@ -176,13 +180,14 @@ class SAM(seqtools.align.Alignment):
     .. warning:: this returns the full query quality, not just the aligned portion
     """
     if not self.qual: return None
+    if self.qual == '*': return None
     if self.check_flag(0x10): return self.qual[::-1]
     return self.qual
 
   @property
   def query_sequence_length(self):
     """ does not include hard clipped"""
-    if seq: return len(self.seq)
+    if self.seq: return len(self.seq)
     if not self.cigar:
        raise ValueError('Cannot give a query length if no cigar and no query sequence are present')
     return sum([x[0] for x in self.cigar if re.match('[MIS=X]',x[1])])
@@ -364,7 +369,8 @@ class SAM(seqtools.align.Alignment):
     return None
 
 SAMGeneratorOptions = namedtuple('SAMGeneratorOptions',
-   ['buffer_size'])
+   ['buffer_size',
+    'reference'])
 
 class SAMGenerator(seqtools.stream.BufferedLineGenerator):
    """Generic class for a streaming SAM data
@@ -413,7 +419,11 @@ class SAMGenerator(seqtools.stream.BufferedLineGenerator):
       return construct(**d)
 
    def __iter__(self):
-      return itertools.imap(SAM,self._gen())
+      return itertools.imap(self.make_sam,self._gen())
+
+   def make_sam(self,line):
+      return SAM(line,SAM.Options(reference=self._options.reference,
+                                  header=self.header))
 
    def has_header(self):
       if len(self._header_text) > 0: return True
@@ -426,8 +436,8 @@ class SAMGenerator(seqtools.stream.BufferedLineGenerator):
 
 """SAM line options that are not absolutely necessary for a sam line"""
 SAMStreamOptions = namedtuple('SAMStreamOptions',
-   ['buffer_size' # reference dictionary
-               ])
+   ['buffer_size', # reference dictionary
+    'reference'])
 
 class SAMStream(object):
   """minimum_intron_size greater than zero will only show sam entries with introns (junctions)
@@ -441,7 +451,8 @@ class SAMStream(object):
   def __init__(self,stream,options=None):
     if not options: options = SAMStream.Options()
     self._options = options
-    self._stream = iter(SAMGenerator(stream,options=self._options))
+    self._gen = SAMGenerator(stream,options=self._options)
+    self._stream = iter(self._gen)
 
   @staticmethod
   def Options(**kwargs):
@@ -457,12 +468,16 @@ class SAMStream(object):
      """Create a set of options based on the inputs"""
      return construct(**d)
 
-  def has_header(self): return self._stream.has_header()
+  def has_header(self): return self._gen.has_header()
 
   @property
   def header(self):
       if not self.has_header(): return None
-      return SAMHeader(self._stream._header_text)
+      return SAMHeader(self._gen._header_text)
+
+  @property
+  def header_text(self):
+     return self._gen._header_text
 
   def __iter__(self):
     return self

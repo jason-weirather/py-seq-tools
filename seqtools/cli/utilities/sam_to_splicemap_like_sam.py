@@ -33,7 +33,7 @@ def main(args):
   for sam in stream:
     z+=1
     if not sam.is_aligned(): continue # just keep aligned 
-    cigar = sam.get_cigar()
+    cigar = sam.cigar
     leftoffset = 0
     leftcigaroffset = 0
     if cigar[0][1] == 'H':
@@ -52,32 +52,32 @@ def main(args):
     elif cigar[-1][1] == 'S':
       rightoffset = cigar[-1][0]
       rightcigaroffset = 1
-    origseq = sam.value('seq')
+    origseq = sam.seq
     seq = '*'
     if origseq != '*':
       seq = origseq[leftoffset:len(origseq)-rightoffset]
     qual = '*'
-    if sam.value('qual') != '*':
-      qual = sam.value('qual')[leftoffset:len(sam.value('qual'))-rightoffset]
+    if sam.qual != '*':
+      qual = sam.qual[leftoffset:len(sam.qual)-rightoffset]
     neocigar = cigar[leftcigaroffset:len(cigar)-rightcigaroffset]
     neocigarstring = ''.join([str(x[0])+x[1] for x in neocigar])
     flag = "0"
     if sam.check_flag(16):
       flag = "16"
     ostr = ''
-    ostr += sam.value('qname') + "\t"
+    ostr += sam.qname + "\t"
     ostr += flag + "\t"
-    ostr += sam.value('rname') + "\t"
-    ostr += str(sam.value('pos')) + "\t"
+    ostr += sam.rname + "\t"
+    ostr += str(sam.pos) + "\t"
     ostr +=  "0" + "\t"
     ostr += neocigarstring + "\t"
     ostr += '*' + "\t"
     ostr += "0" + "\t"
-    ostr += str(sam.value('tlen')) + "\t"
+    ostr += str(sam.tlen) + "\t"
     ostr += seq + "\t"
     ostr += qual
     of.write(ostr+"\n")
-    if z%1000==0: sys.stderr.write("processed "+str(z)+" lines. At: "+sam.value('rname')+':'+str(sam.value('pos'))+"           \r")
+    if z%1000==0: sys.stderr.write("processed "+str(z)+" lines. At: "+sam.rname + ':'+str(sam.pos)+"           \r")
 
   sys.stderr.write("\n")
   if args.input != '-':

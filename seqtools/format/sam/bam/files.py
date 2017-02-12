@@ -131,7 +131,10 @@ class BAMFile(BAMFileGeneric):
   def make_val(self,vars):
     data, names, blk, inner = vars
     return BAM(data,names,options = BAM.Options(
-               blockStart=blk,innerStart=inner,reference=self._options.reference))
+               blockStart=blk,
+               innerStart=inner,
+               reference=self._options.reference,
+               header = self.header))
     return vars
 
   # only get a single

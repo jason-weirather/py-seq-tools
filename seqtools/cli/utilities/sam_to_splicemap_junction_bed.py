@@ -45,7 +45,7 @@ def main(args):
     sam = SAM(line)
     if not sam.is_aligned(): continue
 
-    chrom = sam.value('rname')
+    chrom = sam.rname
     if chrom =='*': continue
     if chrom not in g.keys():
       sys.stderr.write("WARNING: "+chrom+" not in reference, skipping\n")
@@ -55,15 +55,15 @@ def main(args):
       mate = 'L'
     elif sam.check_flag(int('0x80',16)):
       mate = 'R'
-    actual_read = sam.value('qname')+"\t"+mate
+    actual_read = sam.qname+"\t"+mate
     if actual_read not in read_mapping_count:
       read_mapping_count[actual_read] = 0
     read_mapping_count[actual_read] += 1
     has_intron = 0
-    start_loc = sam.value('pos')
+    start_loc = sam.pos
     current_loc = start_loc
     bounds  = []
-    cigar = [{'val':x[0],'op':x[1]} for x in sam.get_cigar()]
+    cigar = [{'val':x[0],'op':x[1]} for x in sam.cigar]
     for i in range(0,len(cigar)):
       # No action is necessary for H and S since they do not change the starting position on the reference
       ce = cigar[i]
@@ -90,8 +90,8 @@ def main(args):
     #print bounds
     for bound in bounds:
       zall += 1
-      intronflank = g[chrom][bound[0]-1:bound[0]+1].upper() + '-' + \
-                    g[chrom][bound[1]-3:bound[1]-1].upper()
+      intronflank = str(g[chrom][bound[0]-1:bound[0]+1]).upper() + '-' + \
+                    str(g[chrom][bound[1]-3:bound[1]-1]).upper()
       strand = ''
       if is_canon(intronflank): # its a positive strand
         strand = '+'
@@ -135,7 +135,7 @@ def main(args):
         junctions[entry]['positions'] = set()
         junctions[entry]['right_sizes'] = set()
       junctions[entry]['reads'].add(actual_read)
-      junctions[entry]['positions'].add(sam.value('pos'))
+      junctions[entry]['positions'].add(sam.pos)
       junctions[entry]['right_sizes'].add(bound[2])
   sys.stderr.write("\n")
   sys.stderr.write("finished reading sam\n")

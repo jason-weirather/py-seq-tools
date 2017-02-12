@@ -20,6 +20,7 @@ class SAMHeader:
 
   def __str__(self): return self._text.rstrip()
 
+  @property
   def text(self): return self._text.rstrip()+"\n"
 
   @property

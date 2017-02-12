@@ -121,9 +121,10 @@ class BAM(seqtools.format.sam.SAM):
     return self._options.innerStart
 
   def __str__(self):
-    return self.get_sam_line()
+    return self.sam_line
 
-  def get_sam_line(self):
+  @property
+  def sam_line(self):
     return "\t".join([str(x) for x in
       [self.qname,
        self.flag,
@@ -143,7 +144,9 @@ class BAM(seqtools.format.sam.SAM):
   @property
   def flag(self): return self.bentries.flag
   @property
-  def rname(self): return self.bentries.rname
+  def rname(self): 
+     if not self.is_aligned(): return '*'
+     return self.bentries.rname
   @property
   def pos(self): return self.bentries.pos
   @property

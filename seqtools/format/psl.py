@@ -1,8 +1,37 @@
 """Classes to work with the psl format"""
 import seqtools.align
+from collections import namedtuple
 from seqtools.range import GenomicRange
 from seqtools.sequence import rc
 
+PSLFields = namedtuple('PSLFields',
+['matches',
+'misMatches',
+'repMatches',
+'nCount',
+'qNumInsert',
+'qBaseInsert',
+'tNumInsert',
+'tBaseInsert',
+'strand',
+'qName',
+'qSize',
+'qStart',
+'qEnd',
+'tName',
+'tSize',
+'tStart',
+'tEnd',
+'blockCount',
+'blockSizes',
+'qStarts',
+'tStarts'])
+
+PSLOptions = namedtuple('AlignmentOptions',
+   ['reference',
+    'query_sequence',
+    'query_quality'
+   ])
 class PSL(seqtools.align.Alignment):
   """Class to define a psl line
 
@@ -15,18 +44,33 @@ class PSL(seqtools.align.Alignment):
   :type query_sequences: dict()
   :type query_sequence: string
   """
-  def __init__(self,psl_line,reference=None,query_sequences=None,query_sequence=None,query_quality=None):
+  def __init__(self,psl_line,options=None):
+    if not options: options = PSL.Options()
+    self._options = options
     self._line = psl_line.rstrip()
-    self._query_sequences = query_sequences
-    self._query_sequence = query_sequence
-    self._query_quality = query_quality
-    self._reference = reference
-    self._target_range = None
-    self._private_values = PSL.PrivateValues()
-    self._parse_psl_line()
-    # Private values holds entries
+    #self._query_sequence = self._options.query_sequence
+    #self._query_quality = self._options.query_quality
+    #self._reference = self._options.reference
+    self._entries = self._parse_psl_line()
     self._alignment_ranges = None
     self._set_alignment_ranges()
+
+  @property
+  def entries(self):
+     return self._entries
+
+  @staticmethod
+  def Options(**kwargs):
+     """ A method for declaring options for the class"""
+     construct = PSLOptions #IMPORTANT!  Set this
+     names = construct._fields
+     d = {}
+     for name in names: d[name] = None #default values
+     for k,v in kwargs.iteritems():
+       if k in names: d[k] = v
+       else: raise ValueError('Error '+k+' is not a property of these options')
+     """Create a set of options based on the inputs"""
+     return construct(**d)
 
   def __str__(self):
     return self._line
@@ -34,27 +78,28 @@ class PSL(seqtools.align.Alignment):
   def get_line(self):
     return self._line
 
-  def get_query_sequence(self):
+  @property
+  def query_sequence(self):
     """Do our overrides parent to get query sequence
 
     :return: query sequence
     :rtype: string
     """
-    if self._query_sequence: return self._query_sequence
-    if not self._query_sequences: return None
-    if self.value('qName') not in self._query_sequences: return None
-    #if self.value('strand') == '-': return rc(self._query_sequences[self.value('qName')])
-    return self._query_sequences[self.value('qName')]
+    return self._options.query_sequence
 
-  def get_query_quality(self):
-    return self._query_quality
+  @property
+  def query_quality(self):
+    return self._options.query_quality
 
-  def get_reference(self):
+  @property
+  def reference(self):
     """overrides parent to get the reference genome dict()"""
-    return self._reference
-  def get_query_length(self):
-    """overrides parent to get the query length"""
-    return self.value('qSize')
+    return self._options.reference
+
+  #def get_query_length(self):
+  #  """overrides parent to get the query length"""
+  #  return self.value('qSize')
+
   def get_PSL(self):
     """Overrides parent to make the PSL generation just return self"""
     return self
@@ -70,57 +115,36 @@ class PSL(seqtools.align.Alignment):
     f = self._line.rstrip().split("\t")
     if len(f) != 21:
       sys.stderr.write("ERROR: PSL line must contain 21 entries\n")
-    self._private_values.set_entry('matches',int(f[0]))
-    self._private_values.set_entry('misMatches',int(f[1]))
-    self._private_values.set_entry('repMatches',int(f[2]))
-    self._private_values.set_entry('nCount',int(f[3]))
-    self._private_values.set_entry('qNumInsert',int(f[4]))
-    self._private_values.set_entry('qBaseInsert',int(f[5]))
-    self._private_values.set_entry('tNumInsert',int(f[6]))
-    self._private_values.set_entry('tBaseInsert',f[7])
-    self._private_values.set_entry('strand',f[8])
-    self._private_values.set_entry('qName',f[9])
-    self._private_values.set_entry('qSize',int(f[10]))
-    self._private_values.set_entry('qStart',int(f[11]))
-    self._private_values.set_entry('qEnd',int(f[12]))
-    self._private_values.set_entry('tName',f[13])
-    self._private_values.set_entry('tSize',int(f[14]))
-    self._private_values.set_entry('tStart',int(f[15]))
-    self._private_values.set_entry('tEnd',int(f[16]))
-    self._private_values.set_entry('blockCount',int(f[17]))
-    self._private_values.set_entry('blockSizes',[int(x) for x in f[18].rstrip(',').split(',')])
-    self._private_values.set_entry('qStarts',[int(x) for x in f[19].rstrip(',').split(',')])
-    self._private_values.set_entry('tStarts',[int(x) for x in f[20].rstrip(',').split(',')])
-    # Now we can set things
+    return PSLFields(matches=int(f[0]),
+       misMatches=int(f[1]),
+       repMatches=int(f[2]),
+       nCount=int(f[3]),
+       qNumInsert=int(f[4]),
+       qBaseInsert=int(f[5]),
+       tNumInsert=int(f[6]),
+       tBaseInsert=f[7],
+       strand=f[8], 
+       qName=f[9],
+       qSize=int(f[10]),
+       qStart=int(f[11]),
+       qEnd=int(f[12]),
+       tName=f[13],
+       tSize=int(f[14]),
+       tStart=int(f[15]),
+       tEnd=int(f[16]),
+       blockCount=int(f[17]),
+       blockSizes=[int(x) for x in f[18].rstrip(',').split(',')],
+       qStarts=[int(x) for x in f[19].rstrip(',').split(',')],
+       tStarts=[int(x) for x in f[20].rstrip(',').split(',')])
+
+  # Now we can set things
   # Set list of [target range, query range]
   def _set_alignment_ranges(self):
-    self._target_range = GenomicRange(self.value('tName'),self.value('tStart'),self.value('tEnd'))
+    self._target_range = GenomicRange(self.entries.tName,self.entries.tStart,self.entries.tEnd)
     self._alignment_ranges = []
-    for i in range(0,len(self.value('blockSizes'))):
-      trng = GenomicRange(self.value('tName'),self.value('tStarts')[i]+1,self.value('tStarts')[i]+self.value('blockSizes')[i])
-      qrng = GenomicRange(self.value('qName'),self.value('qStarts')[i]+1,self.value('qStarts')[i]+self.value('blockSizes')[i])
+    for i in range(0,len(self.entries.blockSizes)):
+      trng = GenomicRange(self.entries.tName,self.entries.tStarts[i]+1,self.entries.tStarts[i]+self.entries.blockSizes[i])
+      qrng = GenomicRange(self.entries.qName,self.entries.qStarts[i]+1,self.entries.qStarts[i]+self.entries.blockSizes[i])
       self._alignment_ranges.append([trng,qrng])
     return
 
-  def value(self,key):
-    """ Access spefific attributes of the PSL by key name. Here is how we access value by keys
-
-    :param key: which attribute of the PSL to get
-    :type key: string
-    """
-    return self._private_values.get_entry(key)    
-  class PrivateValues:
-    """ This class was an attempt at creating closures for some values.  It may be overkill for what we are doing, or worse, it may be slow.  Values from the orginal should just be accessed though functions for consistancy sake.
-    This class should remind us well that entires need to be accessed this way"""
-    def __init__(self):
-      self.__entries = {}
-    def set_entries_dict(self,mydict): self.__entries = mydict
-    def get_entry(self,key):
-      if key not in self.__entries:
-        sys.stderr.write("WARNING: key "+str(key)+"not in entries\n")
-        return None
-      return self.__entries[key]
-    def is_entry_key(self,key):
-      if key in self.__entries:  return True
-      return False
-    def set_entry(self,key,value): self.__entries[key] = value

@@ -18,9 +18,9 @@ class Sequence2Bit(seqtools.sequence.SequenceGeneric):
       self._mask = mask_data
       self._data = base_data
     else:
-      self._slen = len(sequence)
+      self._slen = len(str(sequence))
       self._initialize_data()
-      self._set_seq(sequence) # set the sequence
+      self._set_seq(str(sequence)) # set the sequence
   def _set_seq(self,sequence,start=0):
     """Set the sequence from a start position for the length of the sequence"""
     if start+len(sequence) > self._slen: 

@@ -4,7 +4,7 @@
    2. Sequence
 
 The Header cannot contain tabs, and any linebreaks in the sequence will be lost"""
-import argparse, sys, os, re
+import argparse, sys, os, re, gzip
 from seqtools.format.fasta import FASTAStream
 
 
@@ -12,7 +12,8 @@ def main(args):
   inf = sys.stdin
   of = sys.stdout
   if args.input != '-':
-    inf = open(args.input)
+    if args.input[-3:] == '.gz': inf = gzip.open(args.input)
+    else: inf = open(args.input)
   if args.output:
     of = open(args.output,'w')
   stream = FASTAStream(inf)
@@ -20,7 +21,7 @@ def main(args):
     if re.match('[\t]',fa.header):
       sys.stderr.write("ERROR: tab in header cannot convert to tsv")
       sys.stderr.write("\n")
-    of.write(fa.header+"\t"+fa.seq.replace("\n",'')+"\n")
+    of.write(fa.header+"\t"+fa.sequence.replace("\n",'')+"\n")
   of.close()
 
 def do_inputs():

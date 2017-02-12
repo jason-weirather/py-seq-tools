@@ -49,6 +49,9 @@ class SequenceGeneric(object):
   def __str__(self):
     sys.stderr.write("must be overriden\n")
     sys.exit()
+  def __len__(self):
+    sys.stderr.write("must be overriden\n")
+    sys.exit()
   
 class Sequence(SequenceGeneric):
   """The Sequence class in its basic form will run on a string and 
@@ -66,6 +69,9 @@ class Sequence(SequenceGeneric):
 
   @property
   def length(self):
+    return len(self._data)
+
+  def __len__(self):
     return len(self._data)
 
   @property

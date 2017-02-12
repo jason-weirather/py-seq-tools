@@ -124,6 +124,10 @@ class FASTAData:
         self._names.append(name)
         self._seqs = dict
         self._lengths[name] = len(dict[name])
+
+  def __iter__(self):
+    return iter(self._names)
+
   def clear(self):
     for k in self.keys():
       del self._seqs[k]
@@ -132,7 +136,7 @@ class FASTAData:
     del self._seqs[key]
 
   def keys(self):
-    return self._seqs.keys()
+    return self._names
 
   def __getitem__(self,key):
     return self._seqs[key]

@@ -9,6 +9,23 @@ from seqtools.structure.transcript import Transcript
 
 from string import maketrans
 
+AlignmentStats = namedtuple('AlignmentStats',
+   ['matches',
+    'misMatches',
+    'repMatches',
+    'nCount',
+    'qNumInsert',
+    'qBaseInsert',
+    'tNumInsert',
+    'tBaseInsert'])
+"""   1. Matches
+      2. Mismatches - Number of baess that don't match
+      3. repMatches - number of matching bases that are parts of repeats
+      4. nCount - Number of 'N' bases
+      5. qNumInsert - Number of inserts in query
+      6. qBaseInsert - Number of bases inserted into query
+      7. Number of inserts in target
+      8. Number of bases inserted into target"""
 
 AlignmentOptions = namedtuple('AlignmentOptions',
    [
@@ -156,7 +173,7 @@ class Alignment(object):
     if self.get_strand() == '+':
       return GenomicRange(a[0][1].chr,a[0][1].start,a[-1][1].end,self.get_strand())
     #must be - strand
-    return GenomicRange(a[0][1].chr,self.get_query_length()-a[-1][1].end+1,self.get_query_length()-a[0][1].start+1,dir=self.strand)
+    return GenomicRange(a[0][1].chr,self.query_sequence_length-a[-1][1].end+1,self.query_sequence_length-a[0][1].start+1,dir=self.strand)
 
   @property
   def reference(self):
@@ -174,7 +191,7 @@ class Alignment(object):
     :type ref: string
 
     """
-    self._reference = ref
+    self._options = self._options._replace(reference = ref)
 
   @property
   def alignment_ranges(self):
@@ -252,13 +269,15 @@ class Alignment(object):
     tNumInsert = sum([len(re.findall('[-]+',x)) for x in qstrs])
     tBaseInsert = sum([len(re.findall('[-]',x)) for x in qstrs])
     matches = matches - misMatches - nCount
-    return {'matches':matches,\
-            'misMatches':misMatches,\
-            'nCount':nCount,\
-            'qNumInsert':qNumInsert,\
-            'qBaseInsert':qBaseInsert,\
-            'tNumInsert':tNumInsert,\
-            'tBaseInsert':tBaseInsert}
+    return AlignmentStats(
+       matches,
+       misMatches,
+       0,
+       nCount,
+       qNumInsert,
+       qBaseInsert,
+       tNumInsert,
+       tBaseInsert)
 
   # Pre: Have the alignment strings
   #      have get_query_sequence()
@@ -298,27 +317,14 @@ class Alignment(object):
     """
     from seqtools.format.psl import PSL
     matches = sum([x[0].length for x in self.alignment_ranges]) # 1. Matches - Number of matching bases that aren't repeats
-    misMatches = 0 # 2. Mismatches - Number of baess that don't match
-    repMatches = 0 # 3. repMatches - Number of matching baess that are part of repeats
-    nCount = 0 # 4. nCount - Number of 'N' bases
-    qNumInsert = 0 # 5. qNumInsert - Number of inserts in query
-    qBaseInsert = 0 # 6. qBaseInsert - Number of bases inserted into query
-    tNumInsert = 0 # 7. Number of inserts in target
-    tBaseInsert = 0 # 8. Number of bases inserted into target
+    stats = AlignmentStats(matches,0,0,0,0,0,0,0)
     sub = self.query_sequence
     ref = self._options.reference
-    if sub and ref:
-      v = self._analyze_alignment(min_intron_size=min_intron_size)
-      matches = v['matches']
-      misMatches = v['misMatches'] # 2. Mismatches - Number of baess that don't match
-      nCount = v['nCount'] # 4. nCount - Number of 'N' bases
-      qNumInsert = v['qNumInsert'] # 5. qNumInsert - Number of inserts in query
-      qBaseInsert = v['qBaseInsert'] # 6. qBaseInsert - Number of bases inserted into query
-      tNumInsert = v['tNumInsert'] # 7. Number of inserts in target
-      tBaseInsert = v['tBaseInsert'] # 8. Number of bases inserted into target
+    if ref and sub:
+      stats = self._analyze_alignment(min_intron_size=min_intron_size)
     strand = self.strand # 9. strand 
     qName = self.alignment_ranges[0][1].chr # 10. qName - Query sequence name
-    qSize = self.query_length
+    qSize = self.query_sequence_length
     qStart = self.alignment_ranges[0][1].start-1
     qEnd = self.alignment_ranges[-1][1].end
     tName = self.alignment_ranges[0][0].chr
@@ -330,14 +336,14 @@ class Alignment(object):
     qStarts = ','.join([str(x[1].start-1) for x in self.alignment_ranges])+','
     tStarts = ','.join([str(x[0].start-1) for x in self.alignment_ranges])+','
 
-    psl_string = str(matches)+"\t"+\
-    str(misMatches)+"\t"+\
-    str(repMatches)+"\t"+\
-    str(nCount)+"\t"+\
-    str(qNumInsert)+"\t"+\
-    str(qBaseInsert)+"\t"+\
-    str(tNumInsert)+"\t"+\
-    str(tBaseInsert)+"\t"+\
+    psl_string = str(stats.matches)+"\t"+\
+    str(stats.misMatches)+"\t"+\
+    str(stats.repMatches)+"\t"+\
+    str(stats.nCount)+"\t"+\
+    str(stats.qNumInsert)+"\t"+\
+    str(stats.qBaseInsert)+"\t"+\
+    str(stats.tNumInsert)+"\t"+\
+    str(stats.tBaseInsert)+"\t"+\
     strand+"\t"+\
     qName+"\t"+\
     str(qSize)+"\t"+\
@@ -351,7 +357,7 @@ class Alignment(object):
     blockSizes+"\t"+\
     qStarts+"\t"+\
     tStarts
-    return PSL(psl_string,query_sequence=self.query_sequence,reference=self._options.reference,query_quality=self.query_quality)
+    return PSL(psl_string,PSL.Options(query_sequence=self.query_sequence,reference=self._options.reference,query_quality=self.query_quality))
 
   #clearly this should be overwritten by the SAM class to give itself
   def get_SAM(self,min_intron_size=68):
@@ -419,8 +425,8 @@ class Alignment(object):
           sys.stderr.write("ERROR cant form alignment\n")
           sys.exit()
 
-    if ar[-1][1].end < self.get_query_length(): # soft clipped
-      cig += str(self.get_query_length()-ar[-1][1].end)+'S'
+    if ar[-1][1].end < self.query_sequence_length: # soft clipped
+      cig += str(self.query_sequence_length-ar[-1][1].end)+'S'
     return cig
 
   def get_target_transcript(self,min_intron=1):

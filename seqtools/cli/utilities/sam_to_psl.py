@@ -7,7 +7,8 @@
 import sys, argparse, inspect, os, gzip
 
 from seqtools.format.fasta import FASTAData
-from seqtools.format.sam import BAMFile, SAMStream
+from seqtools.format.sam import SAMStream
+from seqtools.format.sam.bam.files import BAMFile
 
 def main(args):
   of = sys.stdout
@@ -21,10 +22,11 @@ def main(args):
     ref = FASTAData(open(args.reference,'rb').read())
   
   if args.input == '-':
-    args.input = SAMStream(sys.stdin,reference=ref)
-  else: args.input = BAMFile(args.input,reference=ref)
+    args.input = SAMStream(sys.stdin)
+  else: args.input = BAMFile(args.input)
   for e in args.input:
     if e.is_aligned():
+      e.set_reference(ref)
       of.write(str(e.get_PSL())+"\n")
   of.close()
 
