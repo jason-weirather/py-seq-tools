@@ -1,6 +1,17 @@
 """The testing suite for seqtools"""
-import unittest, sys, gzip, hashlib, StringIO
+import unittest, sys, gzip, hashlib, cStringIO
 from seqtools.range import GenomicRange
+from tempfile import NamedTemporaryFile
+
+import seqtools.cli.utilities.sort as cmd_sort
+class SortCmd(unittest.TestCase):
+   def test_samsortcmd(self):
+      """Try and sort a sam file"""
+      rawpath = '../data/chr21chr22chrM.bam'
+      f = NamedTemporaryFile(delete=True,suffix='.sam')
+      cmd_sort.external_cmd('sort '+rawpath+' --bam --threads 2 -o '+f.name)
+      hash = hashlib.md5(open(f.name).read()).hexdigest()
+      self.assertEqual('e9740957cea11c6e338a1edfdbe51d68',hash)
 
 import seqtools.format.sam as sam
 import seqtools.format.sam.bam.files as bamfiles
@@ -22,7 +33,7 @@ class ALIGN(unittest.TestCase):
       self.assertEqual('2e92a4793a4a2140103dcb26d2523d68',samhash)
    def test_samread(self):
       """Test that the sam can be streamed properly"""
-      stream = StringIO.StringIO(self.sam)
+      stream = cStringIO.StringIO(self.sam)
       ss = sam.SAMStream(stream)
       buffer = ss.header.text.rstrip()+"\n"
       for s in ss:
