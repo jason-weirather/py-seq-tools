@@ -1,17 +1,22 @@
-"""simple unix sort for various formats"""
+"""simple unix sort for various formats
+
+   sam and bam sort require samtools but reorders by coordinate instead of
+   reordering by header order
+
+"""
 import argparse, sys, os, re
 from shutil import rmtree
 #from multiprocessing import cpu_count
 from tempfile import mkdtemp, gettempdir
 from subprocess import Popen, PIPE
-from Bio.Format.Sam import SamStream
+from seqtools.format.sam import SAMStream, sort_header
 from multiprocessing import cpu_count
 
 def main(args):
   #do our inputs
   # Temporary working directory step 3 of 3 - Cleanup
   #sys.stderr.write("working in: "+args.tempdir+"\n")
-  if args.bam:
+  if args.bam or args.sam:
     do_sam(args)
     return
   cmd = "sort -T "+args.tempdir+'/'
@@ -53,14 +58,11 @@ def do_sam(args):
     if not m:  
       sys.stderr.write("ERROR input expects bam unless piping to stdin.. then SAM with header\n")
       sys.exit()
-  if not args.output:
-    sys.stderr.write("ERROR sam sorts must output to a bam file\n")
-    sys.exit()
-  m = re.match('^(.+)\.bam$',args.output)
-  if not m:
-    sys.stderr.write("ERROR sam sorts must output to a bam file\n")
-    sys.exit()
-  cmdout = 'samtools sort - '+m.group(1)
+  of = sys.stdout
+  cmdout2 = 'samtools view -S -h - '
+  if args.output:
+     of = open(args.output,'w')
+  cmdout = 'samtools sort - '
   if args.threads:  cmdout += ' -@ '+str(args.threads)
   inf = None
   if args.input == '-':
@@ -69,22 +71,22 @@ def do_sam(args):
     cmd = 'samtools view -h '+args.input
     p = Popen(cmd.split(),stdout=PIPE,bufsize=1)
     inf = p.stdout
-  s = SamStream(inf)
-  header = s.header_text.rstrip().split("\n")
-  split_stream = [header[i].split("\t") for i in range(0,len(header))] 
-  sq_inds = [i for i in range(0,len(split_stream)) if split_stream[i][0]=='@SQ']
-  nonsq_inds = [i for i in range(0,len(split_stream)) if split_stream[i][0]!='@SQ']
-  top = [header[i] for i in nonsq_inds]
-  chroms = sorted([split_stream[i] for i in sq_inds],key = lambda x: x[1][3:])
+  s = SAMStream(inf)
+  header = sort_header(s.header.text.rstrip())
   cmd2 = 'samtools view -Sb -'
-  pout = Popen(cmdout.split(),stdin=PIPE)
+  if args.output:
+     if args.output[-4:] != '.bam': 
+       pout2 = Popen(cmdout2.split(),stdin=PIPE,stdout=of)
+       pout = Popen(cmdout.split(),stdin=PIPE,stdout=pout2.stdin)
+     else:
+       pout = Popen(cmdout.split(),stdin=PIPE,stdout=of)
+  else:
+     pout2 = Popen(cmdout2.split(),stdin=PIPE,stdout=of)
+     pout = Popen(cmdout.split(),stdin=PIPE,stdout=pout2.stdin)
   p2 = Popen(cmd2.split(),stdin=PIPE,stdout=pout.stdin)
-  for t in top:
-    p2.stdin.write(t.rstrip()+"\n")
-  for c in chroms:
-    p2.stdin.write("\t".join(c).rstrip()+"\n")
+  p2.stdin.write(header.rstrip()+"\n")
   for sam in s:
-    p2.stdin.write(sam.get_line().rstrip()+"\n")
+    p2.stdin.write(str(sam)+"\n")
   p2.communicate()
   pout.communicate()
   if args.input != '-':
@@ -122,6 +124,7 @@ def do_inputs():
   group2.add_argument('--bed',action='store_true')
   group2.add_argument('--psl',action='store_true')
   group2.add_argument('--bam',action='store_true',help="bam if file or sam if something else.")
+  group2.add_argument('--sam',action='store_true',help="bam if file or sam if something else.")
   group = parser.add_mutually_exclusive_group()
   group.add_argument('--tempdir',default=gettempdir(),help="The temporary directory is made and destroyed here.")
   group.add_argument('--specific_tempdir',help="This temporary directory will be used, but will remain after executing.")

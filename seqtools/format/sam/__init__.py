@@ -7,6 +7,8 @@ from seqtools.sequence import rc
 from seqtools.range import GenomicRange
 from seqtools.format.sam.header import SAMHeader
 import seqtools.stream
+from tempfile import gettempdir
+from subprocess import Popen, PIPE
 _sam_cigar_target_add = re.compile('[M=XDN]$')
 
 
@@ -434,7 +436,6 @@ class SAMGenerator(seqtools.stream.BufferedLineGenerator):
       if not self.has_header(): return None
       return SAMHeader(self._header_text)
 
-"""SAM line options that are not absolutely necessary for a sam line"""
 SAMStreamOptions = namedtuple('SAMStreamOptions',
    ['buffer_size', # reference dictionary
     'reference'])

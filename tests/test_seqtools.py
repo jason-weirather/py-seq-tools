@@ -31,14 +31,15 @@ class ALIGN(unittest.TestCase):
       self.assertEqual('2e92a4793a4a2140103dcb26d2523d68',samhash)
       self.assertEqual(16569,ss.header.sequence_lengths['chrM'])
    def test_pslconversion(self):
+      """Check conversion to PSL"""
       bf = bamfiles.BAMFile(self.rawpath,bamfiles.BAMFile.Options(reference=self.ref))
-      buffer = bf.header.text.rstrip()+"\n"
+      buffer = ''
       of = open('check','w') 
       for b in bf:
          if not b.is_aligned(): continue  
          p =  b.get_PSL()
-         of.write(str(p)+"\n")
-      of.close()
+         buffer += str(p)+"\n"
+      self.assertEqual('56e954a5efd405ab1449c0af746846d6',hashlib.md5(buffer).hexdigest())
 
 import seqtools.format.fasta as fasta
 class FASTA(unittest.TestCase):
