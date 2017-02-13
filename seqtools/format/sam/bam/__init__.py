@@ -9,14 +9,94 @@ from string import maketrans
 _bam_ops = maketrans('012345678','MIDNSHP=X')
 _bam_char = maketrans('abcdefghijklmnop','=ACMGRSVTWYHKDBN')
 _bam_value_type = {'c':[1,'<b'],'C':[1,'<B'],'s':[2,'<h'],'S':[2,'<H'],'i':[4,'<i'],'I':[4,'<I']}
-#_bc = namedtuple('bytestring',['byte','code'])
-#_bam_value_type = namedtuple('value_type_factory',['c','C','s','S','i','I'])(
-#   _bc(1,'<b'), _bc(1,'<B'),  
-#   _bc(2,'<h'), _bc(2,'<H'),
-#   _bc(4,'<i'), _bc(4,'<I'))
 
-TagInfo = namedtuple('tag_info',['type', 'value'])
+from seqtools.format.sam import TagDatum, CIGARDatum, check_flag
 
+class BAMEntries:
+   """BAM entry data in same format as SAM entries tuple"""
+   def __init__(self,binary_data):
+      self._bentries = binary_data
+      self._cigar_string = None
+      self._cigar_array = None
+      self._seq = None
+      self._qual = None
+      self._optional_fields = None
+   def is_aligned(self):
+      return not check_flag(self.flag,0x4)
+   ### The getters for all the fields
+   @property
+   def qname(self): return self._bentries.qname
+   @property
+   def flag(self): return self._bentries.flag
+   @property
+   def rname(self): 
+      if not self.is_aligned(): return '*'
+      return self._bentries.rname
+   @property
+   def pos(self):
+      if self._bentries.pos == 0: return None 
+      return self._bentries.pos
+   @property
+   def mapq(self): 
+      if self._bentries.mapq == 255: return None
+      return self._bentries.mapq
+
+   @property
+   def cigar(self):
+      if self._cigar_string:
+         if self._cigar_string == '*': return None 
+         return self._cigar_string
+      v1,v2 = _bin_to_cigar(self._bentries.cigar_bytes)
+      if not v2: self._cigar_string = '*'
+      else: self._cigar_string = v2
+      self._cigar_array = v1
+      return self.cigar
+
+   def get_cigar_array(self):
+      c = self.cigar
+      return self._cigar_array
+
+   @property
+   def rnext(self): return self._bentries.rnext  
+   @property
+   def pnext(self): return self._bentries.pnext  
+   @property
+   def tlen(self): return self._bentries.tlen
+  
+   @property
+   def seq(self):
+    if self._seq:
+       if self._seq == '*': return None
+       return self._seq
+    self._seq = _bin_to_seq(self._bentries.seq_bytes)
+    if not self._seq: self._seq = '*'
+    return self.seq
+    #if self._seq == '*': return None
+    #return self._seq
+
+   @property
+   def qual(self):
+    if self._qual:
+       if self._qual == '*': return None 
+       return self._qual
+    self._qual = _bin_to_qual(self._bentries.qual_bytes)
+    if not self._qual: self._qual = '*'
+    return self.qual
+    #if self._qual == '*': return None 
+    #return self._qual
+
+   @property 
+   def optional_fields(self):
+      if self._optional_fields: 
+         if self._optional_fields == '': return None
+         return self._optional_fields
+      self._tags, self._optional_fields = _bin_to_extra(self._bentries.extra_bytes)
+      if not self._optional_fields: self._optional_fields = ''
+      return self.optional_fields
+
+   def get_tags(self):
+      o = self.optional_fields
+      return self._tags
 
 """BAM entry (much like a sam line)"""
 BAMOptions = namedtuple('BAMOptions',
@@ -68,26 +148,17 @@ class BAM(seqtools.format.sam.SAM):
     self._options = options
     self._bin_data = bin_data
     self._ref_names = ref_names
-
-    self._auxillary_string = None
-    self._bentries = None
+    self.bentries = _parse_bam_data_block(self._bin_data,self._ref_names) #the binary data and the header is enough to parse 
+    self._entries = BAMEntries(self.bentries)
     self._line = None
     self._target_range = None
-    self._tags = None
-    self._seq = None
-    self._qual = None
-    self._cigar = None
-    self._cigar_string = None
     self._alignment_ranges = None #should be accessed by method because of BAM
     return
 
-  #Alignment Ranges are calculated in SAM
-
   @property
-  def bentries(self):
-    if self._bentries: return self._bentries 
-    self._bentries = _parse_bam_data_block(self._bin_data,self._ref_names) #the binary data and the header is enough to parse 
-    return self.bentries
+  def entries(self): return self._entries
+
+  #Alignment Ranges are calculated in SAM
 
   @staticmethod
   def Options(**kwargs):
@@ -125,86 +196,63 @@ class BAM(seqtools.format.sam.SAM):
 
   @property
   def sam_line(self):
-    return "\t".join([str(x) for x in
-      [self.qname,
-       self.flag,
-       self.rname,
-       self.pos,
-       self.mapq,
-       self.cigar_string,
-       self.rnext,
-       self.pnext,
-       self.tlen,
-       self.seq,
-       self.qual,
-       self.auxillary_string]])
-  ### The getters for all the fields
-  @property
-  def qname(self): return self.bentries.qname
-  @property
-  def flag(self): return self.bentries.flag
-  @property
-  def rname(self): 
-     if not self.is_aligned(): return '*'
-     return self.bentries.rname
-  @property
-  def pos(self): return self.bentries.pos
-  @property
-  def mapq(self): return self.bentries.mapq
+     out = self.entries.qname + "\t"
+     out += str(self.entries.flag) + "\t"
+     if self.entries.rname is None:
+        out += '*' + "\t"
+     else:
+        out += self.entries.rname + "\t" 
+     if self.entries.pos is None:
+        out += '0' + "\t"
+     else:
+        out += str(self.entries.pos) + "\t"
+     if self.entries.mapq is None:
+        out += '255'+"\t"
+     else:
+        out += str(self.entries.mapq) + "\t"
+
+     if self.entries.cigar is None:
+        out += '*'+"\t"
+     else:
+        out += self.entries.cigar+"\t"
+
+     if self.entries.rnext is None:
+        out += '*'+"\t"
+     else:
+        out += self.entries.rnext+"\t"
+
+     if self.entries.pnext is None:
+        out += '0'+"\t"
+     else:
+        out += str(self.entries.pnext)+"\t"
+     if self.entries.tlen is None:
+        out += '0'+"\t"
+     else:
+        out += str(self.entries.tlen)+"\t"
+     if self.entries.seq is None:
+        out += '*'+"\t"
+     else:
+        out += self.entries.seq+"\t"
+     if self.entries.qual is None:
+        out += '*'
+     else:
+        out += self.entries.qual
+     if self.entries.optional_fields:
+        out += "\t"+self.entries.optional_fields
+     return out
 
   @property
-  def cigar(self): 
+  def cigar_array(self): 
     """produce the cigar in list form
 
     :return: Cigar list of [value (int), type (char)] pairs
     :rtype: list
     """
-    if self._cigar: return self._cigar
-    v1,v2 = _bin_to_cigar(self.bentries.cigar_bytes)
-    self._cigar_string = v2
-    self._cigar = v1
-    return self._cigar
-
-  @property
-  def cigar_string(self):
-    if self._cigar_string: return self._cigar_string
-    v1,v2 = _bin_to_cigar(self.bentries.cigar_bytes)
-    self._cigar_string = v2
-    self._cigar = v1
-    return self._cigar_string
-
-  @property
-  def rnext(self): return self.bentries.rnext  
-  @property
-  def pnext(self): return self.bentries.pnext  
-  @property
-  def tlen(self): return self.bentries.tlen
-  
-  @property
-  def seq(self):
-    if self._seq: return self._seq
-    self._seq = _bin_to_seq(self.bentries.seq_bytes)
-    if not self._seq: self._seq = '*'
-    return self._seq
-
-  @property
-  def qual(self):
-    if self._qual: return self._qual
-    self._qual = _bin_to_qual(self.bentries.qual_bytes)
-    if not self._qual: self._qual = '*'
-    return self._qual
+    return self.entries.get_cigar_array()
 
   @property
   def tags(self):
-    if self._tags: return self._tags
-    self._tags, self._auxillary_string = _bin_to_extra(self.bentries.extra_bytes)
-    return self._tags
-
-  @property 
-  def auxillary_string(self):
-    if self._auxillary_string: return self._auxillary_string
-    self._tags, self._auxillary_string = _bin_to_extra(self.bentries.extra_bytes)
-    return self._auxillary_string
+    return self.entries.get_tags()
 
 def _parse_bam_data_block(bin_in,ref_names):
   data = StringIO(bin_in)
@@ -273,7 +321,7 @@ def _bin_to_cigar(cigar_bytes):
   if len(cigar_bytes) == 0: return [[],'*']
   cigar_packed = [struct.unpack('<I',x)[0] for x in \
              [cigar_bytes[i:i+4] for i in range(0,len(cigar_bytes),4)]]
-  cigar_array = [[c >> 4, str(c &0xF).translate(_bam_ops)] for c in cigar_packed]
+  cigar_array = [CIGARDatum(c >> 4, str(c &0xF).translate(_bam_ops)) for c in cigar_packed]
   cigar_seq = ''.join([''.join([str(x[0]),x[1]]) for x in cigar_array])
   return [cigar_array,cigar_seq]
 
@@ -302,21 +350,21 @@ def _bin_to_extra(extra_bytes):
         #print c
         m = p.match(c)
       rem += vre+"\t"
-      tags[tag] = TagInfo(val_type, vre)
+      tags[tag] = TagDatum(val_type, vre)
       #tags[tag] = {'type':val_type,'value':vre}
     elif val_type == 'A':
       rem += tag+':'
       rem += val_type+':'
       vre = extra.read(1)
       rem += vre+"\t"      
-      tags[tag] = TagInfo(val_type, vre)
+      tags[tag] = TagDatum(val_type, vre)
       #tags[tag] = {'type':val_type,'value':vre}      
     elif val_type in _bam_value_type:
       rem += tag+':'
       rem += 'i'+':'
       val = struct.unpack(_bam_value_type[val_type][1],extra.read(_bam_value_type[val_type][0]))[0]
       rem += str(val)+"\t"
-      tags[tag] = TagInfo(val_type, val)
+      tags[tag] = TagDatum(val_type, val)
       #tags[tag] = {'type':val_type,'value':val}
     elif val_type == 'B':
       sys.sterr.write("WARNING array not implmented\n")

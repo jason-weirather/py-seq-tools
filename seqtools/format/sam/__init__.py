@@ -11,6 +11,10 @@ from tempfile import gettempdir
 from subprocess import Popen, PIPE
 _sam_cigar_target_add = re.compile('[M=XDN]$')
 
+TagDatum = namedtuple('TAGDatum',
+   ['type','value'])
+CIGARDatum = namedtuple('CIGARDatum',
+   ['value','op'])
 
 """SAM line options that are not absolutely necessary for a sam line"""
 SAMOptions = namedtuple('SAMOptions',
@@ -31,7 +35,7 @@ SAMFields = namedtuple('SAMFields',
     'tlen',
     'seq',
     'qual',
-    'tags'])
+    'optional_fields'])
 
 class SAM(seqtools.align.Alignment):
   """Class to define the SAM format line (not header).
@@ -91,40 +95,33 @@ class SAM(seqtools.align.Alignment):
 
   def _parse_sam_line(self):
     f = self._line.rstrip().split("\t")
-    #rname
-    rname = None
-    if f[2] != '*': rname = f[2]
-    #pos
+    qname = f[0]
+    flag = int(f[1])
+    rname = f[2]
+    if rname == '*': rname = None
     pos = int(f[3])
-    if pos == 0: pos = None 
-    #mapq
+    if pos == 0: pos = None
     mapq = int(f[4])
     if mapq == 255: mapq = None 
-    #CIGAR
-    cigar = None
-    if f[5] != '*': cigar = f[5]
-    #rnext
-    rnext = None
-    if f[6] != '*': rnext = f[6]
-    #pnext
+    cigar = f[5]
+    if f[5] == '*': cigar = None
+    rnext = f[6]
+    if f[6] == '*': rnext = None
     pnext = int(f[7])
     if pnext == 0: pnext = None 
-    #tlen
     tlen = int(f[8])
     if tlen == 0: tlen = None 
-    #seq
     seq = None
     if f[9] != '*': seq = f[9]
-    #qual
     qual = None
     if f[10] != '*': qual = f[10]
-    tags = None
+    optional_fields = None
     if len(f) > 11:
-       tags = f[11:]
+       optional_fields = "\t".join(f[11:])
 
     return  SAMFields(
-       f[0], #qname
-       int(f[1]), #flag
+       qname, #qname
+       flag, #flag
        rname, #rname
        pos, #pos
        mapq, #mapq
@@ -134,7 +131,7 @@ class SAM(seqtools.align.Alignment):
        tlen, #tlen
        seq, #seq
        qual, #qual
-       tags)
+       optional_fields)
 
   def __str__(self):
     """The only way to set a SAM line is with a SAM line so we have this"""
@@ -155,12 +152,12 @@ class SAM(seqtools.align.Alignment):
     """
     if not self.is_aligned():
       raise ValueError("no length for reference when read is not not aligned")
-    if self.tlen: return self.tlen #simplest is if tlen is set
+    if self.entries.tlen: return self.entries.tlen #simplest is if tlen is set
     if self.header:
-      if self.rname in self.header.sequence_lengths:
-        return self.header.sequence_lengths[self.rname]
+      if self.entries.rname in self.header.sequence_lengths:
+        return self.header.sequence_lengths[self.entries.rname]
     elif self.reference:
-      return len(self.reference[self.rname])
+      return len(self.reference[self.entries.rname])
     else:
       raise ValueError("some reference needs to be set to go from psl to bam\n")
     raise ValueError("No reference available")
@@ -171,9 +168,9 @@ class SAM(seqtools.align.Alignment):
 
     .. warning:: this returns the full query sequence, not just the aligned portion, but i also does not include hard clipped portions (only soft clipped)
     """
-    if not self.seq: return None
-    if self.check_flag(0x10): return rc(self.seq)
-    return self.seq
+    if not self.entries.seq: return None
+    if self.check_flag(0x10): return rc(self.entries.seq)
+    return self.entries.seq
 
   @property
   def query_quality(self):
@@ -181,18 +178,18 @@ class SAM(seqtools.align.Alignment):
 
     .. warning:: this returns the full query quality, not just the aligned portion
     """
-    if not self.qual: return None
-    if self.qual == '*': return None
-    if self.check_flag(0x10): return self.qual[::-1]
-    return self.qual
+    if not self.entries.qual: return None
+    if self.entries.qual == '*': return None
+    if self.check_flag(0x10): return self.entries.qual[::-1]
+    return self.entries.qual
 
   @property
   def query_sequence_length(self):
     """ does not include hard clipped"""
-    if self.seq: return len(self.seq)
+    if self.entries.seq: return len(self.entries.seq)
     if not self.cigar:
        raise ValueError('Cannot give a query length if no cigar and no query sequence are present')
-    return sum([x[0] for x in self.cigar if re.match('[MIS=X]',x[1])])
+    return sum([x[0] for x in self.cigar_array if re.match('[MIS=X]',x[1])])
 
   @property
   def original_query_sequence_length(self):
@@ -206,7 +203,7 @@ class SAM(seqtools.align.Alignment):
     if not self.is_aligned() or not self.cigar:
       return self.query_sequence_length # take the naive approach 
     # we are here with something aligned so take more intelligent cigar apporach  
-    return sum([x[0] for x in self.cigar if re.match('[HMIS=X]',x[1])])
+    return sum([x[0] for x in self.cigar_array if re.match('[HMIS=X]',x[1])])
 
   @property
   def actual_original_query_range(self):
@@ -247,8 +244,8 @@ class SAM(seqtools.align.Alignment):
     """A key method to extract the alignment data from the line"""
     if not self.is_aligned(): return None
     alignment_ranges = []
-    cig = [x[:] for x in self.cigar]
-    target_pos = self.pos
+    cig = [x[:] for x in self.cigar_array]
+    target_pos = self.entries.pos
     query_pos = 1
     while len(cig) > 0:
       c = cig.pop(0)
@@ -265,7 +262,7 @@ class SAM(seqtools.align.Alignment):
         query_pos += c[0]
         t_end = target_pos-1
         q_end = query_pos-1
-        alignment_ranges.append([GenomicRange(self.rname,t_start,t_end),GenomicRange(self.qname,q_start,q_end)])
+        alignment_ranges.append([GenomicRange(self.entries.rname,t_start,t_end),GenomicRange(self.entries.qname,q_start,q_end)])
     return alignment_ranges
 
   @property
@@ -288,12 +285,12 @@ class SAM(seqtools.align.Alignment):
     if not self.is_aligned(): return None
     if self._target_range: return self._target_range # check cache
     global _sam_cigar_target_add
-    tlen = sum([x[0] for x in self.cigar if _sam_cigar_target_add.match(x[1])])
-    self._target_range = GenomicRange(self.rname,self.pos,self.pos+tlen-1)
+    tlen = sum([x[0] for x in self.cigar_array if _sam_cigar_target_add.match(x[1])])
+    self._target_range = GenomicRange(self.entries.rname,self.entries.pos,self.entries.pos+tlen-1)
     return self._target_range
 
   def check_flag(self,inbit):
-    if self.flag & inbit: return True
+    if self.entries.flag & inbit: return True
     return False
 
   def is_aligned(self):
@@ -311,45 +308,45 @@ class SAM(seqtools.align.Alignment):
     return self._options.header
 
   ##### PUT GETTERS FOR MAIN PROPERTIES HERE ####
-  @property
-  def qname(self): return self.entries.qname
-  @property
-  def flag(self): return self.entries.flag
-  @property
-  def rname(self): return self.entries.rname
-  @property
-  def pos(self): return self.entries.pos
-  @property
-  def mapq(self): return self.entries.mapq
+  #@property
+  #def qname(self): return self.entries.qname
+  #@property
+  #def flag(self): return self.entries.flag
+  #@property
+  #def rname(self): return self.entries.rname
+  #@property
+  #def pos(self): return self.entries.pos
+  #@property
+  #def mapq(self): return self.entries.mapq
 
   @property
-  def cigar(self):
+  def cigar_array(self):
      """cache this one to speed things up a bit"""
      if self._cigar: return self._cigar
-     self._cigar = [[int(m[0]),m[1]] for m in re.findall('([0-9]+)([MIDNSHP=X]+)',self.entries.cigar)]
+     self._cigar = [CIGARDatum(int(m[0]),m[1]) for m in re.findall('([0-9]+)([MIDNSHP=X]+)',self.entries.cigar)]
      return self._cigar
 
-  @property
-  def cigar_string(self):
-    """don't get at this one from the entries because it differes in bam"""
-    return self.entries.cigar
+  #@property
+  #def cigar_string(self):
+  #  """don't get at this one from the entries because it differes in bam"""
+  #  return self.entries.cigar
 
-  @property
-  def rnext(self): return self.entries.rnext
-  @property
-  def pnext(self): return self.entries.pnext
-  @property
-  def tlen(self): return self.entries.tlen
+  #@property
+  #def rnext(self): return self.entries.rnext
+  #@property
+  #def pnext(self): return self.entries.pnext
+  #@property
+  #def tlen(self): return self.entries.tlen
 
-  @property
-  def seq(self):
-    """Need to use this to access seq because of BAM"""
-    return self.entries.seq
+  #@property
+  #def seq(self):
+  #  """Need to use this to access seq because of BAM"""
+  #  return self.entries.seq
 
-  @property
-  def qual(self):
-    """Need to use this to access seq because of BAM"""
-    return self.entries.qual
+  #@property
+  #def qual(self):
+  #  """Need to use this to access seq because of BAM"""
+  #  return self.entries.qual
 
   @property
   def tags(self):
@@ -357,18 +354,18 @@ class SAM(seqtools.align.Alignment):
      if self._tags: return self._tags
      tags = {}
      if not tags: return {}
-     for m in [[y.group(1),y.group(2),y.group(3)] for y in [re.match('([^:]{2,2}):([^:]):(.+)$',x) for x in self.entries.tags]]:
+     for m in [[y.group(1),y.group(2),y.group(3)] for y in [re.match('([^:]{2,2}):([^:]):(.+)$',x) for x in self.entries.optional_fields.split("\t")]]:
         if m[1] == 'i': m[2] = int(m[2])
         elif m[1] == 'f': m[2] = float(m[2])
-        tags[m[0]] = {'type':m[1],'value':m[2]}
+        tags[m[0]] = TAGDatum(m[1],m[2])
      self._tags = tags
      return self._tags
 
-  @property
-  def auxillary_string(self):
-    v = self._line.rstrip().split("\t")
-    if len(v) > 11: return v[11:]
-    return None
+  #@property
+  #def auxillary_string(self):
+  #  v = self._line.rstrip().split("\t")
+  #  if len(v) > 11: return v[11:]
+  #  return None
 
 SAMGeneratorOptions = namedtuple('SAMGeneratorOptions',
    ['buffer_size',
