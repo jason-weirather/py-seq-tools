@@ -405,47 +405,6 @@ def _mode(mylist):
   sys.stderr.write("Warning: trouble finding best\n")
   return best_list[0]
 
-class Transcriptome:
-  """a class to store a transcriptome
-
-  :param gpd_file: filename
-  :param ref_fasta:
-  :type gpd_file: string
-  :type ref_fasta: dict()
-  """
-  def __init__(self,gpd_file=None,ref_fasta=None):
-    self.transcripts = []
-    if gpd_file:
-      from seqtools.format.GPD import GPD
-      with open(gpd_file) as inf:
-        for line in inf:
-          self.transcripts.append(GPD(line))
-    if ref_fasta:
-      for i in range(0,len(self.transcripts)):
-        self.transcripts[i].get_sequence(ref_fasta)
-  def dump_serialized(self):
-    sx = base64.b64encode(zlib.compress(pickle.dumps([x.dump_serialized() for x in self.transcripts])))
-    return sx
-  def load_serialized(self,instr):
-    txs = []
-    for v in pickle.loads(zlib.decompress(base64.b64decode(instr))):
-      tx = Transcript()
-      tx.load_serialized(v)
-      txs.append(tx)
-    self.transcripts = txs
-
-  def get_transcripts(self):
-    return self.transcripts
-      
-  def add_transcript(self,transcript):
-    self.transcripts.append(transcript)
-
-  def __str__(self):
-    ostr = ''
-    ostr += "Transcriptome containing "+str(len(self.transcripts))+" transcripts "
-    ostr += "covering "+str(sum([x.length for x in self.transcripts]))+" bases"
-    return ostr
-
 def trim_ordered_range_list(ranges,start,finish):
   """A function to help with slicing a mapping
      Start with a list of ranges and get another list of ranges constrained by start (0-indexed) and finish (1-indexed)

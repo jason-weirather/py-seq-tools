@@ -43,7 +43,7 @@ class MakeErrors:
     :return: Permutted FASTQ
     :rtype: format.fastq.FASTQ
     """
-    sequence = fastq.seq
+    sequence = fastq.sequence
     seq = ''
     for i in range(len(sequence)):
       # check context
@@ -81,7 +81,7 @@ class MakeErrors:
     :return: Permutted FASTQ
     :rtype: format.fastq.FASTQ
     """
-    sequence = fastq.seq
+    sequence = fastq.sequence
     quality = fastq.qual
     seq = ''
     qual = None

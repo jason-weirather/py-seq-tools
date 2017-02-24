@@ -8,25 +8,31 @@ from string import maketrans
 _NT2NUM = {'A':2,'a':2,'C':1,'c':1,'G':3,'g':3,'T':0,'t':0}
 _NUM2NT = {2:'A',1:'C',3:'G',0:'T'};
 
+SequenceGenericOptions = namedtuple('SequenceGenericOptions',
+   ['name'])
+
 class SequenceGeneric(object):
   """A sequence type that should get overridden
   """
   def __init__(self,options=None):
-    if not options: options = default_options
+    if not options: options = SequenceGeneric.Options()
     self._options = options
     return
 
   @staticmethod
   def Options(**kwargs):
-     """Create a new options namedtuple with only allowed keyword arguments"""
-     attributes = ['name','payload']
-     Opts = namedtuple('Opts',attributes)
-     if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
-     kwdict = dict(kwargs)
-     for k in [x for x in attributes if x not in kwdict.keys()]: kwdict[k] = None
-     return Opts(**kwdict)
+      """ A method for declaring options for the class"""
+      construct = SequenceGenericOptions #IMPORTANT!  Set this
+      names = construct._fields
+      d = {}
+      for name in names: d[name] = None #default values
+      """set defaults here"""
+      for k,v in kwargs.iteritems():
+         if k in names: d[k] = v
+         else: raise ValueError('Error '+k+' is not an options property')
+      """Create a set of options based on the inputs"""
+      return construct(**d)
 
-  default_options = Options.__func__()
 
   @property
   def name(self):
@@ -52,7 +58,8 @@ class SequenceGeneric(object):
   def __len__(self):
     sys.stderr.write("must be overriden\n")
     sys.exit()
-  
+SequenceOptions = namedtuple('SequenceOptions',
+   ['name'])  
 class Sequence(SequenceGeneric):
   """The Sequence class in its basic form will run on a string and 
      be very string-like
@@ -60,12 +67,28 @@ class Sequence(SequenceGeneric):
   :param sequence: take as an input, the sequence
   :type sequence: String
   """
-  def __init__(self,sequence,options):
+  def __init__(self,sequence,options=None):
+    if not options: options = Sequence.Options()
     super(Sequence,self).__init__(options)
     self._data = sequence
   def __getitem__(self,key):
     if isinstance(key,slice):
       return Sequence(self._data[key.start:key.stop:key.step],self._options)
+
+
+  @staticmethod
+  def Options(**kwargs):
+      """ A method for declaring options for the class"""
+      construct = SequenceOptions #IMPORTANT!  Set this
+      names = construct._fields
+      d = {}
+      for name in names: d[name] = None #default values
+      """set defaults here"""
+      for k,v in kwargs.iteritems():
+         if k in names: d[k] = v
+         else: raise ValueError('Error '+k+' is not an options property')
+      """Create a set of options based on the inputs"""
+      return construct(**d)
 
   @property
   def length(self):

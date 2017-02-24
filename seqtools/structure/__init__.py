@@ -6,6 +6,7 @@ from collections import namedtuple
 from seqtools.range import GenomicRange
 from seqtools.range.multi import ranges_to_coverage, merge_ranges
 from seqtools.sequence import rc
+from seqtools.sequence import Sequence
 import seqtools.graph
 from math import sqrt
 
@@ -178,6 +179,9 @@ class MappingGeneric(object):
   #  """
   #  return sum([x.length for x in self.exons])
 
+  def set_reference(self,ref):
+     self._options = self._options._replace(ref=ref)
+
   @property
   def sequence(self):
     """A strcutre is defined so get,
@@ -188,33 +192,19 @@ class MappingGeneric(object):
     :param ref_dict: reference dictionary (only necessary if sequence has not been set already)
     :type ref_dict: dict()
     """
-    if self._sequence: return self._sequence
-    if not self._ref:
+    if not self._options.ref:
       sys.stderr.write("ERROR: sequence is not defined and reference is undefined\n")
       sys.exit()
-    self.set_sequence(ref=self._ref)
-    return self._sequence
-
-  def set_sequence(self,ref=None,seq=None):
-    """use the reference dictionary to set the transcript's sequence
-
-    :param ref: reference dictionary
-    :type ref: dict()
-    :param seq: sequence
-    :type seq: String
-    """
-    sys.stderr.write("no refactored yet\n")
-    sys.exit()
     strand = '+'
-    if not self._direction:
+    if not self._options.direction:
       sys.stderr.write("WARNING: no strand information for the transcript\n")
-    if self._direction: strand = self._direction
-    chr = self.get_chrom()
+    if self._options.direction: strand = self._options.direction
+    chr = self.range.chr
     seq = ''
-    for e in [x.get_range() for x in self.exons]:
-      seq += ref_dict[chr][e.start-1:e.end]
+    for e in [x.range for x in self.exons]:
+      seq += str(self._options.ref[chr][e.start-1:e.end])
     if strand == '-':  seq = rc(seq)
-    self._sequence = seq.upper()
+    return Sequence(seq.upper())
 
   def get_junctions_string(self):
     """Get a string representation of the junctions.  This is almost identical to a previous function.

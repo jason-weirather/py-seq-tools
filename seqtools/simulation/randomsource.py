@@ -1,4 +1,8 @@
-"""A class to aid in generating random numbers and sequences"""
+"""A class to aid in generating random numbers and sequences
+
+It doesn't seem necessary to create an options class since this class will probably not be extended
+
+"""
 import random, sys
 
 nts = ['A','C','G','T']

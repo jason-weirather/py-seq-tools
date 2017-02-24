@@ -10,11 +10,15 @@ import unittest, sys
 import seqtools.format.sam.test
 import seqtools.format.fasta.test
 import seqtools.statistics.test
+import seqtools.simulation.test
+import seqtools.structure.transcriptome.test
 
 if __name__ == '__main__':
    loader = unittest.TestLoader()
    s = []
-   s.append(loader.loadTestsFromModule(seqtools.format.fasta.test)) 
-   s.append(loader.loadTestsFromModule(seqtools.statistics.test)) 
-   s.append(loader.loadTestsFromModule(seqtools.format.sam.test)) 
+   #s.append(loader.loadTestsFromModule(seqtools.format.fasta.test)) 
+   #s.append(loader.loadTestsFromModule(seqtools.statistics.test)) 
+   #s.append(loader.loadTestsFromModule(seqtools.format.sam.test)) 
+   s.append(loader.loadTestsFromModule(seqtools.simulation.test)) 
+   s.append(loader.loadTestsFromModule(seqtools.structure.transcriptome.test)) 
    unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(s))
