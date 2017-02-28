@@ -187,7 +187,7 @@ class SAM(seqtools.align.Alignment):
   def query_sequence_length(self):
     """ does not include hard clipped"""
     if self.entries.seq: return len(self.entries.seq)
-    if not self.cigar:
+    if not self.entries.cigar:
        raise ValueError('Cannot give a query length if no cigar and no query sequence are present')
     return sum([x[0] for x in self.cigar_array if re.match('[MIS=X]',x[1])])
 
@@ -200,7 +200,7 @@ class SAM(seqtools.align.Alignment):
     :return: the length of the query before any clipping
     :rtype: int
     """
-    if not self.is_aligned() or not self.cigar:
+    if not self.is_aligned() or not self.entries.cigar:
       return self.query_sequence_length # take the naive approach 
     # we are here with something aligned so take more intelligent cigar apporach  
     return sum([x[0] for x in self.cigar_array if re.match('[HMIS=X]',x[1])])

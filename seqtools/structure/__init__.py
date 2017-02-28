@@ -3,7 +3,7 @@
 """
 import sys, random, string, uuid
 from collections import namedtuple
-from seqtools.range import GenomicRange
+from seqtools.range import GenomicRange, Bed
 from seqtools.range.multi import ranges_to_coverage, merge_ranges
 from seqtools.sequence import rc
 from seqtools.sequence import Sequence
@@ -42,6 +42,9 @@ class MappingGeneric(object):
     self._rngs = rngs
     self._options = options
     self._id = str(uuid.uuid4())
+
+  @property
+  def options(self): return self._options
 
   @staticmethod
   def Options(**kwargs):
@@ -108,6 +111,13 @@ class MappingGeneric(object):
     """
     return self._id
 
+  def set_reference(self,ref):
+     """Assign the reference"""
+     self._options = self._options._replace(ref=ref)
+
+  @property
+  def reference(self): return self._options.ref
+
   def avg_mutual_coverage(self,gpd):
     """get the coverage fraction of each transcript then return the geometric mean
 
@@ -144,43 +154,52 @@ class MappingGeneric(object):
     """
     return len(self.exons)
 
-  def union(self,tx2): # keep direction and name of self
-    """Find the union, or perhaps intersection is a better word for it, for two transcripts.  This makes a new transcript.
+  def slice_target(self,chr,start,end):
+     """Slice the mapping by the target coordinate
+        
+        First coordinate is 0-indexed start
+        Second coordinate is 1-indexed finish
 
-    :param tx2: transcript 2
-    :type tx2: Transcript
-    :return: overlapping portion of the transcripts
-    :rtype: Transcript
-    """
-    sys.stderr.write("This is not named or implemented correct as union\n")
-    sys.exit()
-    self._initialize()
-    all = []
-    for rng1 in [x.rng for x in self.exons]:
-      for rng2 in [y.rng for y in tx2.exons]:
-        u = rng1.union(rng2)
-        if u: all.append(u)
-    if len(all) == 0: return None
-    rngs = merge_ranges(all)
-    tx = Transcript()
-    tx.set_exons_and_junctions_from_ranges(rngs)
-    tx._direction = self._direction
-    tx._transcript_name = self._transcript_name
-    tx._gene_name = self._gene_name
-    sys.stderr.write("not updated\n")
-    sys.exit()
-    return tx
+     """
+     # create a range that we are going to intersect with
+     trng = Bed(chr,start,end)
+     nrngs = []
+     for r in self._rngs:
+        i = r.intersect(trng)
+        if not i: continue
+        nrngs.append(i)
+     if len(nrngs) == 0: return None
+     return MappingGeneric(nrngs,self._options)
 
-  #def __len__(self):
-  #  """Return the length of the mapping in bp. Its the sum of the ranges
-  #
-  #  :return: length
-  #  :rtype: int
-  #  """
-  #  return sum([x.length for x in self.exons])
+  def slice_sequence(self,start,end):
+     """Slice the mapping by the position in the sequence
+        
+        First coordinate is 0-indexed start
+        Second coordinate is 1-indexed finish
 
-  def set_reference(self,ref):
-     self._options = self._options._replace(ref=ref)
+     """
+     #find the sequence length
+     l = self.length
+     indexstart = start
+     indexend = end
+     ns = []
+     tot = 0
+     for r in self._rngs:
+        tot += r.length
+        n = r.copy()
+        if indexstart > r.length:  
+           indexstart-=r.length
+           continue
+        n.start = n.start+indexstart
+        if tot > end: 
+           diff = tot-end
+           n.end -= diff
+           tot = end
+        indexstart = 0
+        ns.append(n)
+        if tot == end: break
+     if len(ns)==0: return None
+     return MappingGeneric(ns,self._options)
 
   @property
   def sequence(self):
@@ -193,16 +212,15 @@ class MappingGeneric(object):
     :type ref_dict: dict()
     """
     if not self._options.ref:
-      sys.stderr.write("ERROR: sequence is not defined and reference is undefined\n")
-      sys.exit()
+      raise ValueError("ERROR: sequence is not defined and reference is undefined")
     strand = '+'
     if not self._options.direction:
       sys.stderr.write("WARNING: no strand information for the transcript\n")
     if self._options.direction: strand = self._options.direction
-    chr = self.range.chr
+    #chr = self.range.chr
     seq = ''
     for e in [x.range for x in self.exons]:
-      seq += str(self._options.ref[chr][e.start-1:e.end])
+      seq += str(self._options.ref[e.chr][e.start-1:e.end])
     if strand == '-':  seq = rc(seq)
     return Sequence(seq.upper())
 

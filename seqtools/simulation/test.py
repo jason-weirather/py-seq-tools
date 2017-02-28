@@ -33,6 +33,7 @@ from seqtools.format.gpd import GPDStream
 from seqtools.format.fasta import FASTAData
 from seqtools.simulation.emitter import TranscriptomeEmitter
 from seqtools.simulation.emitter import ReadEmitter
+from seqtools.simulation.permute import CutMaker
 class TryTranscriptomeEmitter(unittest.TestCase):
    def setUp(self):
       self.gpd_path = DATA_DIR+'/chr21chr22chrM.gencode25.gpd.gz'
@@ -44,17 +45,21 @@ class TryTranscriptomeEmitter(unittest.TestCase):
                                  TranscriptomeEmitter.Options(rand=self.r))
    def test_txemitter(self):
       """Try to emit transcript sequences"""
-      s = self.txe.emit_transcript().sequence
+      s = self.txe.emit().sequence
       
       h = hashlib.md5(str(s)).hexdigest()
 
       self.assertEqual(h,'5dfe012a446262d7a7703937cd340ebf')
-      s = self.txe.emit_transcript().sequence
+      s = self.txe.emit().sequence
       h = hashlib.md5(str(s)).hexdigest()
       self.assertEqual(h,'c902ff6bf269afecf5411801f99dba36')
    def test_reademitter(self):
       """Test emitting reads"""
-      re = ReadEmitter(self.txome)
+      re = ReadEmitter(self.txe)
+      re.cutter.set_sr_cuts()
+      re.errors.set_rate(0.3)
+      sims = [re.emit(150) for i in range(0,10)]
+      self.assertEqual(sims[9].reads.right.qual,'&'*150)
 
 if __name__ == '__main__':
    unittest.main(verbosity=2)

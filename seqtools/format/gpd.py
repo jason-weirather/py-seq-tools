@@ -67,6 +67,10 @@ class GPD(seqtools.structure.transcript.Transcript):
      """Create a set of options based on the inputs"""
      return construct(**d)
 
+  @property
+  def name(self):
+    return self.entries.name
+
   def __str__(self):
     return self.get_gpd_line()  
 

@@ -57,6 +57,11 @@ class FASTAStream:
       return FASTA(m.group(1))
     return None
 
+FASTAOptions = namedtuple('FASTAOptions',
+   ['name',
+    'header',
+    'payload'])
+
 class FASTA(seqtools.sequence.Sequence):
   def __init__(self,fasta_text):
     # intput is a single fasta entry in text form
@@ -72,14 +77,18 @@ class FASTA(seqtools.sequence.Sequence):
 
   @staticmethod
   def Options(**kwargs):
-     """Create a new options namedtuple with only allowed keyword arguments"""
-     attributes = ['name','header','payload']
-     Opts = namedtuple('Opts',attributes)
-     if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
-     kwdict = dict(kwargs)
-     for k in [x for x in attributes if x not in kwdict.keys()]: 
-       kwdict[k] = None
-     return Opts(**kwdict)
+      """ A method for declaring options for the class"""
+      construct = FASTAOptions #IMPORTANT!  Set this
+      names = construct._fields
+      d = {}
+      for name in names: d[name] = None #default values
+      """set defaults here"""
+      for k,v in kwargs.iteritems():
+         if k in names: d[k] = v
+         else: raise ValueError('Error '+k+' is not an options property')
+      """Create a set of options based on the inputs"""
+      return construct(**d)
+
 
   default_options = Options.__func__()
 

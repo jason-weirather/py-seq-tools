@@ -3,7 +3,7 @@
 """
 import sys, random, string, uuid
 from collections import namedtuple
-from seqtools.range import GenomicRange
+from seqtools.range import GenomicRange, Bed
 from seqtools.range.multi import ranges_to_coverage, merge_ranges
 from seqtools.sequence import rc
 import seqtools.graph
@@ -62,20 +62,78 @@ class Transcript(seqtools.structure.MappingGeneric):
          else: raise ValueError('Error '+k+' is not an options property')
       """Create a set of options based on the inputs"""
       return construct(**d)
-  
 
-  def __getitem__(self,key):
-    """To handle slicing the transcript"""
-    if isinstance(key,slice):
-      if key.step:
-        sys.stderr.write("Step is not apporipriate for slicing a Mapping\n")
-      trimmed = trim_ordered_range_list(self._rngs,key.start)
-      return self.__init__(trimmed,self._options)
+  def copy(self):
+     return Transcript(self._rngs,Transcript.Options(
+       direction=self.options.direction,
+       ref=self.options.ref,
+       sequence=self.options.sequence,
+       name=self.options.name,
+       gene_name=self.options.gene_name,
+       payload=self.options.payload))
+        
 
-  def __setitem__(self,key):
-    return
-  def __delitem__(self,key):
-    return
+  def rc(self):
+     """Flip the direction"""
+     ntx = self.copy()
+     newstrand = '+'
+     if ntx.strand == '+': newstrand = '-'
+     ntx._options = ntx._options._replace(direction=newstrand)
+     return ntx
+
+  def slice_target(self,chr,start,end):
+     """Slice the mapping by the target coordinate
+
+        First coordinate is 0-indexed start
+        Second coordinate is 1-indexed finish
+
+     """
+     # create a range that we are going to intersect with
+     trng = Bed(chr,start,end)
+     nrngs = []
+     for r in self._rngs:
+        i = r.intersect(trng)
+        if not i: continue
+       	nrngs.append(i)
+     if len(nrngs) == 0: return None
+     return Transcript(nrngs,self._options)
+
+  def slice_sequence(self,start,end,directionless=False):
+     """Slice the mapping by the position in the sequence
+
+       	First coordinate is 0-indexed start
+       	Second coordinate is 1-indexed finish
+
+     """
+     if end > self.length: end = self.length
+     if start < 0: start = 0
+     if not directionless and self.direction == '-': 
+        newend = self.length-start
+        newstart = self.length-end
+        end = newend
+        start = newstart
+     #find the sequence length
+     l = self.length
+     indexstart = start
+     indexend = end
+     ns = []
+     tot = 0
+     for r in self._rngs:
+        tot += r.length
+        n = r.copy()
+        if indexstart > r.length:
+           indexstart-=r.length
+           continue
+        n.start = n.start+indexstart
+        if tot > end:
+           diff = tot-end
+           n.end -= diff
+           tot = end
+        indexstart = 0
+        ns.append(n)
+        if tot == end: break
+     if len(ns)==0: return None
+     return Transcript(ns,self._options)
 
   @property
   def range(self):
@@ -629,47 +687,3 @@ def _mode(mylist):
       return best_list[i]
   sys.stderr.write("Warning: trouble finding best\n")
   return best_list[0]
-
-
-def trim_ordered_range_list(ranges,start,finish):
-  """A function to help with slicing a mapping
-     Start with a list of ranges and get another list of ranges constrained by start (0-indexed) and finish (1-indexed)
-
-     :param ranges: ordered non-overlapping ranges on the same chromosome
-     :param start: start 0-indexed
-     :param finish: ending 1-indexed
-     :type ranges: GenomicRange []
-     :type start: Int
-     :type finish: Int
-     :return: non-overlapping ranges on same chromosome constrained by start and finish
-     :rtype: GenomicRange []
-  """
-  z = 0
-  keep_ranges = []
-  for inrng in self.ranges:
-    z+=1
-    original_rng = inrng
-    rng = inrng.copy() # we will be passing it along and possibly be cutting it
-    done = False;
-    #print 'exon length '+str(rng.length())
-    if start >= index and start < index+original_rng.length: # we are in this one
-      rng.start = original_rng.start+(start-index) # fix the start
-      #print 'fixstart '+str(original_rng.start)+' to '+str(rng.start)
-    if finish > index and finish <= index+original_rng.length:
-      rng.end = original_rng.start+(finish-index)-1
-      done = True
-      #print 'fixend '+str(original_rng.end)+' to '+str(rng.end)
- 
-    if finish <= index+original_rng.length: # we are in the last exon we need
-      index+= original_rng.length
-      keep_ranges.append(rng)
-      break
-    if index+original_rng.length < start: # we don't need any bases from this
-      index += original_rng.length
-      continue # we don't use this exon
-    keep_ranges.append(rng)
-    index += original_rng.length
-    if index > finish: break
-    if done: break
-  return keep_ranges
-

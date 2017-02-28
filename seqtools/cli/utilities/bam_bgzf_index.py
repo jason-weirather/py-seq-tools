@@ -33,7 +33,7 @@ def main(args):
   z = 0
   sys.stderr.write("read basics\n")
   for e in bf:
-    entries.append([e.blockStart,e.innerStart,e.qname,e.flag])
+    entries.append([e.blockStart,e.innerStart,e.entries.qname,e.entries.flag])
     z+=1
     if z%1000==0:
       sys.stderr.write(str(z)+"       \r")

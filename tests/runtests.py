@@ -12,6 +12,7 @@ import seqtools.format.fasta.test
 import seqtools.statistics.test
 import seqtools.simulation.test
 import seqtools.structure.transcriptome.test
+import seqtools.structure.test
 
 if __name__ == '__main__':
    loader = unittest.TestLoader()
@@ -19,6 +20,7 @@ if __name__ == '__main__':
    #s.append(loader.loadTestsFromModule(seqtools.format.fasta.test)) 
    #s.append(loader.loadTestsFromModule(seqtools.statistics.test)) 
    #s.append(loader.loadTestsFromModule(seqtools.format.sam.test)) 
+   #s.append(loader.loadTestsFromModule(seqtools.structure.transcriptome.test)) 
+   #s.append(loader.loadTestsFromModule(seqtools.structure.test)) 
    s.append(loader.loadTestsFromModule(seqtools.simulation.test)) 
-   s.append(loader.loadTestsFromModule(seqtools.structure.transcriptome.test)) 
    unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(s))

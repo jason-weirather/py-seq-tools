@@ -25,6 +25,11 @@ class FASTQStream:
     if not line4: return None
     return FASTQ("\n".join([line1,line2,line3,line4]))
 
+FASTQOptions = namedtuple('FASTQOptions',
+   ['name',
+    'header',
+    'payload'])
+
 class FASTQ(seqtools.sequence.Sequence):
   """ fastq single entry
 
@@ -42,14 +47,17 @@ class FASTQ(seqtools.sequence.Sequence):
 
   @staticmethod
   def Options(**kwargs):
-     """Create a new options namedtuple with only allowed keyword arguments"""
-     attributes = ['header','name','payload']
-     Opts = namedtuple('Opts',attributes)
-     if not kwargs: return Opts(**dict([(x,None) for x in attributes]))
-     kwdict = dict(kwargs)
-     for k in [x for x in attributes if x not in kwdict.keys()]: 
-       kwdict[k] = None
-     return Opts(**kwdict)
+      """ A method for declaring options for the class"""
+      construct = FASTQOptions #IMPORTANT!  Set this
+      names = construct._fields
+      d = {}
+      for name in names: d[name] = None #default values
+      """set defaults here"""
+      for k,v in kwargs.iteritems():
+         if k in names: d[k] = v
+         else: raise ValueError('Error '+k+' is not an options property')
+      """Create a set of options based on the inputs"""
+      return construct(**d)
 
   default_options = Options.__func__()
 
@@ -68,8 +76,8 @@ class FASTQ(seqtools.sequence.Sequence):
   def rc(self):
     return FASTQ('@'+self.header+"\n"+seqtools.sequence.rc(self.sequence)+"\n"+self.lines[2]+"\n"+self.qual[::-1]+"\n")
   def copy(self):
-    return FASTQ(self.FASTQ)
+    return FASTQ(self.FASTQ())
   def FASTQ(self):
     return "\n".join(self.lines)+"\n"
   def __str__(self):
-    return self.FASTQ().rstrip()
+    return self.FASTQ()
