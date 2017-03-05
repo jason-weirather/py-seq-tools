@@ -141,7 +141,7 @@ class OrderedStream(object):
       r = self._stream.next() # may already be throwing StopIteration
       if not r: raise StopIteration
       rng = r.range
-      if not rng: raise ValueError('The objects streamed must have a get_range() function that returns a range')
+      if not rng: raise ValueError('The objects streamed must have range property that returns a range')
       if self._previous:
          if self._previous.cmp(rng) > 0:
             raise ValueError('Expected lines to be ordered but they appear not to be ordered on line '+str(self._ln))
@@ -169,7 +169,7 @@ class LocusStream(object):
          firstobj = self._stream.next()
       except StopIteration: firstobj = None
       if not firstobj: return
-      self._current_range = firstobj.range
+      self._current_range = firstobj.range.copy()
       self._current_range.set_payload([firstobj])
 
    def __iter__(self):

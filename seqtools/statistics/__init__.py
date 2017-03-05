@@ -1,5 +1,10 @@
 """This module contains many list-based functions to calculate descriptive statistics."""
 from math import sqrt 
+from collections import Counter
+
+def mode(arr):
+   """get the most frequent value"""
+   return max(set(arr),key=arr.count)
 
 def average(arr):
   """average of the values, must have more than 0 entries.

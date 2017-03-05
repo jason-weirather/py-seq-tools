@@ -39,7 +39,8 @@ class MappingGeneric(object):
   """
   def __init__(self,rngs,options=None):
     if not options: options = MappingGeneric.Options()
-    self._rngs = rngs
+    if len(rngs) > 0:
+       self._rngs = rngs
     self._options = options
     self._id = str(uuid.uuid4())
 

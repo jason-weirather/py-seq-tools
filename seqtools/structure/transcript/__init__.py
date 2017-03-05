@@ -10,6 +10,19 @@ import seqtools.graph
 from math import sqrt
 from seqtools.structure.transcript.converters import transcript_to_gpd_line, transcript_to_fake_psl_line
 
+class Exon(GenomicRange):
+   """A more full featured exon definition"""
+   def __init__(self,rng,dir=None):
+      super(Exon,self).__init__(rng.chr,rng.start,rng.end,rng.payload,dir)
+      self.leftmost = None
+      self.rightmost = None
+      self.fiveprime = None
+      self.threeprime = None
+   def set_leftmost(self,b=True): self.leftmost = b
+   def set_rightmost(self,b=True): self.rightmost = b
+   def set_fiveprime(self,b=True): self.fiveprime = b
+   def set_threeprime(self,b=True): self.threeprime = b
+
 TranscriptOptions = namedtuple('TranscriptOptions',
    ['direction',
     'ref',
@@ -46,8 +59,12 @@ class Transcript(seqtools.structure.MappingGeneric):
 
   def __init__(self,rngs,options=None):
     if not options: options = Transcript.Options()
+    if len(rngs) > 0:
+       """convert rngs to Exons"""
+       rngs = [Exon(x) for x in rngs]
+       rngs[0].set_leftmost(True)
+       rngs[-1].set_rightmost(True)
     super(Transcript,self).__init__(rngs,options)
-    self._rngs = rngs
 
   @staticmethod
   def Options(**kwargs):
@@ -304,8 +321,8 @@ class ExonOverlap:
       self1.single_minover = single_minover # single-exon minimum overlap
       self1.single_frac = single_frac #single-exon minimum overlap
       self1.overs = [] # set by calculate_overlap()
-      #self1.dif1 = []
-      #self1.dif2 = []
+      self1.dif1 = []
+      self1.dif2 = []
       self1.calculate_overlap()
       if len(self1.overs) == 0: return None# nothing to analyze
       if self1.tx_obj1.get_exon_count() > 1 and self1.tx_obj1.get_exon_count() > 1 \
@@ -320,6 +337,12 @@ class ExonOverlap:
       if len(self1.overs) > 0: return True
       return False
   
+    def overlap_size(self1):
+       return self1.tx_obj1.overlap_size(self1.tx_obj2)
+
+    def min_overlap_fraction(self1):
+       return float(self1.overlap_size())/float(max(self1.tx_obj1.length,self1.tx_obj2.length))
+
     def match_exon_count(self1):
       """Total number of exons that overlap
 
@@ -451,23 +474,26 @@ class JunctionOverlap:
     :type tx_obj2: Transcript
     :type tolerance: int
     """
-    def __init__(self1,tx_obj1,tx_obj2,tolerance=0):
-      self1.tx_obj1 = tx_obj1
-      self1.tx_obj2 = tx_obj2
-      self1.tolerance = tolerance
-      self1.overs = [] # gets set by calculate_overlap()
-      self1.calculate_overlap()
-      if len(self1.overs) == 0: return None# nothing to analyze
-      self1.analyze_overs()
-
-    def __nonzero__(self1):
-      if len(self1.overs) > 0: return True
+    def __init__(self,tx_obj1,tx_obj2,tolerance=0):
+      self.tx_obj1 = tx_obj1
+      self.tx_obj2 = tx_obj2
+      self.j1 = self.tx_obj1.junctions
+      self.j2 = self.tx_obj2.junctions
+      self.tolerance = tolerance
+      self.dif1 = None
+      self.dif2 = None
+      self.overs = self.calculate_overlap()
+      if len(self.overs) > 0:
+        self.analyze_overs()
+      
+    def __nonzero__(self):
+      if len(self.overs) > 0: return True
       return False
 
-    def match_junction_count(self1):
-      return len(self1.overs)
+    def match_junction_count(self):
+      return len(self.overs)
 
-    def is_subset(self1):
+    def is_subset(self):
       """Return value if tx_obj2 is a complete subset of tx_obj1 or tx_obj1 is a complete subset of tx_obj2
 
       values:
@@ -477,65 +503,42 @@ class JunctionOverlap:
       * Return 3: one is a subset of two
       * Return False if neither is a subset of the other
       """
-      if len(self1.overs) == 0: return False
-      if len(self1.dif1) > 0: # make sure they are consecutive if more than one
-        if max(self1.dif1) != 1 or max(self1.dif2) != 1: return False
-      onecov = self1.start1 and self1.end1
-      twocov = self1.start2 and self1.end2
+      if len(self.overs) == 0: return False
+      if len(self.dif1) > 0: # make sure they are consecutive if more than one
+        if len([x for x in self.dif1 if x != 1]) != 0: return False
+        if len([x for x in self.dif2 if x != 1]) != 0: return False
+      #look closely at what we are doing here
+      onecov = self.start1 and self.end1
+      twocov = self.start2 and self.end2
       if onecov and twocov:
+        if self.tx_obj1.get_exon_count() != self.tx_obj2.get_exon_count():
+           raise ValueError('how can be same with different exons'+"\n"+str(self.overs)+"\n"+str(self.dif1)+"\n"+str(self.dif2)+"\n"+str(len(self.j1))+"\n"+str(len(self.j2))+"\n"+str(self.tx_obj1.get_exon_count())+"\n"+str(self.tx_obj2.get_exon_count()))
         return 1
       elif twocov: return 2
       elif onecov: return 3
       return False
 
-    def is_full_overlap(self1):
-      """True if its a full overlap
-
-      :return: True if its a full overlap
-      :rtype: bool
-      """
-      if len(self1.overs) == 0: return False
-      if len(self1.dif1) > 0:
-        if max(self1.dif1) != 1 or max(self1.dif2) != 1: return False
-      if self1.start1 and self1.end1 and self1.start2 and self1.end2:
-        return True
-      return False
-
-    def is_compatible(self1):
-      """Return True if the transcripts can be combined together
-
-      :return: True if we can combine
-      :rtype: bool
-      """
-      if len(self1.overs) == 0: return False
-      if len(self1.dif1) > 0:
-        if max(self1.dif1) != 1 or max(self1.dif2) != 1: return False
-      # If we are still here it is a single run
-      if (self1.start1 or self1.start2) and (self1.end1 or self1.end2):
-        return True
-      return False
-
-    def analyze_overs(self1):
+    def analyze_overs(self):
       """A helper function to prepare values describing overlaps"""
       #check for full overlap first
-      self1.dif1 = [self1.overs[i][0]-self1.overs[i-1][0] for i in range(1,len(self1.overs))]
-      self1.dif2 = [self1.overs[i][1]-self1.overs[i-1][1] for i in range(1,len(self1.overs))]
+      self.dif1 = [self.overs[i][0]-self.overs[i-1][0] for i in range(1,len(self.overs))]
+      self.dif2 = [self.overs[i][1]-self.overs[i-1][1] for i in range(1,len(self.overs))]
       #see if it starts and ends on first or last junction
-      self1.start1 = self1.overs[0][0] == 0
-      self1.start2 = self1.overs[0][1] == 0
-      self1.end1 = self1.overs[-1][0] == len(self1.tx_obj1.junctions)-1
-      self1.end2 = self1.overs[-1][1] == len(self1.tx_obj2.junctions)-1
+      self.start1 = self.overs[0][0] == 0
+      self.start2 = self.overs[0][1] == 0
+      self.end1 = self.overs[-1][0] == len(self.j1)-1
+      self.end2 = self.overs[-1][1] == len(self.j2)-1
       return
 
-    def calculate_overlap(self1):
+    def calculate_overlap(self):
       """Create the array that describes how junctions overlap"""
       overs = []
-      if not self1.tx_obj1.range.overlaps(self1.tx_obj2.range): return # if they dont overlap wont find anything
-      for i in range(0,len(self1.tx_obj1.junctions)):
-        for j in range(0,len(self1.tx_obj2.junctions)):
-          if self1.tx_obj1.junctions[i].overlaps(self1.tx_obj2.junctions[j],self1.tolerance):
+      if not self.tx_obj1.range.overlaps(self.tx_obj2.range): return [] # if they dont overlap wont find anything
+      for i in range(0,len(self.j1)):
+        for j in range(0,len(self.j2)):
+          if self.j1[i].overlaps(self.j2[j],tolerance=self.tolerance):
             overs.append([i,j])
-      self1.overs = overs
+      return overs
 
 class Junction:
   """ class to describe a junction
@@ -600,9 +603,9 @@ class Junction:
     if self.right.equals(junc.right): return False
     return True
   def overlaps(self,junc,tolerance=0):
-    """see if junction overlaps with tolerance""" 
-    if not self.left.overlaps_with_padding(junc.left,tolerance): return False
-    if not self.right.overlaps_with_padding(junc.right,tolerance): return False
+    """see if junction overlaps with tolerance"""
+    if not self.left.overlaps(junc.left,padding=tolerance): return False
+    if not self.right.overlaps(junc.right,padding=tolerance): return False
     return True
   def cmp(self,junc,tolerance=0):
     """ output comparison and allow for tolerance if desired
@@ -687,3 +690,5 @@ def _mode(mylist):
       return best_list[i]
   sys.stderr.write("Warning: trouble finding best\n")
   return best_list[0]
+
+   

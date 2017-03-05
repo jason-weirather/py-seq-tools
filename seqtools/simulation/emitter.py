@@ -107,7 +107,7 @@ class TranscriptomeEmitter(EmitterGeneric):
     :type weights: list
     """
     self._weights = []
-    txnames = [x.get_transcript_name() for x in self._transcriptome.transcripts]
+    txnames = [x.name for x in self._transcriptome.transcripts]
     for txname in txnames:
       if txname in weights:
         self._weights.append(float(weights[txname]))

@@ -13,7 +13,9 @@ class Transcriptome:
   :type ref_data: dict()
   """
   def __init__(self,transcript_source=None,ref_fasta=None):
-    self._transcripts = [x for x in transcript_source]
+    self._transcripts = []
+    if transcript_source:
+       self._transcripts = [x for x in transcript_source]
     self._ref = ref_fasta
     if ref_fasta:
       for i in range(0,len(self.transcripts)):
@@ -27,8 +29,18 @@ class Transcriptome:
   def add_transcript(self,transcript):
     self.transcripts.append(transcript)
 
+  def sort_transcripts(self):
+     """Sort the transcripts stored here"""
+     txs = sorted(self.transcripts,key=lambda x: (x.range.chr, x.range.start, x.range.end))
+     self._transcripts = txs
+
   def __str__(self):
     ostr = ''
     ostr += "Transcriptome containing "+str(len(self.transcripts))+" transcripts "
     ostr += "covering "+str(sum([x.length for x in self.transcripts]))+" bases"
     return ostr
+
+  def transcript_stream(self):
+     for tx in self._transcripts:
+        yield tx
+     

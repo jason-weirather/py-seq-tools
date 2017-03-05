@@ -16,7 +16,7 @@ class Graph:
     self.__edges = {}
     self.__nodes = {}
     self.__directionless=directionless
-    self.__parent_to_child = {} #keyed by node
+    self.__parent_to_child = {} #keyed by node id
     self.__child_to_parent = {}
 
   def __str__(self):
@@ -123,7 +123,18 @@ class Graph:
     rootset  = set(outputids) -  set(self.__child_to_parent.keys())
     return [self.__nodes[x] for x in rootset]
 
-  def add_edge(self,edge,verbose=True):
+  def root_and_children_to_graph(self,root):
+     """Take a root node and its children and make them into graphs"""
+     g = Graph()
+     g.add_node(root)
+     edges = []
+     edges += self.get_node_edges(root,"outgoing")
+     for c in self.get_children(root):
+           g.add_node(c)
+           edges += self.get_node_edges(c,"outgoing")
+     for e in edges: g.add_edge(e)
+     return g
+  def add_edge(self,edge,verbose=False):
     """ add an edge to the graph
 
     :param edge:
@@ -132,18 +143,29 @@ class Graph:
     :type verbose: bool
 
     """
+    self.add_node(edge.get_node1())
+    self.add_node(edge.get_node2())
     #make sure nodes are in the nodes
     if edge.get_node1().id not in self.__nodes:
+      print self
+      print edge.get_node1().id
+      print self.__nodes.keys()
+      print 'one'
       sys.stderr.write("ERROR: node should be in graph\n")
       sys.exit()
     if edge.get_node2().id not in self.__nodes:
+      print self
+      print edge.get_node2().id
+      print self.__nodes.keys()
+      print 'two'
+      print [len(x.payload_list) for x in self.__nodes.values()]
       sys.stderr.write("ERROR: node should be in graph\n")
       sys.exit()
     # now add edge
     id = edge.id
     #sys.stderr.write(id+"\n")
     if id in self.__edges:
-      sys.stderr.write("WARNING edge is already there. not adding again\n")
+      if verbose: sys.stderr.write("WARNING edge is already there. not adding again\n")
       return
     self.__edges[id] = edge
     ids = edge.get_node_ids()    
@@ -198,22 +220,20 @@ class Graph:
     if edge.id not in self.__edges:
       sys.stderr.write("WARNING: edge already removed\n")
       return
-    nodeids = edge.get_node_ids()
-    node1 = self.__nodes[nodeids[0]]
-    node2 = self.__nodes[nodeids[1]]
+    ids = edge.get_node_ids()
     edges_to_remove = set()
-    if node1.id in self.__parent_to_child:
-      if node2.id in self.__parent_to_child[node1.id]:
-        edges_to_remove.add(self.__parent_to_child[node1.id][node2.id])
-        del self.__parent_to_child[node1.id][node2.id]
-      if len(self.__parent_to_child[node1.id]) == 0:
-        del self.__parent_to_child[node1.id]
-    if node2.id in self.__child_to_parent: 
-        if node1.id in self.__child_to_parent[node2.id]:
-          edges_to_remove.add(self.__child_to_parent[node2.id][node1.id])
-          del self.__child_to_parent[node2.id][node1.id]
-        if len(self.__child_to_parent[node2.id]) == 0:
-          del self.__child_to_parent[node2.id]
+    if ids[0] in self.__parent_to_child:
+      if ids[1] in self.__parent_to_child[ids[0]]:
+        edges_to_remove.add(self.__parent_to_child[ids[0]][ids[1]])
+        del self.__parent_to_child[ids[0]][ids[1]]
+      if len(self.__parent_to_child[ids[0]]) == 0:
+        del self.__parent_to_child[ids[0]]
+    if ids[1] in self.__child_to_parent: 
+      if ids[0] in self.__child_to_parent[ids[1]]:
+        edges_to_remove.add(self.__child_to_parent[ids[1]][ids[0]])
+        del self.__child_to_parent[ids[1]][ids[0]]
+      if len(self.__child_to_parent[ids[1]]) == 0:
+        del self.__child_to_parent[ids[1]]
     if len(edges_to_remove) == 0:
       sys.stderr.write("WARNING no edges removed\n")
     #sys.stderr.write(str(len(self.__edges.keys()))+" edges\n")
@@ -233,26 +253,27 @@ class Graph:
           self.remove_edge(self.__edges[self.__parent_to_child[i][j]])
     while True:
       res = self.find_cycle()
+      print 'merge'
+      print self
+      print res
       if not res:  return # we have finished.. there are no cycles
       # If we are here we need to merge
       if len(res) == 1: 
         sys.stderr.write("ERROR: Unexpected Self-cycle.\n")
         sys.exit()
-      resids = [x.id for x in res]
+      ### These are the cycle IDs
+      resids = [x.id for x in res[1:]]
       # merge edges unless that edge is to one of the nodes we are removing
       for i in range(1,len(res)):
-        for v in res[i].payload: res[0].payload.append(v)
+        for v in res[i].payload_list: res[0].payload_list.append(v)
         if res[i].id in self.__parent_to_child:
-          for e2id in self.__parent_to_child[res[i].id]:
-            if e2id not in resids:
-              nedge = Edge(res[0],res[i])
-              if res[0].id not in self.__parent_to_child:
-                self.add_edge(nedge,verbose=False)
-              elif res[1].id not in self.__parent_to_child[res[0].id]:
-                self.add_edge(nedge,verbose=False)
-        #      #if self.__directionless:
-        #      #  sys.stderr.write('adding_edge2'+"\n")
-        #      #  self.add_edge(Edge(res[i],res[0]),verbose=False)
+          for n2id in [x for x in self.__parent_to_child[res[i].id] if x not in resids and x != res[0].id]:
+            nedge = Edge(res[0],self.__nodes[n2id])
+            self.add_edge(nedge,verbose=True)
+        if res[i].id in self.__child_to_parent:
+          for n2id in [x for x in self.__child_to_parent[res[i].id] if x not in resids and x != res[0].id]:
+            nedge = Edge(self.__nodes[n2id],res[0])
+            self.add_edge(nedge,verbose=False)
       # remove any nodes and edges connected to nodes we are removing
       for r in res[1:]:
         self.remove_node(r)
@@ -466,7 +487,7 @@ class Node:
     #self.__incoming_edges = {}
     #self.__outgoing_edges = {}
     if payload != None:
-      self.__payload = payload
+      self.__payload = [payload]
   #def has_edges(self):
   #  if len(self.__incoming_edges.keys()) > 0: return True
   #  if len(self.__outgoing_edges.keys()) > 0: return True
@@ -474,11 +495,13 @@ class Node:
   @property
   def payload(self):
     """ return whats curently held in payload"""
-    return self.__payload
+    return self.__payload[0]
   def set_payload(self,payload):
     """ set the payload to anything you want"""
-    self.__payload = payload
-
+    self.__payload = [payload]
+  @property
+  def payload_list(self):
+    return self.__payload
   @property
   def id(self):
     return self.__id
