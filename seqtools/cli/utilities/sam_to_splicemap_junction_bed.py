@@ -45,7 +45,7 @@ def main(args):
     sam = SAM(line)
     if not sam.is_aligned(): continue
 
-    chrom = sam.rname
+    chrom = sam.entries.rname
     if chrom =='*': continue
     if chrom not in g.keys():
       sys.stderr.write("WARNING: "+chrom+" not in reference, skipping\n")
@@ -55,15 +55,15 @@ def main(args):
       mate = 'L'
     elif sam.check_flag(int('0x80',16)):
       mate = 'R'
-    actual_read = sam.qname+"\t"+mate
+    actual_read = sam.entries.qname+"\t"+mate
     if actual_read not in read_mapping_count:
       read_mapping_count[actual_read] = 0
     read_mapping_count[actual_read] += 1
     has_intron = 0
-    start_loc = sam.pos
+    start_loc = sam.entries.pos
     current_loc = start_loc
     bounds  = []
-    cigar = [{'val':x[0],'op':x[1]} for x in sam.cigar]
+    cigar = [{'val':x[0],'op':x[1]} for x in sam.cigar_array]
     for i in range(0,len(cigar)):
       # No action is necessary for H and S since they do not change the starting position on the reference
       ce = cigar[i]
@@ -135,7 +135,7 @@ def main(args):
         junctions[entry]['positions'] = set()
         junctions[entry]['right_sizes'] = set()
       junctions[entry]['reads'].add(actual_read)
-      junctions[entry]['positions'].add(sam.pos)
+      junctions[entry]['positions'].add(sam.entries.pos)
       junctions[entry]['right_sizes'].add(bound[2])
   sys.stderr.write("\n")
   sys.stderr.write("finished reading sam\n")
