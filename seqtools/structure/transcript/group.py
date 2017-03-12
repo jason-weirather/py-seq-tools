@@ -71,7 +71,7 @@ class ExonGroup:
 
 class FuzzyTranscript(seqtools.structure.transcript.Transcript):
    """A transcript that has one single set of exons, but the bounds may differ"""
-   def __init__(self,initial_transcripts,tolerance=0,evidence=1):
+   def __init__(self,initial_transcripts,tolerance=0,evidence=1,use_gene_names=False):
       self._evidence = evidence
       super(FuzzyTranscript,self).__init__([])
       if not self.direction: self.set_strand(initial_transcripts[0].strand)
@@ -86,7 +86,7 @@ class FuzzyTranscript(seqtools.structure.transcript.Transcript):
          for i in range(0,self._num):
             self._exon_groups[i].add_exon(tx.exons[i])
       """Now exon groups is set up"""
-
+      self.set_gene_name(self._initial[0].gene_name)
    #@property
    #def direction(self):
    #   return self._transcripts[0].direction
@@ -173,7 +173,7 @@ class CompatibleGraph(FuzzyTranscript):
       
       Its like a fuzzy transcript, except its created from a graph
    """
-   def __init__(self,graph,tolerance=0,downsample=None,evidence=1):
+   def __init__(self,graph,tolerance=0,downsample=None,evidence=1,use_gene_names=False):
       self._graph = graph
       self._tolerance = tolerance
       """One sanity check is to make sure each code contains the same junction count"""
@@ -187,7 +187,7 @@ class CompatibleGraph(FuzzyTranscript):
       """Start at the root transcripts"""
       initial_transcripts = root.payload_list
       """Now we can initialize as a fuzzy transcript"""
-      super(CompatibleGraph,self).__init__(initial_transcripts,tolerance,evidence)
+      super(CompatibleGraph,self).__init__(initial_transcripts,tolerance,evidence,use_gene_names=use_gene_names)
       #ft = FuzzyTranscript(initial_transcripts,self._tolerance)
       all_transcripts = []
       all_transcripts += [x.payload_list for x in children]
@@ -197,6 +197,7 @@ class CompatibleGraph(FuzzyTranscript):
          self.add_transcripts(transcripts)
 
 def do_downsample(txs,cnt):
+   if len(txs) <= cnt: return txs
    v = txs[:]
    shuffle(v)
    return v[0:cnt]
@@ -211,7 +212,7 @@ class Deconvolution:
       self._transcripts = txs
    def add_transcript(self,tx):
       self._transcripts.append(tx)
-   def parse(self,tolerance=0,downsample=None,evidence=2):
+   def parse(self,tolerance=0,downsample=None,evidence=2,use_gene_names=False):
       """Divide out the transcripts.  allow junction tolerance if wanted"""
       g = Graph()
       nodes = [Node(x) for x in self._transcripts]
@@ -232,6 +233,6 @@ class Deconvolution:
       groups = []
       for r in roots:
          g2 = g.get_root_graph(r)
-         c = CompatibleGraph(g2,tolerance,downsample,evidence)
+         c = CompatibleGraph(g2,tolerance,downsample,evidence,use_gene_names=use_gene_names)
          groups.append(c)
       return groups

@@ -26,8 +26,8 @@ def transcript_to_gpd_line(tx,transcript_name=None,gene_name=None,direction=None
     if not gname:
         gname = tname
     out = ''
-    out += tname + "\t"
     out += gname + "\t"
+    out += tname + "\t"
     out += tx.exons[0].chr + "\t"
     out += dir + "\t"
     out += str(tx.exons[0].start-1) + "\t"

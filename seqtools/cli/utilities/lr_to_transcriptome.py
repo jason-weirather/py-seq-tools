@@ -1,24 +1,22 @@
 """CLI script to annotate gpd entries
 """
 
-import sys, argparse, gzip, re, itertools, os
+import sys, argparse, gzip, re, itertools, os, uuid
+from multiprocessing import cpu_count
 from tempfile import mkdtemp, gettempdir
 from random import shuffle
 from seqtools.format.gpd import GPD, GPDStream
 from seqtools.structure.transcriptome import Transcriptome
+from seqtools.structure.transcript import Transcript
 from seqtools.stream import OrderedStream
 from seqtools.stream import MultiLocusStream
 from seqtools.structure.transcript.group import Deconvolution
 from seqtools.graph import Graph, Node, Edge
+from seqtools.range import GenomicRange
+from subprocess import Popen, PIPE
+
 
 def main(args):
-   """Prepare outputs"""
-   of = sys.stdout
-   if args.output:
-      if re.search('\.gz$',args.output):
-         of = gzip.open(args.output,'w')
-      else:
-         of = open(args.output,'w')
    """Read any reference transcriptome we can"""
    txome = Transcriptome()
    #read the reference gpd if one is gven
@@ -53,12 +51,93 @@ def main(args):
    tof.close()
   
    sys.stderr.write("1. Process by overlapping locus.\n")
+   annotated_reads(txome,gzip.open(args.tempdir+'/reads.gpd.gz'),'initial',args)
+
+   #of.close()
+
+   """Now sequences we should be able to annotate as partial have
+      consensus transcripts.  Lets put those to annotation scrutiny again.
+   """
+   sys.stderr.write("2. Reannotated partially annotated by overlapping locus.\n")
+   annotated_reads(txome,gzip.open(args.tempdir+'/initial/partial_annotated_multiexon.sorted.gpd.gz'),'repartial',args)
+
+
+   txs = {}
+   for transcript in txome.transcripts:
+      txs[transcript.name] = transcript
+   detected = {}
+   tinf = gzip.open(args.tempdir+'/initial/annotated.txt.gz')
+   for line in tinf:
+      f = line.rstrip().split("\t")
+      detected[f[1]] = True
+   tinf.close()
+   tinf = gzip.open(args.tempdir+'/repartial/annotated.txt.gz')
+   remove_partial = {}
+   for line in tinf:
+      f = line.rstrip().split("\t")
+      detected[f[1]] = True
+      remove_partial[f[1]] = True
+   tinf.close()
+   tof = gzip.open(args.tempdir+'/candidate.gpd.gz','w')
+   for name in detected:
+      tof.write(txs[name].get_gpd_line()+"\n")
+   tinf = gzip.open(args.tempdir+'/initial/partial_annotated_multiexon.sorted.gpd.gz')
+   for line in tinf:
+      f = line.rstrip().split("\t")
+      if f[1] not in remove_partial:
+         tof.write(line)
+   tinf = gzip.open(args.tempdir+'/initial/unannotated_singleexon.sorted.gpd.gz')
+   for line in tinf:
+      f = line.rstrip().split("\t")
+      f[0] = str(uuid.uuid4())
+      tof.write("\t".join(f)+"\n")
+   tinf.close()
+   tof.close()
+   sort_gpd(args.tempdir+'/candidate.gpd.gz',args.tempdir+'/candidate.sorted.gpd.gz',args)
+   """We can ignore the partial annotations that have been detected"""
+   ntxome = Transcriptome()
+   tinf = gzip.open(args.tempdir+'/candidate.sorted.gpd.gz')
+   for line in tinf: ntxome.add_transcript(GPD(line))     
+   annotated_reads(ntxome,gzip.open(args.tempdir+'/initial/unannotated_multiexon.sorted.gpd.gz'),'unannotated',args)
+   """now we know which unannotated reads actually have annotations"""
+   tinf.close()
+
+   tof = gzip.open(args.tempdir+'/final.gpd.gz','w')
+   tinf = gzip.open(args.tempdir+'/candidate.sorted.gpd.gz')   
+   for line in tinf: tof.write(line)
+   tinf.close()
+   tinf = gzip.open(args.tempdir+'/unannotated/unannotated_multiexon.sorted.gpd.gz')   
+   for line in tinf: tof.write(line)
+   tinf.close()
+   tinf = gzip.open(args.tempdir+'/unannotated/partial_annotated_multiexon.sorted.gpd.gz')   
+   for line in tinf: tof.write(line)
+   tinf.close()
+   tof.close()
+   sort_gpd(args.tempdir+'/final.gpd.gz',args.tempdir+'/final.sorted.gpd.gz',args)
+   """Prepare outputs"""
+   of = sys.stdout
+   if args.output:
+      if re.search('\.gz$',args.output):
+         of = gzip.open(args.output,'w')
+      else:
+         of = open(args.output,'w')
+   tinf = gzip.open(args.tempdir+'/final.sorted.gpd.gz')
+   for line in tinf: of.write(line)
+   tinf.close()
+   of.close()   
+      
+
+def annotated_reads(txome,sorted_read_stream,output,args):
+   if not os.path.exists(args.tempdir+'/'+output):
+      os.makedirs(args.tempdir+'/'+output)
    ts = OrderedStream(iter(txome.transcript_stream()))
-   rs = OrderedStream(GPDStream(gzip.open(args.tempdir+'/reads.gpd.gz')))
+   rs = OrderedStream(GPDStream(sorted_read_stream))
    mls = MultiLocusStream([ts,rs])
-   aof = gzip.open(args.tempdir+'/annotated.txt.gz','w')
-   of1 = gzip.open(args.tempdir+'/unannotated_multiexon.gpd.gz','w')
-   of2 = gzip.open(args.tempdir+'/partial_annotated_multiexon.gpd.gz','w')
+   
+   aof = gzip.open(args.tempdir+'/'+output+'/annotated.txt.gz','w')
+   of1 = gzip.open(args.tempdir+'/'+output+'/unannotated_multiexon.gpd.gz','w')
+   of2 = gzip.open(args.tempdir+'/'+output+'/partial_annotated_multiexon.gpd.gz','w')
+   of3 = gzip.open(args.tempdir+'/'+output+'/unannotated_singleexon.gpd.gz','w')
    z = 0
    for ml in mls:
       refs, reads = ml.payload
@@ -79,6 +158,7 @@ def main(args):
             continue
          best_ref = ovs[0][3]
          aof.write(seread.name+"\t"+best_ref.name+"\tSE"+"\n")
+
       """May want an optional check for any better matches among exons"""
       #now we can look for best matches among multi-exon transcripts
       reads = [x for x in reads if x.get_exon_count() > 1]
@@ -133,7 +213,7 @@ def main(args):
       """Now we have partially annotated multi and unannotated multi and unannotated single"""
       if len(unannotated_multi_exon_reads) > 0:
          sys.stderr.write(str(z)+" "+str(len(unannotated_multi_exon_reads))+"   \r")
-         d = Deconvolution(unannotated_multi_exon_reads)
+         d = Deconvolution(downsample(unannotated_multi_exon_reads,args.downsample_locus))
          groups = d.parse(tolerance=20,downsample=args.downsample)
          for tx in groups:
             z+=1
@@ -143,17 +223,67 @@ def main(args):
          ### set the direction of the transcript
          for v in partial_annotated_multi_exon_reads:
             v[0].set_strand(v[1].direction)
-         d = Deconvolution([x[0] for x in partial_annotated_multi_exon_reads])
-         groups = d.parse(tolerance=20,downsample=args.downsample)
+         ### set the gene name of the transcript
+         for v in partial_annotated_multi_exon_reads:
+            v[0].set_gene_name(v[1].gene_name)         
+         d = Deconvolution(downsample([x[0] for x in partial_annotated_multi_exon_reads],args.downsample_locus))
+         groups = d.parse(tolerance=20,downsample=args.downsample,use_gene_names=True)
          for tx in groups:
             z += 1
             of2.write(tx.get_gpd_line()+"\n")
+      """Do the unannotated single exon reads"""
+      g = Graph()
+      for r in unannotated_single_exon_reads:
+         if len([x for x in partial_annotated_multi_exon_reads if x[0].overlaps(r)]) > 0: continue
+         if len([x for x in unannotated_multi_exon_reads if x.overlaps(r)]) > 0: continue
+         if len([x for x in txome.transcripts if x.overlaps(r)]) > 0: continue
+         g.add_node(Node(r))
+      for i in range(0,len(g.nodes)):
+         for j in range(0,len(g.nodes)):
+            if i == j: continue
+            if g.nodes[i].payload.overlaps(g.nodes[j].payload):
+               g.add_edge(Edge(g.nodes[i],g.nodes[j]))
+      g.merge_cycles()
+      for r in g.roots:
+         se = []
+         se += r.payload_list
+         children = g.get_children(r)
+         for child in children:  se += child.payload_list
+         rng = GenomicRange(se[0].exons[0].chr,
+                            min([x.exons[0].start for x in se]),
+                            max([x.exons[0].end for x in se]))
+         tx = Transcript([rng],Transcript.Options(direction='+'))
+         of3.write(tx.get_gpd_line()+"\n")
+
    of1.close()
    of2.close()
+   of3.close()
    sys.stderr.write("\n")      
-   of.close()
+   """Sort our progress"""
+   sys.stderr.write("sort transcriptome\n")
+   sort_gpd(args.tempdir+'/'+output+'/partial_annotated_multiexon.gpd.gz',args.tempdir+'/'+output+'/partial_annotated_multiexon.sorted.gpd.gz',args)
+   sort_gpd(args.tempdir+'/'+output+'/unannotated_multiexon.gpd.gz',args.tempdir+'/'+output+'/unannotated_multiexon.sorted.gpd.gz',args)
+   sort_gpd(args.tempdir+'/'+output+'/unannotated_singleexon.gpd.gz',args.tempdir+'/'+output+'/unannotated_singleexon.sorted.gpd.gz',args)
+   """We still have the unannotated single exon reads to deal with"""
+
+
+def sort_gpd(infile,outfile,args):
+   tinf = gzip.open(infile)
+   cmd1 = 'seq-tools sort --gpd - '
+   cmd2 = 'gzip'
+   if args.threads > 1: cmd1 += ' --threads '+str(args.threads)
+   tof = open(outfile,'w')
+   p2 = Popen(cmd2.split(),stdin=PIPE,stdout=tof)
+   p1 = Popen(cmd1.split(),stdin=PIPE,stdout=p2.stdin)
+   for line in tinf: p1.stdin.write(line)
+   p1.communicate()
+   p2.communicate()
+   tinf.close()
+   tof.close()   
+
 
 def downsample(txs,cnt):
+   if cnt >= len(txs): return txs
    v = txs[:]
    shuffle(v)
    return v[0:cnt]
@@ -182,9 +312,10 @@ def do_inputs():
   parser = argparse.ArgumentParser(description="build a transcriptome from long reads",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument('input',help="Use - for STDIN ordered GPD")
   parser.add_argument('-o','--output',help="output file otherwise STDOUT")
-  #parser.add_argument('--threads',type=int,default=cpu_count(),help="Number of threads to convert names")
+  parser.add_argument('--threads',type=int,default=cpu_count(),help="Number of threads to convert names")
   parser.add_argument('-r','--reference',help="reference gpd")
   parser.add_argument('--downsample',type=int,default=50,help='at most this many reads')
+  parser.add_argument('--downsample_locus',type=int,default=50,help="limit the number of locus transcripts to this amount")
   group1 = parser.add_argument_group('Single Exon Parameters')
   group1.add_argument('--single_exon_minimum_overlap',type=int,default=20,help="minimum bases a read must overlap with a reference single exon transcript")
   group1.add_argument('--single_exon_mutual_overlap',type=int,default=0.2,help="minimum bases a read must overlap with a reference single exon transcript")
