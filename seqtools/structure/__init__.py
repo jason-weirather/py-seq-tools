@@ -223,16 +223,21 @@ class MappingGeneric(object):
     """
     if not self._options.ref:
       raise ValueError("ERROR: sequence is not defined and reference is undefined")
+    #chr = self.range.chr
+    return self.get_sequence(self._options.ref)
+
+  def get_sequence(self,ref):
+    """get a sequence given a reference"""
     strand = '+'
     if not self._options.direction:
       sys.stderr.write("WARNING: no strand information for the transcript\n")
     if self._options.direction: strand = self._options.direction
-    #chr = self.range.chr
     seq = ''
     for e in [x.range for x in self.exons]:
-      seq += str(self._options.ref[e.chr][e.start-1:e.end])
+      seq += str(ref[e.chr][e.start-1:e.end])
     if strand == '-':  seq = rc(seq)
     return Sequence(seq.upper())
+     
 
   def get_junctions_string(self):
     """Get a string representation of the junctions.  This is almost identical to a previous function.

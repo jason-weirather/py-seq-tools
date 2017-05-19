@@ -50,11 +50,11 @@ def main(args):
   z = 0
   for gpd in stream:
     z += 1
-    if gpd.get_transcript_name() in txome:
-      sys.stderr.write("WARNING already have a transcript "+gpd.get_transcript_name()+" ignoring line "+str(z)+" of the gpd\n")
+    if gpd.transcript_name in txome:
+      sys.stderr.write("WARNING already have a transcript "+gpd.transcript_name+" ignoring line "+str(z)+" of the gpd\n")
       continue
-    txome[gpd.get_transcript_name()] = gpd.get_gene_name()
-    tof.write('>'+gpd.get_transcript_name()+"\n"+gpd.get_sequence(ref)+"\n")
+    txome[gpd.transcript_name] = gpd.gene_name
+    tof.write('>'+gpd.transcript_name+"\n"+str(gpd.get_sequence(ref))+"\n")
   tof.close()
   inf.close()
   sys.stderr.write("wrote "+str(len(txome.keys()))+" transcripts\n")
