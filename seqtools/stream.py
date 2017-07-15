@@ -1,5 +1,5 @@
 """ Classes to help stream biological data"""
-import sys, re, itertools
+import sys, re, itertools, os
 from seqtools.range.multi import merge_ranges, sort_ranges
 from subprocess import Popen, PIPE
 from format.gpd import GPD
@@ -103,7 +103,7 @@ class LineObjectStream(BufferedLineStream):
       super(LineObjectStream,self).__init__(stream,BufferedLineStream.Options(
          buffer_size = options.buffer_size,
          mapping_function = mapping_function
-      ))      
+      ))
 
    @staticmethod
    def Options(**kwargs):
@@ -196,12 +196,12 @@ class LocusStream(object):
          except StopIteration: e = None
          if e:
             rng = e.range
-            if not rng: 
-               raise ValueError('no range property. it is required in a locus stream') 
+            if not rng:
+               raise ValueError('no range property. it is required in a locus stream')
             if rng.overlaps(self._current_range):
                self._current_range.payload.append(e)
                if self._current_range.end < rng.end: self._current_range.end = rng.end
-            else: 
+            else:
                output = self._current_range
                self._current_range = rng
                self._current_range.set_payload([e])
@@ -229,7 +229,7 @@ class MultiLocusStream:
       self._buffers = [None for x in streams]
       for i in range(0,len(self._streams)):
          try: x = self._streams[i].next()
-         except StopIteration: x = None 
+         except StopIteration: x = None
          if x:
             #rng = x.range
             #rng.set_payload(x)
@@ -255,7 +255,7 @@ class MultiLocusStream:
             if self._buffers[i].range.overlaps(current.range):
                added = True
                outputs[i].append(self._buffers[i])
-               if current.start > self._buffers[i].range.start: 
+               if current.start > self._buffers[i].range.start:
                   current.start = self._buffers[i].range.start
                if current.end < self._buffers[i].range.end:
                   current.end = self._buffers[i].range.end
@@ -276,7 +276,11 @@ class GZippedOutputFile:
   def __init__(self,filename):
     self._fh = open(filename,'w')
     cmd = "gzip"
-    self._pipe = Popen(cmd.split(),stdout=self._fh,stdin=PIPE,close_fds=True)
+    if os.name == 'nt':
+       sys.stderr.write("WARNING: OS detected. close_fds not available.")
+       self._pipe = Popen(cmd,stdout=self._fh,stdin=PIPE,shell=True)
+    else:
+       self._pipe = Popen(cmd.split(),stdout=self._fh,stdin=PIPE,close_fds=True)
     self._sh = self._pipe.stdin
   def write(self,value):
     self._sh.write(value)

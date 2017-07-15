@@ -1,4 +1,4 @@
-import uuid, sys, time, re
+import uuid, sys, time, re, os
 import seqtools.structure.transcript
 from seqtools.range import GenomicRange
 from subprocess import Popen, PIPE
@@ -12,7 +12,7 @@ GPDOptions = namedtuple('GPDOptions',
     'ref',
     'payload'])
 
-"""GPDFields namedtuple must be defined at the top level to 
+"""GPDFields namedtuple must be defined at the top level to
    facilitate serialization"""
 GPDFields = namedtuple('GPDFields',
    ['gene_name',
@@ -36,12 +36,12 @@ class GPD(seqtools.structure.transcript.Transcript):
   def __init__(self,gpd_line,options=None):
     if not options: options = GPD.Options()
     self._options = options
-    # Only store the line and ID at first.  
+    # Only store the line and ID at first.
     self._line = gpd_line.rstrip()
     m = re.match('[^\t]+\t[^\t]+\t([^\t]+)\t[^\t]+\t([^\t]+)\t([^\t]+)',gpd_line)
     self.entries = GPD._line_to_entry(self._line)
 
-    exs = [GenomicRange(self.entries.chrom, 
+    exs = [GenomicRange(self.entries.chrom,
                         self.entries.exonStarts[i]+1,
                         self.entries.exonEnds[i]) for i in range(0,self.entries.exonCount)]
     super(GPD,self).__init__(exs,
@@ -72,7 +72,7 @@ class GPD(seqtools.structure.transcript.Transcript):
     return self.entries.name
 
   def __str__(self):
-    return self.get_gpd_line()  
+    return self.get_gpd_line()
 
   def get_gpd_line(self):
     """output the original gpd line
@@ -147,8 +147,13 @@ class SortedOutputFile:
     if tempdir: scmd += " -T "+tempdir.rstrip('/')+'/'
     if self._gz:
       cmd1 = "gzip"
-      p1 = Popen(cmd1.split(),stdout=self._fh,stdin=PIPE,close_fds=True)
-      p2 = Popen(scmd.split(),stdout=p1.stdin,stdin=PIPE,close_fds=True)
+      if os.name == 'nt':
+         sys.stderr.write("WARNING: Windows OS Detected. close_fds not available.")
+         p1 = Popen(cmd1,stdout=self._fh,stdin=PIPE,shell=True)
+         p2 = Popen(scmd,stdout=p1.stdin,stdin=PIPE,shell=True)
+      else:
+         p1 = Popen(cmd1.split(),stdout=self._fh,stdin=PIPE,close_fds=True)
+         p2 = Popen(scmd.split(),stdout=p1.stdin,stdin=PIPE,close_fds=True)
       self._sh = p2.stdin
       self._pipes = [p2,p1]
     else:
