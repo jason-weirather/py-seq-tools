@@ -47,7 +47,7 @@ class SAM(seqtools.align.Alignment):
   :type line: string
   :type options: namedtuple
   :type options.sam_header: SAMHeader object
-  :type options.reference: dict() 
+  :type options.reference: dict()
   :type options.reference_lengths: dict() - dictionary of chromosome keyed lengths
   """
   def __init__(self,line,options=None):
@@ -102,15 +102,15 @@ class SAM(seqtools.align.Alignment):
     pos = int(f[3])
     if pos == 0: pos = None
     mapq = int(f[4])
-    if mapq == 255: mapq = None 
+    if mapq == 255: mapq = None
     cigar = f[5]
     if f[5] == '*': cigar = None
     rnext = f[6]
     if f[6] == '*': rnext = None
     pnext = int(f[7])
-    if pnext == 0: pnext = None 
+    if pnext == 0: pnext = None
     tlen = int(f[8])
-    if tlen == 0: tlen = None 
+    if tlen == 0: tlen = None
     seq = None
     if f[9] != '*': seq = f[9]
     qual = None
@@ -174,7 +174,7 @@ class SAM(seqtools.align.Alignment):
 
   @property
   def query_quality(self):
-    """ Overrides align 
+    """ Overrides align
 
     .. warning:: this returns the full query quality, not just the aligned portion
     """
@@ -201,13 +201,13 @@ class SAM(seqtools.align.Alignment):
     :rtype: int
     """
     if not self.is_aligned() or not self.entries.cigar:
-      return self.query_sequence_length # take the naive approach 
-    # we are here with something aligned so take more intelligent cigar apporach  
+      return self.query_sequence_length # take the naive approach
+    # we are here with something aligned so take more intelligent cigar apporach
     return sum([x[0] for x in self.cigar_array if re.match('[HMIS=X]',x[1])])
 
   @property
   def actual_original_query_range(self):
-    """ This accounts for hard clipped bases 
+    """ This accounts for hard clipped bases
     and a query sequence that hasnt been reverse complemented
 
     :return: the range covered on the original query sequence
@@ -391,7 +391,7 @@ class SAMGenerator(seqtools.stream.BufferedLineGenerator):
          last = 0
          for m in re.finditer('\n',data):
             ln = data[last:m.start()+1]
-            if is_header(ln): 
+            if is_header(ln):
                self._header_text += ln
             else:
                done_header = True
@@ -444,7 +444,7 @@ class SAMStream(object):
   :param stream: filehandle to go through
   :param options.buffer_size: buffer_size - read this many bytes at a time
   :type stream: stream
-  :type options.buffer_size: 
+  :type options.buffer_size:
   """
   def __init__(self,stream,options=None):
     if not options: options = SAMStream.Options()
@@ -541,4 +541,3 @@ def check_flag(flag,inbit):
   """Check a flag is true or false"""
   if flag & inbit: return True
   return False
-
