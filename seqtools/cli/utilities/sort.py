@@ -19,19 +19,20 @@ def main(args):
   if args.bam or args.sam:
     do_sam(args)
     return
-  cmd = "sort -T "+args.tempdir+'/'
+  cmd = ["sort","-T",args.tempdir+'/']
   if args.psl:
     if args.name:
-      cmd = "sort -k10,10 -T "+args.tempdir+'/'
+      cmd = ["sort","-k10,10","-T",args.tempdir+'/']
     else:
-      cmd = "sort -k14,14 -k15,15n -k16,16n -k9,9 -T "+args.tempdir+'/'
+      cmd = ["sort","-k14,14","-k15,15n","-k16,16n","-k9,9","-T",
+             args.tempdir+'/']
   if args.bed:
-    cmd = "sort -k1,1 -k2,2n -T "+args.tempdir+'/'
+    cmd = ["sort","-k1,1","-k2,2n","-T",args.tempdir+'/']
   if args.gpd:
     if args.name:
-      cmd = "sort -k1,1 -k2,2 -T "+args.tempdir+'/'
+      cmd = ["sort","-k1,1","-k2,2","-T",args.tempdir+'/']
     else:
-      cmd = "sort -k3,3 -k5,5n -k6,6n -k4,4 -T "+args.tempdir+'/'
+      cmd = ["sort","-k3,3","-k5,5n","-k6,6n","-k4,4","-T",args.tempdir+'/']
   # Setup inputs 
   if args.input == '-':
     args.input = sys.stdin
@@ -42,7 +43,7 @@ def main(args):
     args.output = open(args.output,'w')
   else:
     args.output = sys.stdout
-  p = Popen(cmd.split(),stdout=args.output,stdin=PIPE)
+  p = Popen(cmd,stdout=args.output,stdin=PIPE)
   for line in args.input:
     p.stdin.write(line)
   #p.stdin.close()
@@ -136,7 +137,7 @@ def do_inputs():
 
 def external_cmd(cmd):
   cache_argv = sys.argv
-  sys.argv = cmd.split()
+  sys.argv = cmd
   args = do_inputs()
   main(args)
   sys.argv = cache_argv

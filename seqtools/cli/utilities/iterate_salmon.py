@@ -16,11 +16,11 @@ from subprocess import Popen, PIPE
 
 def main(args):
 
-  cmd_fastq = ' -p '+str(args.numThreads)
-  if args.rU: cmd_fastq += ' --rU '+args.rU
-  if args.r1: cmd_fastq += ' --r1 '+args.r1
-  if args.r2: cmd_fastq += ' --r2 '+args.r2
-  cmd_genome = ' '+args.genome
+  cmd_fastq = ['-p',str(args.numThreads)]
+  if args.rU: cmd_fastq += ['--rU',args.rU]
+  if args.r1: cmd_fastq += ['--r1',args.r1]
+  if args.r2: cmd_fastq += ['--r2',args.r2]
+  cmd_genome = [args.genome]
   z = 0
   current_gpd = args.gpd
   prev_size = -1
@@ -28,8 +28,9 @@ def main(args):
     z += 1
     result = args.tempdir+'/result.'+str(z)
     # run an iteration
-    cmd_gpd = ' '+current_gpd
-    cmd = 'fastq_to_salmon_quant --tempdir '+args.tempdir+' '+cmd_fastq+cmd_gpd+cmd_genome+' -o '+result
+    cmd_gpd = [current_gpd]
+    cmd = ['fastq_to_salmon_quant','--tempdir',args.tempdir]+\
+          [cmd_fastq]+[cmd_gpd]+[cmd_genome]+['-o',result]
     sys.stderr.write(cmd)
     salmon(cmd)
     #check the result
@@ -128,7 +129,7 @@ def setup_tempdir(args):
 
 def external_cmd(cmd):
   cache_argv = sys.argv
-  sys.argv = cmd.split()
+  sys.argv = cmd
   args = do_inputs()
   main(args)
   sys.argv = cache_argv

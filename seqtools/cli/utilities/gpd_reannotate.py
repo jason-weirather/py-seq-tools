@@ -18,10 +18,12 @@ from seqtools.cli.utilities.sort import external_cmd as gpd_sort
 
 def main(args):
   """first we need sorted genepreds"""
-  cmd = 'sort '+args.reference+' --gpd --tempdir '+args.tempdir+' --threads '+str(args.threads)+' -o '+args.tempdir+'/ref.sorted.gpd'
+  cmd = ['sort',args.reference,'--gpd','--tempdir',args.tempdir,'--threads',
+         str(args.threads),'-o',args.tempdir+'/ref.sorted.gpd']
   sys.stderr.write(cmd+"\n")
   gpd_sort(cmd)
-  cmd = 'sort '+args.gpd+' --gpd --tempdir '+args.tempdir+' --threads '+str(args.threads)+' -o '+args.tempdir+'/my.sorted.gpd'
+  cmd = ['sort',args.gpd,'--gpd','--tempdir',args.tempdir,'--threads',
+         str(args.threads),'-o',args.tempdir+'/my.sorted.gpd']
   sys.stderr.write(cmd+"\n")
   gpd_sort(cmd)
   rstream = GPDStream(open(args.tempdir+'/ref.sorted.gpd'))
@@ -137,7 +139,7 @@ def setup_tempdir(args):
 
 def external_cmd(cmd):
   cache_argv = sys.argv
-  sys.argv = cmd.split()
+  sys.argv = cmd
   args = do_inputs()
   main(args)
   sys.argv = cache_argv
