@@ -34,8 +34,9 @@ setup(
             'seqtools.format.fasta',
             'seqtools.format.sam',
             'seqtools.format.sam.bam',
-            'seqtools.transcript',
-            'seqtools.transcriptome',
+            'seqtools.structure',
+            'seqtools.structure.transcript',
+            'seqtools.structure.transcriptome',
             'seqtools.graph'],
   entry_points = {
     'console_scripts':['seq-tools=seqtools.cli.cli_front:main']
