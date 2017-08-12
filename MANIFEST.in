@@ -1,3 +1,5 @@
 include README.md
 include LICENSE
+exclude data
+exclude tests
 recursive-include seqtools *.py
