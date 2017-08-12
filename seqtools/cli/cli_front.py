@@ -20,7 +20,7 @@ def main():
   # Utilities in the utility directory that will be available must have
   #    external_cmd(string) available
   task_module = import_module('seqtools.cli.utilities.'+args.task)
-  task_module.external_cmd(" ".join(back_end_args))
+  task_module.external_cmd(back_end_args)
 
 def do_args ():
   util_path = os.path.dirname(seqtools.cli.utilities.__file__)

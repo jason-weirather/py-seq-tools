@@ -47,7 +47,7 @@
 """
 import sys, gzip, argparse
 
-
+source = '.'
 def main(args):
    linenum = 0
    inf = sys.stdin
