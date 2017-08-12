@@ -1,0 +1,7 @@
+include README.md
+include data/chr*
+include tests/*.py
+include manual.pdf
+include LICENSE
+include Dockerfile
+recursive-include seqtools *.py
