@@ -12,7 +12,7 @@ with open(path.join(this_folder,'README.md'),encoding='utf-8') as inf:
 
 setup(
   name='seq-tools',
-  version='1.0.3',
+  version='1.0.4',
   description='Python tools for working with biological sequence data',
   long_description=long_description,
   url='https://github.com/jason-weirather/py-seq-tools',
@@ -34,10 +34,14 @@ setup(
             'seqtools.format.fasta',
             'seqtools.format.sam',
             'seqtools.format.sam.bam',
+            'seqtools.graph',
+            'seqtools.sequence',
+            'seqtools.simulation',
+            'seqtools.statistics',
             'seqtools.structure',
             'seqtools.structure.transcript',
-            'seqtools.structure.transcriptome',
-            'seqtools.graph'],
+            'seqtools.structure.transcriptome'
+           ],
   entry_points = {
     'console_scripts':['seq-tools=seqtools.cli.cli_front:main']
   }
