@@ -10,6 +10,7 @@
 #
 
 import re, sys
+from collections import OrderedDict
 
 class GTFFile:
   def __init__(self,filehandle):
@@ -72,12 +73,26 @@ class GTF:
   def __init__(self,line=None):
     self.entry = None
     if line: self.entry = line_to_entry(line)
+  @property
+  def dict(self):
+    d = OrderedDict()
+    gff = self.entry['gff']
+    d['seqname'] = None if gff[0] == '.' else gff[0]
+    d['source'] = None if gff[1] == '.' else gff[1]
+    d['feature'] = None if gff[2] == '.' else gff[2]
+    d['start'] = None if gff[3] == '.' else int(gff[3])
+    d['end'] = None if gff[4] == '.' else int(gff[4])
+    d['score'] = None if gff[5] == '.' else gff[5]
+    d['strand'] = None if gff[6] == '.' else gff[6]
+    d['frame'] = None if gff[7] == '.' else int(gff[7])
+    d['attribute'] = self.entry['attributes']
+    return d
 
 def line_to_entry(line):
   f = line.rstrip().split("\t")
   gff_fields = f[:8]
   preattributes = re.split('\s*;\s*',f[8])
-  attributes = {}
+  attributes = OrderedDict()
   for attribute in preattributes:
     m = re.search('(\S+)\s*["\']([^\'"]+)["\']',attribute)
     if m:  
