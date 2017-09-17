@@ -33,6 +33,7 @@ def main(args):
   for sam in stream:
     z+=1
     if not sam.is_aligned(): continue # just keep aligned 
+    if sam.entries.pos == 0: continue
     cigar = sam.cigar_array
     leftoffset = 0
     leftcigaroffset = 0
@@ -60,7 +61,7 @@ def main(args):
     if sam.entries.qual != '*':
       qual = sam.entries.qual[leftoffset:len(sam.entries.qual)-rightoffset]
     neocigar = cigar[leftcigaroffset:len(cigar)-rightcigaroffset]
-    neocigarstring = ''.join([str(x[0])+x[1] for x in neocigar])
+    neocigarstring = ''.join([str(x[0])+x[1] for x in neocigar]).replace('N','D')
     flag = "0"
     if sam.check_flag(16):
       flag = "16"
@@ -73,7 +74,7 @@ def main(args):
     ostr += neocigarstring + "\t"
     ostr += '*' + "\t"
     ostr += "0" + "\t"
-    ostr += str(sam.entries.tlen) + "\t"
+    ostr += "0\t" if not sam.entries.tlen else str(sam.entries.tlen) + "\t"
     ostr += seq + "\t"
     ostr += qual
     of.write(ostr+"\n")
