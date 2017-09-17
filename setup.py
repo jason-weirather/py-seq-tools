@@ -12,7 +12,7 @@ with open(path.join(this_folder,'README.md'),encoding='utf-8') as inf:
 
 setup(
   name='seq-tools',
-  version='1.0.7',
+  version='1.0.8',
   description='Python tools for working with biological sequence data',
   long_description=long_description,
   url='https://github.com/jason-weirather/py-seq-tools',
