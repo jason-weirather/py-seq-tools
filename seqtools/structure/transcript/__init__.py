@@ -161,9 +161,6 @@ class Transcript(seqtools.structure.MappingGeneric):
     """
     return GenomicRange(self._rngs[0].chr,self._rngs[0].start,self._rngs[-1].end)
 
-  #def get_range(self):
-  #  return self.range
-
   def set_strand(self,dir):
     """Set the strand (direction)
 
