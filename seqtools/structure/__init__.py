@@ -112,6 +112,16 @@ class MappingGeneric(object):
     """
     return self._id
 
+  def union(self,tx2): # keep direction and name of self
+    all = []
+    for rng1 in [x.rng for x in self.exons]:
+      for rng2 in [y.rng for y in tx2.exons]:
+        u = rng1.union(rng2)
+        if u: all.append(u)
+    if len(all) == 0: return None
+    rngs = merge_ranges(all)
+    return MappingGeneric(rngs)
+
   def set_reference(self,ref):
      """Assign the reference"""
      self._options = self._options._replace(ref=ref)
