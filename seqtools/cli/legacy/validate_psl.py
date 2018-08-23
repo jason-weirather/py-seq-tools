@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys, re
 import PSLBasics
 
@@ -14,14 +15,14 @@ def main():
   for line in inf:
     z += 1
     if args.filter:
-      if PSLBasics.is_valid(line): print line.rstrip()
+      if PSLBasics.is_valid(line): print(line.rstrip())
       continue
     if not PSLBasics.is_valid(line):
-      print "bad line "+str(z)
-      print line
+      print("bad line "+str(z))
+      print(line)
       return
   if not args.filter:
-    print "PSL file looks good"
+    print("PSL file looks good")
   inf.close()
 
 if __name__=="__main__":

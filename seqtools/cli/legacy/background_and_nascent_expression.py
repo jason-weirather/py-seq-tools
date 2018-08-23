@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, os, sys, re, subprocess
 from random import randint
 from GenePredBasics import line_to_entry as genepred_line_to_entry
@@ -62,9 +63,9 @@ def main():
     readcount = int(inf.readline().rstrip())
   intergenic_rpk_distro = get_rpk_distribution(bins)
   intergenic_rpkm_distro = get_rpkm_distribution(bins,readcount)
-  print "Intergenic results:"
-  print str(readcount) + "\tintergenic reads"
-  print str(lambda_intergenic)+"\tintergenic lambda cutting top fraction of "+str(args.top_expressing_bin_cutoff)
+  print("Intergenic results:")
+  print(str(readcount) + "\tintergenic reads")
+  print(str(lambda_intergenic)+"\tintergenic lambda cutting top fraction of "+str(args.top_expressing_bin_cutoff))
   # Now lets process intronic bins
   break_into_bins(tdir+'/introns.bed',tdir+'/intronic_bins.bed',args.intronic_bin_size)
   cmd = 'bedtools intersect -abam '+args.input+' -b '+tdir+'/intronic_bins.bed -wo -bed -split > '+tdir+'/reads_intronic_bin_intersect.bed'
@@ -76,18 +77,18 @@ def main():
   intronic_readcount = 0
   with open(tdir+'/intronic_bins_read_count.txt') as inf:
     intronic_readcount = int(inf.readline().rstrip())
-  print str(intronic_readcount) + "\tintronic reads"
+  print(str(intronic_readcount) + "\tintronic reads")
   intronic_rpk_distro = get_rpk_distribution(intronic_bins)
   intronic_rpkm_distro = get_rpkm_distribution(intronic_bins,intronic_readcount)
   #print intronic_rpk_distro
   #print intronic_rpkm_distro
-  print "percentile\tintergenic_rpk\tintergenic_rpkm\tintronic_rpkm"
+  print("percentile\tintergenic_rpk\tintergenic_rpkm\tintronic_rpkm")
   for i in range(0,100):
-    print str(i)+"\t"+\
+    print(str(i)+"\t"+\
           str(intergenic_rpk_distro[i][0])+"\t"+\
           str(intergenic_rpkm_distro[i][0])+"\t"+\
           str(intronic_rpk_distro[i][0])+"\t"+\
-          str(intronic_rpkm_distro[i][0])
+          str(intronic_rpkm_distro[i][0]))
   if not args.specific_tempdir:
     rmtree(tdir)
 

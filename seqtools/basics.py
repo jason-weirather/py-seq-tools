@@ -1,6 +1,6 @@
 """Put generally useful things here"""
 import re, sys
-from cStringIO import StringIO
+from io import StringIO
 
 def is_uuid4(instr):
   """A validator to confirm a string is indeed a UUID4

@@ -13,7 +13,7 @@ class FASTAStream:
   def __init__(self,fh,custom_buffer_size=10000000):
     self.fh = fh
     self.buffer_size = custom_buffer_size
-    self.working_string = self.fh.read(self.buffer_size)
+    self.working_string = self.fh.read(self.buffer_size).decode('utf-8')
     self.buffered_results = []
     self.p = re.compile('(>[^\n]+\n[^>]+)')
     self.file_finished = False
@@ -21,6 +21,8 @@ class FASTAStream:
 
   def __iter__(self):
     return self
+  def __next__(self):
+    return self.next()
   def next(self):
     v = self.get_entry()
     if not v:
@@ -38,7 +40,7 @@ class FASTAStream:
       if vals: #have a match
         if vals[0].end() != len(self.working_string): # match is totally covered
           break
-      chunk = self.fh.read(self.buffer_size)
+      chunk = self.fh.read(self.buffer_size).decode('utf-8')
       if not chunk: 
         self.file_finished = True
         break
@@ -83,7 +85,7 @@ class FASTA(seqtools.sequence.Sequence):
       d = {}
       for name in names: d[name] = None #default values
       """set defaults here"""
-      for k,v in kwargs.iteritems():
+      for k,v in kwargs.items():
          if k in names: d[k] = v
          else: raise ValueError('Error '+k+' is not an options property')
       """Create a set of options based on the inputs"""
@@ -181,7 +183,7 @@ class FASTAData:
   def _scan_data(self,dat):
     p = re.compile('>([^\n]+)\n([^>]+)')
     pos = 0
-    for m in p.finditer(dat):
+    for m in p.finditer(dat.decode('utf-8')):
       f = FASTA(m.group(0))
       self._names.append(f.name)
       self._lengths[f.name] = f.length
@@ -280,7 +282,7 @@ class FASTAFile:
     p1 = re.compile('>([^\r\n]+)([\n\r]+)([^>]+)')
     p2 = re.compile('([^\r\n]+)($|[\n\r]+)')
     pos = 0
-    for m1 in p1.finditer(open(self.fname).read()):
+    for m1 in p1.finditer(open(self.fname).read().decode('utf-8')):
       name = m1.group(1)
       pos += len(m1.group(1))+1+len(m1.group(2))
       linewidth_bases = None

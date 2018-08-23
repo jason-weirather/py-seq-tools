@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, argparse
 from Bio.Format.GPD import GPDStream
 from Bio.Format.Sam import SamtoolsBAMStream, BAMFile
@@ -20,9 +21,9 @@ def main():
   mls = MultiLocusStream([gs,bs])
   for ml in mls:
     [gpds,bams]=ml.get_payload()
-    print ml
-    print len(gpds)
-    print len(bams)
+    print(ml)
+    print(len(gpds))
+    print(len(bams))
     # easy job if there is no coverage
     #if len(gpds)==0: continue
     #if len(bams)== 0:

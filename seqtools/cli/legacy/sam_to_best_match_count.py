@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, argparse
 from SamBasics import SamStream, SAM
 from subprocess import Popen, PIPE
@@ -41,7 +42,7 @@ def main():
   #now can output results
   global best_matches
   for name in best_matches:
-    print name +"\t"+str(best_matches[name])
+    print(name +"\t"+str(best_matches[name]))
 
   if multi:
     for p in multi:

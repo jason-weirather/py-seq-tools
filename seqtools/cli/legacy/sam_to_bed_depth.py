@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, argparse
 from SamBasics import SamLocusStream, SAMtoPSLconversionFactory
 from GenePredBasics import GenePredEntry
@@ -62,7 +63,7 @@ def process_locus(locus, args):
 
 def output_depth(ostr,args):
   if args.verbose: sys.stderr.write(" ".join(ostr.split("\t")[0:3])+"                        \r")
-  print ostr
+  print(ostr)
 
 if __name__=="__main__":
   main()

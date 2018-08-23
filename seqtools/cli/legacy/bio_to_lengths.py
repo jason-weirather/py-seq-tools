@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse,sys
 from PSLBasics import PSL
 
@@ -21,7 +22,7 @@ def do_psl(args):
   for line in args.input:
     psl = PSL(line)
     cov = sum(psl.value('blockSizes'))
-    print cov
+    print(cov)
 
 if __name__=="__main__":
   main()

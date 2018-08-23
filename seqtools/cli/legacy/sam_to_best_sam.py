@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys,argparse, re
 from SamBasics import MultiEntrySamReader, SAMtoPSLconversionFactory
 from PSLBasics import PSL
@@ -19,7 +20,7 @@ def main():
   spc = SAMtoPSLconversionFactory()
   # set the headers for the spc
   for h in msr.header:
-    print h.rstrip()
+    print(h.rstrip())
     spc.read_header_line(h)
   while True:
     entries = msr.read_entries()
@@ -47,11 +48,11 @@ def main():
         longest2 = p.get_coverage()
         entry2 = sam
     if entry0: #output the combined if its there
-      print entry0.get_line()
+      print(entry0.get_line())
     else:
       if entry1: #output each of the mates if they are paired but not joined
-        print entry1.get_line()
+        print(entry1.get_line())
       if entry2:
-        print entry2.get_line()
+        print(entry2.get_line())
 if __name__=="__main__":
   main()

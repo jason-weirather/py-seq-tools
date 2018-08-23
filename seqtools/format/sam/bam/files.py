@@ -109,7 +109,7 @@ class BAMFile(BAMFileGeneric):
      names = construct._fields
      d = {}
      for name in names: d[name] = None #default values
-     for k,v in kwargs.iteritems():
+     for k,v in kwargs.items():
        if k in names: d[k] = v
        else: raise ValueError('Error '+k+' is not a property of these options')
      """Create a set of options based on the inputs"""
@@ -120,7 +120,7 @@ class BAMFile(BAMFileGeneric):
     return self._options.reference
 
   def read_entry(self):
-     return self.make_val(self._gen().next())
+     return self.make_val(next(self._gen()))
 
   def _gen(self):
    while True:
@@ -216,7 +216,7 @@ class BAMFileAlt(BAMFileGeneric):
      d = {}
      for name in names: d[name] = None #default values
      d['mode'] = 'seqtools'
-     for k,v in kwargs.iteritems():
+     for k,v in kwargs.items():
        if k in names: d[k] = v
        else: raise ValueError('Error '+k+' is not a property of these options')
      """Create a set of options based on the inputs"""

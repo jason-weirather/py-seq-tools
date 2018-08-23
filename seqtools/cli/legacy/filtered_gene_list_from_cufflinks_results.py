@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys, re
 
 def main():
@@ -58,7 +59,7 @@ def main():
         del gene_lengths[gene]
   gene_names  = gene_lengths.keys()
   for gene in sorted(gene_names):
-    print gene + "\t" + ",".join([str(x) for x in sorted(gene_lengths[gene])])
+    print(gene + "\t" + ",".join([str(x) for x in sorted(gene_lengths[gene])]))
 
 def read_fpkm(filename):
   entries = {}

@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from __future__ import print_function
 import sys, os, inspect, re
 
 #pre: fasta for 
@@ -19,7 +20,7 @@ import sequence_basics
 
 def main():
   if len(sys.argv) < 4:
-    print sys.argv[0] + ' <ccs 95 fasta> <ccs 90 fasta> <subread 75 fasta>'
+    print(sys.argv[0] + ' <ccs 95 fasta> <ccs 90 fasta> <subread 75 fasta>')
     sys.exit()
   ccs95 = sequence_basics.read_fasta_into_array(sys.argv[1])
 
@@ -29,7 +30,7 @@ def main():
   for entry in ccs95:
     m = prog.match(entry['name'])
     if not m: 
-      print 'trouble parsing name'
+      print('trouble parsing name')
       return
     basename = m.group(1)
     ccs95basenames.add(basename)
@@ -40,12 +41,12 @@ def main():
   for entry in ccs90:
     m = prog.match(entry['name'])
     if not m:
-      print 'trouble parsing name'
+      print('trouble parsing name')
       return
     basename = m.group(1)
     if basename in ccs95basenames: continue
-    print '>'+entry['name']
-    print entry['seq']
+    print('>'+entry['name'])
+    print(entry['seq'])
     ccs90to95basenames.add(basename)
   ccs90 = []
 
@@ -54,7 +55,7 @@ def main():
   for entry in sub75:
     m = prog.match(entry['name'])
     if not m:
-      print 'trouble parsing name'
+      print('trouble parsing name')
       return
     basename = m.group(1)
     if basename in ccs95basenames: continue
@@ -65,7 +66,7 @@ def main():
   for entry in sub75:
     m = prog.match(entry['name'])
     if not m:
-      print 'trouble parsing name'
+      print('trouble parsing name')
       return
     basename = m.group(1)
     if basename in ccs95basenames: continue
@@ -74,8 +75,8 @@ def main():
       printsub75[basename] = entry
   for basename in printsub75:
     entry = printsub75[basename]
-    print '>'+entry['name']
-    print entry['seq']
+    print('>'+entry['name'])
+    print(entry['seq'])
   sys.stderr.write('"Dear Benjamin: Everything thing finished nicely and its all going to be okay now." - STDERR')
     
 main()

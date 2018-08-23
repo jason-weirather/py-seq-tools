@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, argparse
 from subprocess import Popen, PIPE
 from multiprocessing import cpu_count, Pool
@@ -16,7 +17,7 @@ def main():
   p.close()
   p.join()
   for res in [x.get() for x in results]:
-    print res
+    print(res)
 def check_file(f):
     cmd1 = 'samtools view '+f
     cmd2 = 'cut -f 1'

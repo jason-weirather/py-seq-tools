@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys, re
 
 def main():
@@ -24,14 +25,14 @@ def main():
     inf = open(args.input)
   for line in inf:
     if not re.match('\S+\s+\d+\s+\d+',line): #not a bed format print and continue
-      print line.rstrip()
+      print(line.rstrip())
       continue
     f = line.rstrip().split("\t")
     if not re.match('\d+,\d+,\d+',f[8]):
       sys.stderr.write("ERROR unexpected format in field 9\n"+line.rstrip()+"\n")
       sys.exit()
     f[8] = color
-    print "\t".join(f)
+    print("\t".join(f))
 
 if __name__=="__main__":
   main()

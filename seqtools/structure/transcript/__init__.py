@@ -12,8 +12,8 @@ from seqtools.structure.transcript.converters import transcript_to_gpd_line, tra
 
 class Exon(GenomicRange):
    """A more full featured exon definition"""
-   def __init__(self,rng,dir=None):
-      super(Exon,self).__init__(rng.chr,rng.start,rng.end,rng.payload,dir)
+   def __init__(self,rng,payload=None,dir=None):
+      super().__init__(rng.chr,rng.start,rng.end,rng.payload,dir)
       self.leftmost = None
       self.rightmost = None
       self.fiveprime = None
@@ -64,7 +64,7 @@ class Transcript(seqtools.structure.MappingGeneric):
        rngs = [Exon(x) for x in rngs]
        rngs[0].set_leftmost(True)
        rngs[-1].set_rightmost(True)
-    super(Transcript,self).__init__(rngs,options)
+    super().__init__(rngs,options)
 
   @staticmethod
   def Options(**kwargs):
@@ -74,7 +74,7 @@ class Transcript(seqtools.structure.MappingGeneric):
       d = {}
       for name in names: d[name] = None #default values
       """set defaults here"""
-      for k,v in kwargs.iteritems():
+      for k,v in kwargs.items():
          if k in names: d[k] = v
          else: raise ValueError('Error '+k+' is not an options property')
       """Create a set of options based on the inputs"""

@@ -61,7 +61,7 @@ class GPD(seqtools.structure.transcript.Transcript):
      names = construct._fields
      d = {}
      for name in names: d[name] = None #default values
-     for k,v in kwargs.iteritems():
+     for k,v in kwargs.items():
        if k in names: d[k] = v
        else: raise ValueError('Error '+k+' is not a property of these options')
      """Create a set of options based on the inputs"""
@@ -108,11 +108,14 @@ class GPDStream:
   def read_entry(self):
     ln = self.fh.readline()
     if not ln: return False
-    gpd = GPD(ln)
+    gpd = GPD(ln.decode('utf-8'))
     return gpd
 
   def __iter__(self):
     return self
+
+  def __next__(self):
+    return self.next()
 
   def next(self):
     r = self.read_entry()

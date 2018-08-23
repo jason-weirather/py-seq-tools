@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, argparse, re
 from GenePredBasics import GenePredEntry as GPD
 from random import shuffle
@@ -43,7 +44,7 @@ def main():
     gene_names.pop(0)
   for pair in pairs:
     [gpds,ars] = get_random_gpds_from_pair(pair,genes,ref)
-    print ars.name
+    print(ars.name)
     of_fasta.write(ars.get_fasta())
     for gpd in gpds:
       of_gpd.write(gpd+"\n")

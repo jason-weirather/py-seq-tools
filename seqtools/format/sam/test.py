@@ -1,5 +1,5 @@
 """The testing suite for seqtools"""
-import unittest, sys, gzip, hashlib, cStringIO, os
+import unittest, sys, gzip, hashlib, io, os
 from seqtools.range import GenomicRange
 from tempfile import NamedTemporaryFile
 from seqtools.format.fasta import FASTAData
@@ -37,7 +37,7 @@ class ALIGN(unittest.TestCase):
       self.assertEqual('2e92a4793a4a2140103dcb26d2523d68',samhash)
    def test_samread(self):
       """Test that the sam can be streamed properly"""
-      stream = cStringIO.StringIO(self.sam)
+      stream = io.StringIO(self.sam)
       ss = sam.SAMStream(stream)
       buffer = ss.header.text.rstrip()+"\n"
       for s in ss:

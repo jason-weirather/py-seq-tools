@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys
 from SamBasics import is_header
 from subprocess import Popen, PIPE
@@ -25,7 +26,7 @@ def main():
         line = args.input.readline()
         if not line: break
         if is_header(line):
-          print line.rstrip()
+          print(line.rstrip())
           continue
         else: in_header = False
     else:
@@ -40,9 +41,9 @@ def main():
         buffer_name = pos
       buffer_count += 1
       if buffer_count <= args.positional_duplicates:
-        print line.rstrip()
+        print(line.rstrip())
     else:
-      print line.rstrip()
+      print(line.rstrip())
   if bam: p.communicate()
 
 if __name__=="__main__":

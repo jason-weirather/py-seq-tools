@@ -45,6 +45,7 @@
    Jason Weirather 20140317
    This script will take genePred files exons and convert them to gtf files
 """
+from __future__ import print_function
 import sys, gzip, argparse
 
 source = '.'
@@ -59,7 +60,7 @@ def main(args):
      if args.output[-3:] == '.gz': inf = gzip.open(args.output,'w')
      else: of = open(args.output,'w')
    for line in inf:
-      print line
+      print(line)
       linenum+=1
       if line.startswith("#"): continue
       vals  = line.rstrip("\r\n").split("\t")

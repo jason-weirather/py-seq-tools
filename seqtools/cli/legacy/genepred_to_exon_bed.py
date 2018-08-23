@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from __future__ import print_function
 import sys, re, os, argparse
 from GenePredBasics import line_to_entry as genepred_line_to_entry
 
@@ -15,7 +16,7 @@ def main():
     if re.match('^#',line): continue
     e = genepred_line_to_entry(line)
     for i in range(0,len(e['exonStarts'])):
-      print e['chrom']+"\t"+str(e['exonStarts'][i])+"\t"+str(e['exonEnds'][i])+"\t"+e['gene_name']+"\t"+e['name']+"\t"+str(i)
+      print(e['chrom']+"\t"+str(e['exonStarts'][i])+"\t"+str(e['exonEnds'][i])+"\t"+e['gene_name']+"\t"+e['name']+"\t"+str(i))
   inf.close()
 
 

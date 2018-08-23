@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, argparse
 import PSLBasics
 from SequenceBasics import read_fasta_into_hash, FastaHandleReader, rc
@@ -42,7 +43,7 @@ def main():
     p.set_query(last_fasta['seq'])
     p.set_reference_dictionary(g)
     p.correct_stats()
-    print p.get_line()
+    print(p.get_line())
     continue
     f = last_fasta
     nCount = 0
@@ -94,7 +95,7 @@ def main():
     p.entry['tBaseInsert'] = tBaseInsert
     p.entry['qSize'] = len(query)
     p.entry['tSize'] = len(g[p.value('tName')]) 
-    print p.get_line()
+    print(p.get_line())
     #p.pretty_print(100)
   fhr.close()
 if __name__=="__main__":

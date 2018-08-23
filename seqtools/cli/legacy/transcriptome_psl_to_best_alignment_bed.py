@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, os, inspect
 #      This can be used as part of a pipeline to call which transcript
 #      and long read is aligned to.  This takes the alignment of the long
@@ -29,7 +30,7 @@ import genepred_basics, psl_basics
 def main():
 
   if len(sys.argv) < 2:
-    print sys.argv[0] + " <psl filename> <smoothing parameter (default 10)>"
+    print(sys.argv[0] + " <psl filename> <smoothing parameter (default 10)>")
     sys.exit()
   smoothing = 10
   if len(sys.argv) == 3:
@@ -52,6 +53,6 @@ def main():
           longest_exon = exon_length
           best_end = smoothed_gpd_entry['exonEnds'][i]
           best_start = smoothed_gpd_entry['exonStarts'][i]
-      print psl_entry['tName'] + "\t" +  str(best_start) + "\t" + str(best_end) + "\t" + psl_entry['qName'] + "\t" + str(psl_entry['qSize']) + "\t" + str(psl_entry['tSize']) + "\t" + str(longest_exon)
+      print(psl_entry['tName'] + "\t" +  str(best_start) + "\t" + str(best_end) + "\t" + psl_entry['qName'] + "\t" + str(psl_entry['qSize']) + "\t" + str(psl_entry['tSize']) + "\t" + str(longest_exon))
 
 main()

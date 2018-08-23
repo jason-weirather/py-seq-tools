@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from __future__ import print_function
 import sys, re, os, inspect
 
 #pre: 1.) a sam file piped to stdin
@@ -17,19 +18,19 @@ import sam_basics
 
 def main():
   if len(sys.argv) != 3:
-    print 'cat myfile.sam | ./'+sys.argv[0] + ' <hex flag (i.e. 0x800)> <integer 1 for print on 1, 0 for print on 0>'
+    print('cat myfile.sam | ./'+sys.argv[0] + ' <hex flag (i.e. 0x800)> <integer 1 for print on 1, 0 for print on 0>')
     sys.exit()
   flag = int(sys.argv[1],16)
   todobool = int(sys.argv[2])
   for line in sys.stdin:
     line = line.rstrip()
     if(sam_basics.is_header(line)):
-      print line
+      print(line)
       continue
     sam = sam_basics.sam_line_to_dictionary(line)
     flagresult = sam_basics.check_flag(sam['flag'],flag)
     if flagresult and todobool == 1:
-      print line
+      print(line)
     elif not flagresult and todobool == 0:
-      print line
+      print(line)
 main()

@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys, re, multiprocessing, json, zlib
 from random import shuffle
 
@@ -100,7 +101,7 @@ def main():
   pool.join()
   sys.stderr.write("\n")
   for entry in results:
-    print str(entry[0])+"\t"+str(entry[1].get())
+    print(str(entry[0])+"\t"+str(entry[1].get()))
 
 def append_check(clist,inval,max_size):
   current = inval

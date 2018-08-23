@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys, re
 
 def main():
@@ -61,9 +62,9 @@ def main():
     ends = [str(x[1]) for x in sites]
     start = starts[0]
     finish = ends[len(ends)-1]
-    print gid + "\t" + tx + "\t" + chrom + "\t" + strand + "\t" \
+    print(gid + "\t" + tx + "\t" + chrom + "\t" + strand + "\t" \
         + str(start) + "\t" + str(finish) + "\t" \
         + str(start) + "\t" + str(finish) + "\t" \
-        + str(len(starts)) + "\t" + ",".join(starts)+",\t"+",".join(ends)+","
+        + str(len(starts)) + "\t" + ",".join(starts)+",\t"+",".join(ends)+",")
 
 main()

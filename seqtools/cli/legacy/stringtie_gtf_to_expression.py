@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys
 import GTFBasics
 
@@ -51,7 +52,7 @@ def main():
   if args.transcript_coverage:
     for gene in genes:
       for transcript in genes[gene]:
-        print transcript+"\t"+str(genes[gene][transcript]['cov'])
+        print(transcript+"\t"+str(genes[gene][transcript]['cov']))
     return
 
   for gene in genes:
@@ -64,9 +65,9 @@ def main():
         ref_gene = ''
         if genes[gene][id]['ref_id']: ref_tx =  genes[gene][id]['ref_id']
         if genes[gene][id]['ref_gene_id']: ref_gene =  genes[gene][id]['ref_gene_id']
-        print genes[gene][id]['gene_id'] + "\t" + genes[gene][id]['transcript_id'] + "\t" + str(genes[gene][id]['TPM']) + "\t" + str(tot) + "\t" + ref_tx + "\t" + ref_gene
+        print(genes[gene][id]['gene_id'] + "\t" + genes[gene][id]['transcript_id'] + "\t" + str(genes[gene][id]['TPM']) + "\t" + str(tot) + "\t" + ref_tx + "\t" + ref_gene)
       else:  
-        print id + "\t" + gene + "\t" + str(genes[gene][id]['TPM']) + "\t" + str(tot)
+        print(id + "\t" + gene + "\t" + str(genes[gene][id]['TPM']) + "\t" + str(tot))
 
 if __name__=="__main__":
   main()

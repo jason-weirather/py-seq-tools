@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys, re, json, multiprocessing
 from SequenceBasics import read_fasta_into_hash, GenericFastqFileReader, GenericFastaFileReader, rc
 from GenePredBasics import GenePredFile
@@ -140,26 +141,26 @@ def main():
 
 def execute_locus(locus_set,args,reference_splices,ref,read,locus_total,locus_count):
   # for this locus we will have to check both directions
-  print "before: " + str(len(locus_set))
-  print [int(x['matches']) for x in locus_set]
-  print max([int(x['matches']) for x in locus_set])
+  print("before: " + str(len(locus_set)))
+  print([int(x['matches']) for x in locus_set])
+  print(max([int(x['matches']) for x in locus_set]))
   rsplices_plus = {}
   rsplices_minus = {}
   if '+' in reference_splices: rsplices_plus = reference_splices['+']
   if '-' in reference_splices: rsplices_minus = reference_splices['-']
   [r1 ,lt1, lc1] = process_locus_set(locus_set,args,rsplices_plus,ref,read,locus_total,locus_count,'+')
   [r2, rt2, rc2] = process_locus_set(locus_set,args,rsplices_minus, ref, read, locus_total, locus_count, '-')
-  print "after: " 
-  print "  positive"
-  print "  "+str([int(x['matches']) for x in r1])
-  print "  "+str([int(x['misMatches']) for x in r1])
-  print "  "+str([int(x['tBaseInsert']) for x in r1])
-  print "  "+str([int(x['qBaseInsert']) for x in r1])
-  print "  negative"
-  print "  "+str([int(x['matches']) for x in r2])
-  print "  "+str([int(x['misMatches']) for x in r2])
-  print "  "+str([int(x['tBaseInsert']) for x in r2])
-  print "  "+str([int(x['qBaseInsert']) for x in r2])
+  print("after: ") 
+  print("  positive")
+  print("  "+str([int(x['matches']) for x in r1]))
+  print("  "+str([int(x['misMatches']) for x in r1]))
+  print("  "+str([int(x['tBaseInsert']) for x in r1]))
+  print("  "+str([int(x['qBaseInsert']) for x in r1]))
+  print("  negative")
+  print("  "+str([int(x['matches']) for x in r2]))
+  print("  "+str([int(x['misMatches']) for x in r2]))
+  print("  "+str([int(x['tBaseInsert']) for x in r2]))
+  print("  "+str([int(x['qBaseInsert']) for x in r2]))
 
   #print r1
   #print r2
@@ -344,7 +345,7 @@ def do_combine_operation(best_option,left,right,read,seq,args):
 
 # Here is the heart of the program
 def process_locus_set(locus_set,args,reference_splices,seq,read,locus_total,locus_count,orientation):
-  print orientation
+  print(orientation)
   lcount = len(locus_set)
   #print len(reference_splices)
   #print '----'

@@ -4,10 +4,11 @@ from collections import namedtuple
 import seqtools.format.sam
 from seqtools.format.sam.header import SAMHeader
 #from seqtools.sequence import rc
-from cStringIO import StringIO
-from string import maketrans
-_bam_ops = maketrans('012345678','MIDNSHP=X')
-_bam_char = maketrans('abcdefghijklmnop','=ACMGRSVTWYHKDBN')
+#from cStringIO import StringIO
+from io import StringIO, BytesIO
+#from string import maketrans
+_bam_ops = str.maketrans('012345678','MIDNSHP=X')
+_bam_char = str.maketrans('abcdefghijklmnop','=ACMGRSVTWYHKDBN')
 _bam_value_type = {'c':[1,'<b'],'C':[1,'<B'],'s':[2,'<h'],'S':[2,'<H'],'i':[4,'<i'],'I':[4,'<I']}
 
 from seqtools.format.sam import TagDatum, CIGARDatum, check_flag
@@ -167,7 +168,7 @@ class BAM(seqtools.format.sam.SAM):
      names = construct._fields
      d = {}
      for name in names: d[name] = None #default values
-     for k,v in kwargs.iteritems():
+     for k,v in kwargs.items():
        if k in names: d[k] = v
        else: raise ValueError('Error '+k+' is not a property of these options')
      """Create a set of options based on the inputs"""
@@ -255,7 +256,7 @@ class BAM(seqtools.format.sam.SAM):
     return self.entries.get_tags()
 
 def _parse_bam_data_block(bin_in,ref_names):
-  data = StringIO(bin_in)
+  data = BytesIO(bin_in)
   rname_num = struct.unpack('<i',data.read(4))[0]
   v_rname = ref_names[rname_num] #refID to check in ref names
   v_pos = struct.unpack('<i',data.read(4))[0] + 1 #POS
@@ -332,7 +333,7 @@ def _bin_to_extra(extra_bytes):
    2. A string of the remainder
   """
   #global _bam_value_type
-  extra = StringIO(extra_bytes)
+  extra = BytesIO(extra_bytes)
   tags = {}
   rem = ''
   while extra.tell() < len(extra_bytes):

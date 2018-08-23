@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import os, argparse, sys, re, random, multiprocessing, subprocess, json
 import SamBasics, PSLBasics, GenePredBasics
 from SequenceBasics import read_fasta_into_hash
@@ -84,7 +85,7 @@ def main():
 
 def docallback(glines):
   for line in glines:
-    print line.rstrip()
+    print(line.rstrip())
 
 def get_genepred_lines(jlocus_groups,read):
     locus_groups = json.loads(jlocus_groups)

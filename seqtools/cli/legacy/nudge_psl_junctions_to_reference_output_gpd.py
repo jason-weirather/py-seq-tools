@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, re, sys, multiprocessing, json
 import PSLBasics, GenePredBasics
 from FileBasics import GenericFileReader
@@ -56,9 +57,9 @@ def main():
     new_ge = nudge(pe,ge,refjuns,args)
     if args.output_fake_psl:
       new_psl_line = GenePredBasics.entry_to_fake_psl_line(new_ge,genome)
-      print new_psl_line
+      print(new_psl_line)
     else:
-      print GenePredBasics.entry_to_line(new_ge)
+      print(GenePredBasics.entry_to_line(new_ge))
 
 def nudge(psl_entry,gpd_entry,refjun,args):
   junctions = []
@@ -117,7 +118,7 @@ def nudge(psl_entry,gpd_entry,refjun,args):
   #print bestbounds
   #print choice_bounds
   if len(choice_bounds) < 1: 
-    print "ERROR  should have choices"
+    print("ERROR  should have choices")
     sys.exit()
   replacements = {}
   for bound in choice_bounds:  replacements[bound[3]] = [bound[0],bound[1]]

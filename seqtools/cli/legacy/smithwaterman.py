@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys
 
 ### smithwaterman.py ###
@@ -26,7 +27,7 @@ def print_matrix(M):
     oline = ''
     for n in range(0,nlen):
       oline = oline + ' ' + str(M[m][n])
-    print oline
+    print(oline)
 
 #### print_alignment_matrix ###
 # Input: Two sequences, and a 2D array
@@ -40,12 +41,12 @@ def print_alignment_matrix(M,s1,s2):
   line1 = ' '
   for c in s1:
     line1 = line1 + ' ' + str(c)
-  print line1
+  print(line1)
   for m in range(0,mlen):
     oline = s2[m] + ''
     for n in range(0,nlen):
       oline = oline + ' ' + str(M[m][n])
-    print oline
+    print(oline)
 
 #### diag_score ####
 # Fetch the diagnal H value from the current coordinate
@@ -196,8 +197,8 @@ H = score_matrix(s1,s2)
 
 #print_alignment_matrix(H,s1,s2)
 [maxscore,s1align,s2align,s1coord,s2coord] = get_local_alignment(H,s1,s2)
-print maxscore
-print s1coord
-print s1align
-print s2align
-print s2coord
+print(maxscore)
+print(s1coord)
+print(s1align)
+print(s2align)
+print(s2coord)

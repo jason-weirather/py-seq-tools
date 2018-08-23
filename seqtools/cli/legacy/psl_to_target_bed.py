@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from __future__ import print_function
 import sys, os, inspect
 
 #pre: psl filename, an optional integer for smoothing size
@@ -17,7 +18,7 @@ import psl_basics, genepred_basics
 
 def main():
   if len(sys.argv) < 2:
-    print sys.argv[0] + ' <psl filename> <smoothing size (optional)>'
+    print(sys.argv[0] + ' <psl filename> <smoothing size (optional)>')
     sys.exit()
   pslfilename = sys.argv[1]
   smooth_size = 0
@@ -31,5 +32,5 @@ def main():
       if smooth_size > 0:
         genepred_entry = genepred_basics.smooth_gaps(genepred_entry,smooth_size)
       for i in range(0,len(genepred_entry['exonStarts'])):
-        print genepred_entry['chrom'] + "\t" + str(genepred_entry['exonStarts'][i]+1) + "\t" + str(genepred_entry['exonEnds'][i]) + "\t" + genepred_entry['gene_name']
+        print(genepred_entry['chrom'] + "\t" + str(genepred_entry['exonStarts'][i]+1) + "\t" + str(genepred_entry['exonEnds'][i]) + "\t" + genepred_entry['gene_name'])
 main()

@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, argparse, re, os
 from SamBasics import SamLocusStream
 from subprocess import Popen, PIPE
@@ -50,7 +51,7 @@ def printres(res):
   global glock
   glock.acquire()
   for line in res:
-    print line
+    print(line)
   glock.release()
 
 def dofilestream(filename,chrom):
@@ -74,7 +75,7 @@ def dostream(stream):
     while True:
       locus = reader.read_locus()
       if not locus: break
-      print locus[0].chr+"\t"+str(locus[0].start-1)+"\t"+str(locus[0].end)
+      print(locus[0].chr+"\t"+str(locus[0].start-1)+"\t"+str(locus[0].end))
 
 
 if __name__=="__main__":

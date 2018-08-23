@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys
 from GenePredBasics import GenePredEntry
 import RangeBasics
@@ -31,6 +32,6 @@ def main():
   for locus in ls.loci:
     z += 1
     for member in locus.members:
-      print str(z) + "\t" + member.get_payload()
+      print(str(z) + "\t" + member.get_payload())
 if __name__=="__main__":
   main()

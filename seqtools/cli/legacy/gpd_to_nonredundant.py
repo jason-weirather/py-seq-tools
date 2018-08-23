@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys, os, random
 from shutil import rmtree
 from multiprocessing import cpu_count, Pool, Lock
@@ -352,8 +353,8 @@ def make_sets_from_subsets(subset):
   #nomutual = set()
   for rname in rnames:
     if rname not in subset:
-      print 'no mutual for '+str(rname)
-  print 'found mutuals'
+      print('no mutual for '+str(rname))
+  print('found mutuals')
 
 # returns a representative gpd and all gpds with those junctions keyed by the representative index
 def get_nr_locus(locus):

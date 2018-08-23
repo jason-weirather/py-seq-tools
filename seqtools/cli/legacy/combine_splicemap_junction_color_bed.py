@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, argparse, re
 
 def main():
@@ -66,12 +67,12 @@ def main():
     final[chrom][start][finish][sign].append(newobs)
   #Finished going through it
   if header:
-    print header
+    print(header)
   for chrom in sorted(final):
     for start in sorted(final[chrom]):
       for finish in sorted(final[chrom][start]):
         for sign in sorted(final[chrom][start][finish]):
           for obs in final[chrom][start][finish][sign]:
-            print "\t".join(obs)
+            print("\t".join(obs))
   
 main()

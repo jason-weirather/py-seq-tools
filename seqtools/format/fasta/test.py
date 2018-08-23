@@ -1,5 +1,5 @@
 """The testing suite for seqtools"""
-import unittest, sys, gzip, hashlib, cStringIO, os
+import unittest, sys, gzip, hashlib, os
 from seqtools.range import GenomicRange
 from tempfile import NamedTemporaryFile
 

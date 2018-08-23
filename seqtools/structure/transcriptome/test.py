@@ -22,7 +22,7 @@ class Transcriptome(unittest.TestCase):
       last_tx = txome.transcripts[-1]
       self.assertEqual(len(neg_tx),3360)
       self.assertEqual(len(pos_tx),3562)
-      hash =  hashlib.md5(str(last_tx.sequence)).hexdigest()
+      hash =  hashlib.md5(str(last_tx.sequence).encode('utf-8')).hexdigest()
       val2 = '9b7cf1954606443259d8ae3fc4063e4d'
       self.assertEqual(val2,hash)
 if __name__ == '__main__':

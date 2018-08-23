@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, argparse, re, os
 
 def main():
@@ -26,7 +27,7 @@ def main():
     cmd += ' --tempdir /localscratch/Users/weirathe '
     if args.prefix:
       cmd = args.prefix + ' ' +cmd
-    print cmd
+    print(cmd)
 
 if __name__=="__main__":
   main()

@@ -3,7 +3,7 @@
 """
 import sys
 from collections import namedtuple
-from string import maketrans
+#from string import maketrans
 
 _NT2NUM = {'A':2,'a':2,'C':1,'c':1,'G':3,'g':3,'T':0,'t':0}
 _NUM2NT = {2:'A',1:'C',3:'G',0:'T'};
@@ -27,7 +27,7 @@ class SequenceGeneric(object):
       d = {}
       for name in names: d[name] = None #default values
       """set defaults here"""
-      for k,v in kwargs.iteritems():
+      for k,v in kwargs.items():
          if k in names: d[k] = v
          else: raise ValueError('Error '+k+' is not an options property')
       """Create a set of options based on the inputs"""
@@ -84,7 +84,7 @@ class Sequence(SequenceGeneric):
       d = {}
       for name in names: d[name] = None #default values
       """set defaults here"""
-      for k,v in kwargs.iteritems():
+      for k,v in kwargs.items():
          if k in names: d[k] = v
          else: raise ValueError('Error '+k+' is not an options property')
       """Create a set of options based on the inputs"""
@@ -121,5 +121,5 @@ def rc(seq):
   :return: reverse complemented sequence
   :rtype: string
   """
-  complement = maketrans('ACTGUNXactgunx','TGACANXtgacanx')
+  complement = str.maketrans('ACTGUNXactgunx','TGACANXtgacanx')
   return seq.translate(complement)[::-1]

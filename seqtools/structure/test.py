@@ -22,7 +22,7 @@ class Structure(unittest.TestCase):
    def test_sequence(self):
       self.gpds[2].set_reference(self.fasta)
       s = self.gpds[2].sequence
-      self.assertEqual(hashlib.md5(str(s)).hexdigest(),'7d90fcf2afa796e5c6eebd10f1cf6433')
+      self.assertEqual(hashlib.md5(str(s).encode('utf-8')).hexdigest(),'7d90fcf2afa796e5c6eebd10f1cf6433')
    def test_targetslice(self):
       gpd = self.gpds[2]
       g2 = gpd.slice_target('chr21',26503701,26567958) # save the last base of the second exon

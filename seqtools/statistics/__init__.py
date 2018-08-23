@@ -34,7 +34,7 @@ def median(arr):
     sys.stderr.write("ERROR: no content in array to take average\n")
     sys.exit()
   if len(arr) == 1: return arr[0]
-  quot = len(arr)/2
+  quot = int(len(arr)/2)
   rem = len(arr)%2
   if rem != 0:
     return sorted(arr)[quot]

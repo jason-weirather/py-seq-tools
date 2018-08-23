@@ -87,7 +87,7 @@ class SAM(seqtools.align.Alignment):
      names = construct._fields
      d = {}
      for name in names: d[name] = None #default values
-     for k,v in kwargs.iteritems():
+     for k,v in kwargs.items():
        if k in names: d[k] = v
        else: raise ValueError('Error '+k+' is not a property of these options')
      """Create a set of options based on the inputs"""
@@ -411,7 +411,7 @@ class SAMGenerator(seqtools.stream.BufferedLineGenerator):
       for name in names: d[name] = None #default values
       """set defaults here"""
       d['buffer_size'] = 10000000
-      for k,v in kwargs.iteritems():
+      for k,v in kwargs.items():
          if k in names: d[k] = v
          else: raise ValueError('Error '+k+' is not a property of these options')
       """Create a set of options based on the inputs"""
@@ -460,7 +460,7 @@ class SAMStream(object):
      d = {}
      for name in names: d[name] = None #default values
      d['buffer_size'] = 10000000
-     for k,v in kwargs.iteritems():
+     for k,v in kwargs.items():
        if k in names: d[k] = v
        else: raise ValueError('Error '+k+' is not a property of these options')
      """Create a set of options based on the inputs"""
@@ -486,7 +486,7 @@ class SAMStream(object):
     else: return r
 
   def read_entry(self):
-    try: r = self._stream.next()
+    try: r = next(self._stream)
     except StopIteration: r = None
     return r
 

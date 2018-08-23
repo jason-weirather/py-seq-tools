@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys
 import GenePredBasics
 
@@ -39,7 +40,7 @@ def main():
     oline += ','.join([str(e['exonEnds'][x]-e['exonStarts'][x]) for x in range(0,len(e['exonStarts']))])+','+"\t" # 19
     oline += qstarts + "\t" # 20
     oline += ','.join([str(x) for x in e['exonStarts']])+',' # 21
-    print oline
+    print(oline)
   inf.close()
 
 if __name__=="__main__":

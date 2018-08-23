@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, re, os, subprocess, sys
 import SamBasics
 
@@ -39,7 +40,7 @@ def main():
     of = open(baseinput+'.mapped_reads','w')
     of.write(str(aligned_reads)+"\n")
     return
-  print aligned_reads
+  print(aligned_reads)
   #if args.aligned:
 
 if __name__=="__main__":

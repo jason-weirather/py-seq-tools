@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys, re, random, os, gzip
 from subprocess import Popen, PIPE
 import SimulationBasics
@@ -76,16 +77,16 @@ def main():
     for zi in range(0,args.short_read_count):
       [name,seq] = rbe.emit_short_read(args.short_read_length)
       if args.no_errors:
-        print "@SRSIM"+str(zi+1)
-        print seq
-        print "+"
-        print 'I'*len(seq)
+        print("@SRSIM"+str(zi+1))
+        print(seq)
+        print("+")
+        print('I'*len(seq))
       else:
         l1perm = fq_prof_illumina.create_fastq_and_permute_sequence(seq)
-        print "@SRSIM"+str(zi+1)
-        print l1perm['seq']
-        print "+"
-        print l1perm['qual']
+        print("@SRSIM"+str(zi+1))
+        print(l1perm['seq'])
+        print("+")
+        print(l1perm['qual'])
     return
   if args.long_reads_only:
     rbe.set_gaussian_fragmentation_default_pacbio()
@@ -93,17 +94,17 @@ def main():
       [name,seq] = rbe.emit_long_read()
       if args.no_errors:
         g = 'm150101_010101_11111_c111111111111111111_s1_p0/'+str(zi+1)+'/ccs'
-        print "@"+g
-        print seq
-        print "+"
-        print 'I'*len(seq)   
+        print("@"+g)
+        print(seq)
+        print("+")
+        print('I'*len(seq))   
       else: 
         g = 'm150101_010101_11111_c111111111111111111_s1_p0/'+str(zi+1)+'/ccs'
         seqperm = fq_prof_pacbio_ccs95.create_fastq_and_permute_sequence(seq)
-        print "@"+g
-        print seqperm['seq']
-        print "+"
-        print seqperm['qual']  
+        print("@"+g)
+        print(seqperm['seq'])
+        print("+")
+        print(seqperm['qual'])  
     return
   if not os.path.exists(args.output):
     os.makedirs(args.output)

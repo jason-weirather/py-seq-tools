@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys
 import GenePredBasics
 
@@ -12,7 +13,7 @@ def main():
   for line in inf:
     e = GenePredBasics.GenePredEntry()
     e.line_to_entry(line.rstrip())
-    print e.entry['gene_name']+"\t"+e.entry['name']+"\t"+str(e.length())
+    print(e.entry['gene_name']+"\t"+e.entry['name']+"\t"+str(e.length()))
   inf.close()
 
 if __name__=="__main__":

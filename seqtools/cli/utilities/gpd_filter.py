@@ -1,4 +1,5 @@
 """Filter genePred files on different attributes"""
+from __future__ import print_function
 import argparse, sys, re, gzip
 from seqtools.format.gpd import GPD, GPDStream
 
@@ -66,9 +67,9 @@ def main(args):
 
     # If we are still here we can print
     if not args.invert:
-      if is_good: print line.rstrip()
+      if is_good: print(line.rstrip())
     else:
-      if not is_good: print line.rstrip()
+      if not is_good: print(line.rstrip())
   
 def do_inputs():
   parser = argparse.ArgumentParser(description="Filter a genepred by transcript length")

@@ -18,7 +18,7 @@ class RangeGeneric(object):
   def __init__(self,start,end,payload=None):
     self.start = start
     self.end = end
-    self.payload = None
+    self.payload = payload
     self._start_offset = 0
 
   @property
@@ -26,7 +26,9 @@ class RangeGeneric(object):
     return self.end-self.start+1
 
   def copy(self):
-    return type(self)(self.start+self._start_offset,self.end,self.payload)
+    return RangeGeneric(self.start+self._start_offset,
+                      self.end,
+                      payload = self.payload)
 
   def set_payload(self,inpay):
     """Set the payload.  Stored in a list to try to keep it as a reference
@@ -80,7 +82,7 @@ class GenomicRange(RangeGeneric):
 
   """
   def __init__(self,chr,start,end,payload=None,dir=None):
-    super(GenomicRange,self).__init__(start,end,payload=payload)
+    super().__init__(start,end,payload)
     self.chr = chr
     self.dir = dir
 
@@ -106,11 +108,11 @@ class GenomicRange(RangeGeneric):
     :rtype: GenomicRange
 
     """
-    return type(self)(self.chr,
+    return GenomicRange(self.chr,
                       self.start+self._start_offset,
                       self.end,
-                      self.payload,
-                      self.dir)
+                      payload = self.payload,
+                      dir = self.dir)
 
   @property
   def range(self):
@@ -290,7 +292,11 @@ class GenomicRange(RangeGeneric):
     """
     if self.chr != range2.chr:
       return None
-    o = type(self)(self.chr,min(self.start,range2.start)+self._start_offset,max(self.end,range2.end),self.payload,self.dir)
+    o = GenomicRange(self.chr,
+                   min(self.start,range2.start)+self._start_offset,
+                   max(self.end,range2.end),
+                   payload = self.payload,
+                   dir = self.dir)
     return o
 
   def intersect(self,range2):
@@ -306,7 +312,18 @@ class GenomicRange(RangeGeneric):
 
     """
     if not self.overlaps(range2): return None
-    return type(self)(self.chr,max(self.start,range2.start)+self._start_offset,min(self.end,range2.end),self.payload,self.dir)
+    return GenomicRange(self.chr,
+                    max(self.start,range2.start)+self._start_offset,
+                    min(self.end,range2.end),
+                    payload = self.payload,
+                    dir = self.dir)
+
+    v =  self.__class__(self.chr,
+                    max(self.start,range2.start)+self._start_offset,
+                    min(self.end,range2.end),
+                    payload = self.payload,
+                    dir = self.dir)
+    return v
 
   def cmp(self,range2,overlap_size=0):
     """the comparitor for ranges
@@ -349,11 +366,19 @@ class GenomicRange(RangeGeneric):
     if range2.start <= self.start and range2.end >= self.end:
       return outranges #delete all
     if range2.start > self.start: #left side
-      nrng = type(self)(self.chr,self.start+self._start_offset,range2.start-1,self.payload,self.dir)
+      nrng = GenomicRange(self.chr,
+                        self.start+self._start_offset,
+                        range2.start-1,
+                        payload = self.payload,
+                        dir = self.dir)
       outranges.append(nrng)
     if range2.end < self.end: #right side
       #ugly addon to make it work for either 0 or 1 index start
-      nrng = type(self)(self.chr,range2.end+1+self._start_offset,self.end,self.payload,self.dir)
+      nrng = GenomicRange(self.chr,
+                        range2.end+1+self._start_offset,
+                        self.end,
+                        payload = self.payload,
+                        dir = self.dir)
       outranges.append(nrng)
     return outranges
 
@@ -405,7 +430,7 @@ class Bed(GenomicRange):
   """
 
   def __init__(self,chrom,start0,finish,payload=None,dir=None):
-    super(Bed,self).__init__(chrom,start0+1,finish,payload,dir)
+    super().__init__(chrom,start0+1,finish,payload,dir)
     self._start_offset = -1 #override this to indicate on outputs to offset -1 on start
 
   def __str__(self):

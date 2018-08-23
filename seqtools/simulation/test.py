@@ -47,11 +47,11 @@ class TryTranscriptomeEmitter(unittest.TestCase):
       """Try to emit transcript sequences"""
       s = self.txe.emit().sequence
       
-      h = hashlib.md5(str(s)).hexdigest()
+      h = hashlib.md5(str(s).encode('utf-8')).hexdigest()
 
       self.assertEqual(h,'5dfe012a446262d7a7703937cd340ebf')
       s = self.txe.emit().sequence
-      h = hashlib.md5(str(s)).hexdigest()
+      h = hashlib.md5(str(s).encode('utf-8')).hexdigest()
       self.assertEqual(h,'c902ff6bf269afecf5411801f99dba36')
    def test_reademitter(self):
       """Test emitting reads"""

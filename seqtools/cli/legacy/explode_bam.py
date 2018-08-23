@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, argparse, re, os
 from subprocess import Popen, PIPE
 from SamBasics import is_header
@@ -57,7 +58,7 @@ def main():
     buffer = []
   poo.close()
   poo.join()
-  print i
+  print(i)
 
 def do_output(buffer,header,i,output_base):
   of = open(output_base+'.'+str(i)+'.bam','w')

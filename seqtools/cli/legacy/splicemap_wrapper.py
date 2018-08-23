@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import os, subprocess, argparse, sys, re
 from random import randint
 from shutil import rmtree, copytree
@@ -62,7 +63,7 @@ def main():
   if not args.output:
     with open(tdir+'/output/good_hits.sam') as inf:
       for line in inf:
-        print line.rstrip()
+        print(line.rstrip())
   if args.output_all:
     copytree(tdir,args.output)
   elif args.output:

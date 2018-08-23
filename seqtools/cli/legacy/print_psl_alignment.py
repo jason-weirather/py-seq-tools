@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, argparse
 import PSLBasics
 from SequenceBasics import read_fasta_into_hash, FastaHandleReader, rc
@@ -41,7 +42,7 @@ def main():
       last_fasta = fhr.read_entry()
     p.set_query(last_fasta['seq'])
     p.set_reference_dictionary(g)
-    print p.get_line()
+    print(p.get_line())
     p.pretty_print(50)
   fhr.close()
 if __name__=="__main__":

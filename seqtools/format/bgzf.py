@@ -1,4 +1,4 @@
-import struct, sys, zlib, StringIO, time
+import struct, sys, zlib, io, time
 
 def get_block_bounds(filename):
  """Pre block starts
@@ -18,7 +18,7 @@ def get_block_bounds(filename):
    gzip_id1,gzip_id2,compression_method,flag,mtime,xfl,osval,xlen=struct.unpack('<BBBBIBBH',bytes1)
    # ready to look in extra field
    bytes2 = inf.read(xlen) # all the extra field stuff 
-   s = StringIO.StringIO(bytes2)
+   s = io.ByteIO(bytes2)
    obsslen = 0
    blocksize = 0
    while True:
@@ -79,7 +79,7 @@ def is_bgzf(filename):
    if len(bytes2) != xlen: 
      sys.stderr.write("file length ERROR\n")
      return False
-   s = StringIO.StringIO(bytes2)
+   s = io.BytesIO(bytes2)
    has_id = False
    obsslen = 0
    while True:
@@ -233,7 +233,7 @@ class writer:
   def _do_block(self,bytes):
     # now we can output this  
     isize = len(bytes)
-    s = StringIO.StringIO(bytes)
+    s = io.BytesIO(bytes)
     d = zlib.compressobj(9,zlib.DEFLATED,-zlib.MAX_WBITS)
     data = d.compress(str(bytes))+d.flush()
     datasize = len(data)

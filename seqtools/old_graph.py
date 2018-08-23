@@ -1,5 +1,6 @@
 """This module has classes to provide graph structures and 
    graph-based operations."""
+from __future__ import print_function
 
 import string, sys, random, uuid
 
@@ -147,18 +148,18 @@ class Graph:
     self.add_node(edge.get_node2())
     #make sure nodes are in the nodes
     if edge.get_node1().id not in self.__nodes:
-      print self
-      print edge.get_node1().id
-      print self.__nodes.keys()
-      print 'one'
+      print(self)
+      print(edge.get_node1().id)
+      print(self.__nodes.keys())
+      print('one')
       sys.stderr.write("ERROR: node should be in graph\n")
       sys.exit()
     if edge.get_node2().id not in self.__nodes:
-      print self
-      print edge.get_node2().id
-      print self.__nodes.keys()
-      print 'two'
-      print [len(x.payload_list) for x in self.__nodes.values()]
+      print(self)
+      print(edge.get_node2().id)
+      print(self.__nodes.keys())
+      print('two')
+      print([len(x.payload_list) for x in self.__nodes.values()])
       sys.stderr.write("ERROR: node should be in graph\n")
       sys.exit()
     # now add edge
@@ -253,9 +254,9 @@ class Graph:
           self.remove_edge(self.__edges[self.__parent_to_child[i][j]])
     while True:
       res = self.find_cycle()
-      print 'merge'
-      print self
-      print res
+      print('merge')
+      print(self)
+      print(res)
       if not res:  return # we have finished.. there are no cycles
       # If we are here we need to merge
       if len(res) == 1: 

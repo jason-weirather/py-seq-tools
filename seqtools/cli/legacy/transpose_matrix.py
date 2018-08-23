@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys
 fi = sys.argv[1]
 colcount = 0
@@ -17,4 +18,4 @@ for i in range(0,colcount):
   v = ""
   for j in range(0,len(cols)):
     v += cols[j][i] + "\t"      
-  print v.rstrip("\t")
+  print(v.rstrip("\t"))

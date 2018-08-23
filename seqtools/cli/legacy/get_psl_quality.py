@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys
 from PSLBasics import PSL
 
@@ -14,7 +15,7 @@ def main():
   for line in inf:
     z+=1
     p = PSL(line.rstrip())
-    print str(z) + "\t" + p.value('qName') + "\t" + p.value('tName')+"\t"+str(p.get_coverage())+"\t"+str(p.value('qSize'))+"\t"+str(p.get_quality())
+    print(str(z) + "\t" + p.value('qName') + "\t" + p.value('tName')+"\t"+str(p.get_coverage())+"\t"+str(p.value('qSize'))+"\t"+str(p.get_quality()))
   inf.close()
 
 if __name__=="__main__":

@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, re, random, os, multiprocessing
 import argparse
 import json
@@ -71,7 +72,7 @@ def main():
 
   # write the gpd from the psl file
   if not args.input_is_gpd:
-    print params['args'].closegap
+    print(params['args'].closegap)
     parse_pslfile(params['tdir'],params['args'].pslfile,params['args'].closegap)
   else:
     parse_gpdfile(params['tdir'],params['args'].pslfile,params['args'].closegap)

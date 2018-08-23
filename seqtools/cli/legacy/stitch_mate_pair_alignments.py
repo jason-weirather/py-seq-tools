@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys,argparse, re
 from subprocess import Popen, PIPE
 from SamBasics import MultiEntrySamReader, SAMtoPSLconversionFactory, PSLtoSAMconversionFactory
@@ -30,7 +31,7 @@ def main():
   psc = PSLtoSAMconversionFactory()
   # set the headers for the spc
   for h in msr.header:
-    print h.rstrip()
+    print(h.rstrip())
     spc.read_header_line(h)
   if args.threads > 1:
     p1 = Pool(processes=args.threads)
@@ -59,7 +60,7 @@ def do_callback(outputs):
   global glock
   glock.acquire()
   for output in outputs:
-    print output
+    print(output)
   glock.release()
 
 def do_buffer(buffer,msr,spc,psc,args):

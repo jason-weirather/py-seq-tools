@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys
 import GenePredBasics
 
@@ -13,7 +14,7 @@ def main():
   for line in inf:
     e = GenePredBasics.line_to_entry(line)
     e2 = GenePredBasics.smooth_gaps(e,args.smoothing_size)
-    print GenePredBasics.entry_to_line(e2)
+    print(GenePredBasics.entry_to_line(e2))
 
 if __name__=="__main__":
   main()

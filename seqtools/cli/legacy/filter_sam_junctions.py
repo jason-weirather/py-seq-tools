@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, argparse, re
 from subprocess import Popen, PIPE
 from Bio.Format.Sam import SamStream
@@ -24,7 +25,7 @@ def main():
   stream = SamStream(p2.stdout,minimum_intron_size=args.minimum_intron_size,minimum_overhang=args.minimum_overhang)
   lstream = LocusStream(stream)
   for h in stream.header:
-    print h.rstrip()
+    print(h.rstrip())
   for r in lstream:
     # now we have all the possible junctions from the range
     [juncs,sams] = get_junctions(r.get_payload(),args)
@@ -43,7 +44,7 @@ def main():
         #print jstr
         for i in lines[jstr]: accepted.add(i)
     for i in sorted(list(accepted)):
-      print sams[i].get_line().rstrip()
+      print(sams[i].get_line().rstrip())
   p2.communicate()
   if args.input != '-':
     p.communicate()

@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys, gzip
 import FASTQBasics
 from SequenceBasics import FastqHandleReader
@@ -52,7 +53,7 @@ def main():
     if z % 100 == 0:
       sys.stderr.write(str(z)+"\r")
   sys.stderr.write("\n")
-  print qp.get_serialized()    
+  print(qp.get_serialized())    
 
 def do_reader(args):
   inf = sys.stdin
@@ -80,7 +81,7 @@ def do_reader(args):
         rnum = random.random()
         if rnum < p: errtot += 1
         tot += 1
-    print str(float(errtot)/tot) + "\t" + str(rsize)
+    print(str(float(errtot)/tot) + "\t" + str(rsize))
 
 if __name__=="__main__":
   main()

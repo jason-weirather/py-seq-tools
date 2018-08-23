@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, argparse
 
 def main():
@@ -38,7 +39,7 @@ def do_merge(args):
     if not curr:
       ostr =  buffer_chr+"\t"+str(buffer_start)+"\t"+str(buffer_end)
       if args.break_merge_on_feature: ostr += buffer_extra
-      print ostr
+      print(ostr)
       return
     f2 = curr.rstrip().split("\t")
     #sys.stderr.write(str(f2)+"\n")
@@ -52,7 +53,7 @@ def do_merge(args):
       #output buffer
       ostr = buffer_chr+"\t"+str(buffer_start)+"\t"+str(buffer_end)
       if args.break_merge_on_feature: ostr += buffer_extra
-      print ostr
+      print(ostr)
       buffer_chr = curr_chr
       buffer_start = curr_start
       buffer_end = curr_end
@@ -68,7 +69,7 @@ def do_pad(args):
     ln = f[0]+"\t"+str(max(0,int(f[1])-args.pad))+"\t"+str(int(f[2])+args.pad)
     if len(f) > 3:
       ln += "\t"+"\t".join(f[3:])
-    print ln
+    print(ln)
   return
 
 if __name__=="__main__":

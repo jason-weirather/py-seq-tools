@@ -33,6 +33,7 @@ Errors in the query sequence
   * insertion/deletion - Base, Length
 
 """
+from __future__ import print_function
 
 from seqtools.sequence import rc
 import sys
@@ -1075,7 +1076,7 @@ class AlignmentErrors:
       total = sum([ord(x)*self._quality_distro[type][x] for x in self._quality_distro[type]])
       cnt = sum([self._quality_distro[type][x] for x in self._quality_distro[type]])
       if cnt == 0: continue
-      print 'type: '+type+' '+str(cnt)+' '+str(float(total)/float(cnt))
+      print('type: '+type+' '+str(cnt)+' '+str(float(total)/float(cnt)))
     return ostr
 
   def has_quality(self):
@@ -1099,7 +1100,7 @@ class AlignmentErrors:
       elif buffer['query'] == buffer['target']: buffer['nt'] = buffer['query']
       elif buffer['query'] != buffer['target']: buffer['nt'] = '*'
       else:
-	sys.stderr.write("WARNING unkonwn case\n")
+        sys.stderr.write("WARNING unknown case\n")
       for i in range(1,len(x['query'])):
         qchar = x['query'][i]
         tchar = x['target'][i]
@@ -1164,7 +1165,7 @@ class AlignmentErrors:
       elif len(self._qseq) > len(self._tseq):
         self._type = 'homopolymer_insertion'
       else:
-	sys.stderr.write("ERROR unsupported type\n")
+        sys.stderr.write("ERROR unsupported type\n")
         sys.exit()
     def get_nt(self): 
       return self._data['nt']

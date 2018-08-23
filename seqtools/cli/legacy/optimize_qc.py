@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, os, subprocess, multiprocessing, re, zlib, argparse
 import SamBasics
 from SequenceBasics import GenericFastqFileReader, read_fasta_into_hash
@@ -230,7 +231,7 @@ def main():
     of = open(args.o,'w')
     of.write(header+"\n")
   else:
-    print header
+    print(header)
   for z in sorted(run_results.keys()):
     ostring =  str(run_params[z]['l_cut']) + "\t" + str(run_params[z]['r_cut']) + "\t" + \
                str(run_params[z]['q_floor']) + "\t" + str(run_params[z]['failure_limit']) + "\t"
@@ -241,7 +242,7 @@ def main():
     if args.o:
       of.write(ostring+"\n")
     else:
-      print ostring
+      print(ostring)
   if args.o:
     of.close()
   rmtree(tdir)

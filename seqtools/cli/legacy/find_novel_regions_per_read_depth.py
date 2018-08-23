@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys, subprocess, re, os
 import GenePredBasics
 from shutil import rmtree
@@ -99,7 +100,7 @@ def main():
         f = line.rstrip().split("\t")
         cov = int(f[3])
         if cov > maxdepth: maxdepth = cov
-    print maxdepth
+    print(maxdepth)
 
     # for all our depths make a bed file to explore 
     fhs = {}

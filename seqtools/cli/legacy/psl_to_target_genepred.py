@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from __future__ import print_function
 import sys, os, inspect, argparse
 
 #pre: psl filename, an optional integer for smoothing size
@@ -32,7 +33,7 @@ def main():
         genepred_entry = GenePredBasics.line_to_entry(genepred_line)
         genepred_entry2 = GenePredBasics.smooth_gaps(genepred_entry,args.fill_gaps)
         genepred_line = GenePredBasics.entry_to_line(genepred_entry2)
-      print genepred_line
+      print(genepred_line)
 
 if __name__=="__main__":
   main()

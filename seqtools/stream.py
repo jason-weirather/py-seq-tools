@@ -1,8 +1,9 @@
 """ Classes to help stream biological data"""
+from __future__ import absolute_import
 import sys, re, itertools, os
 from seqtools.range.multi import merge_ranges, sort_ranges
 from subprocess import Popen, PIPE
-from format.gpd import GPD
+from .format.gpd import GPD
 from multiprocessing import Pool, cpu_count
 from collections import namedtuple
 
@@ -27,7 +28,7 @@ class BufferedLineGenerator:
       for name in names: d[name] = None #default values
       """set defaults here"""
       d['buffer_size'] = 1000000
-      for k,v in kwargs.iteritems():
+      for k,v in kwargs.items():
          if k in names: d[k] = v
          else: raise ValueError('Error '+k+' is not a property of these options')
       """Create a set of options based on the inputs"""
@@ -78,9 +79,12 @@ class BufferedLineStream(object):
 
    def __iter__(self):
       return self
+   def __next__(self):
+     return self.next()
+
    def next(self):
       try:
-         r = self._iterator.next()
+         r = next(self._iterator)
       except StopIteration: r = None
       if not r: raise StopIteration
       else:
@@ -114,7 +118,7 @@ class LineObjectStream(BufferedLineStream):
       for name in names: d[name] = None #default values
       """set defaults here"""
       d['buffer_size'] = 1000000
-      for k,v in kwargs.iteritems():
+      for k,v in kwargs.items():
          if k in names: d[k] = v
          else: raise ValueError('Error '+k+' is not a property of these options')
       """Create a set of options based on the inputs"""
@@ -138,7 +142,7 @@ class OrderedStream(object):
    def __iter__(self):
       return self
    def next(self):
-      r = self._stream.next() # may already be throwing StopIteration
+      r = next(self._stream) # may already be throwing StopIteration
       if not r: raise StopIteration
       rng = r.range
       if not rng: raise ValueError('The objects streamed must have range property that returns a range')
@@ -166,7 +170,7 @@ class LocusStream(object):
       self._stream = OrderedStream(stream)
       self._current_range = None
       try:
-         firstobj = self._stream.next()
+         firstobj = next(self._stream)
       except StopIteration: firstobj = None
       if not firstobj: return
       self._current_range = firstobj.range.copy()
@@ -192,7 +196,7 @@ class LocusStream(object):
       output = None
       while True:
          try:
-           e = self._stream.next()
+           e = next(self._stream)
          except StopIteration: e = None
          if e:
             rng = e.range
@@ -228,7 +232,7 @@ class MultiLocusStream:
       self._streams = streams
       self._buffers = [None for x in streams]
       for i in range(0,len(self._streams)):
-         try: x = self._streams[i].next()
+         try: x = next(self._streams[i])
          except StopIteration: x = None
          if x:
             #rng = x.range
@@ -260,7 +264,7 @@ class MultiLocusStream:
                if current.end < self._buffers[i].range.end:
                   current.end = self._buffers[i].range.end
                #replace the contents of the buffer that just got read
-               try: self._buffers[i] = self._streams[i].next()
+               try: self._buffers[i] = next(self._streams[i])
                except StopIteration: self._buffers[i] = None
       current.payload = outputs
       return current

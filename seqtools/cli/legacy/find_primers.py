@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys, re
 from SequenceBasics import FastaHandleReader, rc
 from PairwiseAlignmentBasics import SmithWatermanAligner
@@ -73,7 +74,7 @@ def main():
     combine_overlapping(rankedsets,args)
     numsets = len(rankedsets.keys())
   for i in sorted(rankedsets.keys()):
-    print rankedsets[i][0]+"\t"+str(rankedsets[i][1])
+    print(rankedsets[i][0]+"\t"+str(rankedsets[i][1]))
 
 def combine_overlapping(rankedsets,args):
   rnums = rankedsets.keys()

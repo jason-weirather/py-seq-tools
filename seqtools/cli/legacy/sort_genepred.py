@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys, os
 from shutil import rmtree
 from multiprocessing import cpu_count
@@ -11,7 +12,7 @@ def main():
   args = do_inputs()
   if args.by_name:
     # do the name sort
-    print "do name"
+    print("do name")
   elif args.by_position:
     # do the position sort
     do_position_sort(args)
@@ -25,7 +26,7 @@ def do_position_sort(args):
   for line in args.input:
     f = line.rstrip().split('\t')
     eline = base64.b64encode(line.rstrip())
-    print f[2] + "\t" + f[4] + "\t" + f[5] + "\t" + eline
+    print(f[2] + "\t" + f[4] + "\t" + f[5] + "\t" + eline)
 def do_inputs():
   # Setup command line inputs
   parser=argparse.ArgumentParser(description="")

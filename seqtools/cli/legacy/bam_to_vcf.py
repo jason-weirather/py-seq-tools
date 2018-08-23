@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys, multiprocessing, re, os
 from subprocess import Popen, PIPE
 
@@ -53,7 +54,7 @@ def do_output(lines):
   perc = "{0:.3g}%".format(100*float(gcounter)/float(gtotal))
   sys.stderr.write(perc+"        \r")
   for line in lines:
-    print line.rstrip()
+    print(line.rstrip())
   glock.release()
 
 def get_region_vcf(args,chrom,rstart,rend):

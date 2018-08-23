@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, re
 
 #pre: 1 the filename outputs from LSC Full reads (such as full_LR.fa), 
@@ -13,7 +14,7 @@ import sys, re
 
 def main():
   if len(sys.argv) != 6:
-    print sys.argv[0] + ' <full_LR.fa (input)> <corrected_LR.fa (input)> <threshold (i.e. 0.9)> <output fasta> <output list>'
+    print(sys.argv[0] + ' <full_LR.fa (input)> <corrected_LR.fa (input)> <threshold (i.e. 0.9)> <output fasta> <output list>')
     sys.exit()
   full_filename = sys.argv[1]
   corrected_filename = sys.argv[2]

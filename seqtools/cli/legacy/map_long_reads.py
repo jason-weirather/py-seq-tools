@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from __future__ import print_function
 import sys, os, inspect, re
 from copy import deepcopy
 from shutil import rmtree, copyfile
@@ -25,7 +26,7 @@ import aligner_basics, genepred_basics, FileBasics, psl_basics
 
 def main():
   if len(sys.argv) != 5:
-    print sys.argv[0]+' <long reads fasta> <reference genome> <transcriptome genepred>'
+    print(sys.argv[0]+' <long reads fasta> <reference genome> <transcriptome genepred>')
     return
   longreadfname = sys.argv[1]
   genomefname = sys.argv[2]
@@ -43,43 +44,43 @@ def main():
   # 1. Make sure the transcriptome is uniquely named uniquely mapped entries
   genepredfname = tdir+'/txn.gpd'
   make_unique_genepred(usergenepredfname,genepredfname)
-  print 'made unique genepred file'
+  print('made unique genepred file')
 
   # 2.  Make a transcriptome to align to.
   transcriptomefasta = tdir+'/txn.fa'
   genepred_basics.write_genepred_to_fasta_directionless(genepredfname,genomefname,transcriptomefasta)
-  print 'made transcriptome fasta'
+  print('made transcriptome fasta')
 
   # 3.  Make a bed file of junction locations in that transcriptome.
   junctionbedfname = tdir+'/junction.bed'
   junction_counts = make_junction_bed_file(genepredfname,junctionbedfname)
-  print 'made junction bed file'
+  print('made junction bed file')
 
   # 4.  Build a gmap index of the transcriptome
   transcriptomeindex = tdir+'/gmap_txn'
   aligner_basics.build_gmap_index(transcriptomefasta,transcriptomeindex)
-  print 'made gmap index of transcriptome'
+  print('made gmap index of transcriptome')
 
   # 5.  Align the long reads to the transcriptome with gmap
   alignmentfname = tdir+'/reads.psl'
   aligner_basics.gmap_all(longreadfname,transcriptomeindex,alignmentfname)
-  print 'made gmap alignment of reads to transcriptome'
+  print('made gmap alignment of reads to transcriptome')
 
   # 6.  Generate get the genepred of the long reads on the transcriptome coordinates.
   #     Smooth that genepred by a smoothing factor
   #     And make a bed file of the best alignment.  see function for specifications
   bestalignmentbedfname = tdir+'/reads.bed'
   make_best_continuous_alignment_bed(alignmentfname,bestalignmentbedfname)
-  print 'made best continuous alignment bed file'
+  print('made best continuous alignment bed file')
 
   # 10.  Print per-gene count info
   genenames = genepred_basics.get_transcript_to_gene_name_dictionary(genepredfname)
-  print 'got gene name conversions'  
+  print('got gene name conversions')  
 
   # 7.  Make a report of all prefilter alignments  
   bestprefilter = tdir+'/prefilter.txt'
   prefilter_alignments = make_best_alignment_summary(bestalignmentbedfname,junctionbedfname,junction_counts,bestprefilter)
-  print 'made best alignment prefilter summary'
+  print('made best alignment prefilter summary')
 
   report_file = tdir +'/report.txt'
   orep = open(report_file,'w')

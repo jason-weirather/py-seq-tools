@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys
 import re
 
@@ -11,7 +12,7 @@ import re
 ################
 
 if(len(sys.argv) < 2):
-  print 'split_genome_fasta.py <INPUT FILE>'
+  print('split_genome_fasta.py <INPUT FILE>')
   sys.exit()
 
 with open(sys.argv[1]) as fp:
@@ -19,4 +20,4 @@ with open(sys.argv[1]) as fp:
     if line.startswith('>'):
       p = re.compile('>\s*(\S+)')
       name = p.match(line).group(1)
-      print name
+      print(name)

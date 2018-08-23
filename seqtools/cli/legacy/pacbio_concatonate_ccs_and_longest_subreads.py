@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, re, sys
 from SequenceBasics import GenericFastaFileReader
 # Get ccs reads first and then get the longest subreads that we don't have a subread for
@@ -18,7 +19,7 @@ def main():
       sys.stderr.write("ERROR:  strange format for what should be a ccs read header\n")
       return
     names.add(m.group(1))
-    print entry['original'].rstrip()
+    print(entry['original'].rstrip())
   ccs_gffr.close()
   sub_gffr = GenericFastaFileReader(args.subread_file[0])
   longest = {}
@@ -41,7 +42,7 @@ def main():
     m = re.match('^([^\/]+\/\d+)\/', entry['name'])
     if m.group(1) in names: continue # can still skip the ones we have from ccs
     if entry['name'] == longest_name[m.group(1)]:
-      print entry['original'].rstrip()
+      print(entry['original'].rstrip())
   sub_gffr.close()    
 
 main()

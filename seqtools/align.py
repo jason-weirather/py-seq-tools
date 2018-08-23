@@ -1,4 +1,5 @@
 """This module contains the most basic classes for describing and working with alignments."""
+from __future__ import print_function
 
 import re, sys
 from collections import namedtuple
@@ -7,7 +8,7 @@ from seqtools.range import GenomicRange
 from seqtools.structure.transcript import Transcript
 #, Exon, Junction
 
-from string import maketrans
+#from string import maketrans
 
 AlignmentStats = namedtuple('AlignmentStats',
    ['matches',
@@ -56,7 +57,7 @@ class Alignment(object):
       d = {}
       for name in names: d[name] = None #default values
       """set defaults here"""
-      for k,v in kwargs.iteritems():
+      for k,v in kwargs.items():
          if k in names: d[k] = v
          else: raise ValueError('Error '+k+' is not an options property')
       """Create a set of options based on the inputs"""
@@ -291,22 +292,22 @@ class Alignment(object):
     """
     has_qual = True
     if not self.query_quality: has_qual = False
-    trantab = maketrans('01',' *')
+    trantab = str.maketrans('01',' *')
     [qstrs,tstrs,ystrs] = self.get_alignment_strings(min_intron_size=min_intron_size)
-    print 'Alignment for Q: '+str(self.alignment_ranges[0][1].chr)
+    print('Alignment for Q: '+str(self.alignment_ranges[0][1].chr))
     for i in range(len(qstrs)):
-      print 'Exon '+str(i+1)
+      print('Exon '+str(i+1))
       #+' T: '+self._alignment_ranges[i][0].get_range_string()+' Q: '+str(self._alignment_ranges[i][1].start)+'-'+str(self._alignment_ranges[i][1].end)
       mm = ''.join([str(int(qstrs[i][j]!=tstrs[i][j] and qstrs[i][j]!='-' and tstrs[i][j]!='-' and tstrs[i][j]!='N')) for j in range(len(qstrs[i]))]).translate(trantab)
       t =  tstrs[i] #target
       q = qstrs[i]  #query
       s = ystrs[i] #quality
       for y in [[mm[x:x+chunk_size],t[x:x+chunk_size],q[x:x+chunk_size],s[x:x+chunk_size]] for x in range(0,len(mm),chunk_size)]:
-        print '  '+y[0]
-        print 'T '+y[1]
-        print 'Q '+y[2]
-        if has_qual: print 'Y '+y[3]        
-        print ''
+        print('  '+y[0])
+        print('T '+y[1])
+        print('Q '+y[2])
+        if has_qual: print('Y '+y[3])        
+        print('')
 
   def get_PSL(self,min_intron_size=68):
     """Get a PSL object representation of the alignment.

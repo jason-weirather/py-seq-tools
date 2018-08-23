@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import UCSCBasics
 
 import argparse, sys
@@ -25,9 +26,9 @@ def main():
     if args.excel:
       url = urlfactory.excel_from_bed_coordinates(chr,start,stop)
     if args.first:
-      print url + "\t" + line.rstrip()
+      print(url + "\t" + line.rstrip())
     else:
-      print line.rstrip() + "\t" + url
+      print(line.rstrip() + "\t" + url)
 
 if __name__=="__main__":
   main()

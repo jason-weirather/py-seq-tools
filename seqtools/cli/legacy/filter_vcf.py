@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys, re
 import VCFBasics
 import re
@@ -45,6 +46,6 @@ def main():
         sys.stderr.write("error parsing sample field\n")
         sys.exit()
       if int(m.group(1)) == int(m.group(2)): continue
-    print line.rstrip()
+    print(line.rstrip())
 if __name__=="__main__":
   main()

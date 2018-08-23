@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, re, sys
 
 def main():
@@ -18,7 +19,7 @@ def main():
     nums[num] = fname
   for num in sorted(nums.keys()):
     with open(nums[num]) as inf:
-      for line in inf:  print line.rstrip()
+      for line in inf:  print(line.rstrip())
 
 if __name__=="__main__":
   main()

@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import argparse, sys
 from GenePredBasics import GenePredEntry
 from RangeBasics import Bed, sort_ranges, merge_ranges, pad_ranges, subtract_ranges
@@ -128,15 +129,15 @@ def display(cbed,intron,intergenic,pseudoreadcount,avglen):
   io = sorted(intron)
   ig = sorted(intergenic)
   if len(io) == 0 or len(ig) == 0: return
-  print cbed.get_range_string()
-  print pseudoreadcount
+  print(cbed.get_range_string())
+  print(pseudoreadcount)
   #print str(len(e))+"\t"+str(e[int(len(e)*0.05)]) + "\t" + str(e[int(len(e)*0.5)])+"\t"+ str(e[int(len(e)*0.95)])
   #print 'lambd95'+"\t"+str(probability_threshold(e[int(len(e)*0.05)],0.95))+"\t"+str(probability_threshold(e[int(len(e)*0.5)],0.95))+"\t"+str(probability_threshold(e[int(len(e)*0.95)],0.95))
-  print str(len(io))+"\t"+str(io[int(len(io)*0.05)]) + "\t" + str(io[int(len(io)*0.5)])+"\t"+ str(io[int(len(io)*0.95)])
+  print(str(len(io))+"\t"+str(io[int(len(io)*0.05)]) + "\t" + str(io[int(len(io)*0.5)])+"\t"+ str(io[int(len(io)*0.95)]))
   #print 'lambd95'+"\t"+str(probability_threshold(io[int(len(io)*0.05)],0.95))+"\t"+str(probability_threshold(io[int(len(io)*0.5)],0.95))+"\t"+str(probability_threshold(io[int(len(io)*0.95)],0.95))
-  print str(len(ig))+"\t"+str(ig[int(len(ig)*0.05)]) + "\t" + str(ig[int(len(ig)*0.5)])+"\t"+ str(ig[int(len(ig)*0.95)])
+  print(str(len(ig))+"\t"+str(ig[int(len(ig)*0.05)]) + "\t" + str(ig[int(len(ig)*0.5)])+"\t"+ str(ig[int(len(ig)*0.95)]))
   #print 'lambd95'+"\t"+str(probability_threshold(ig[int(len(ig)*0.05)],0.95))+"\t"+str(probability_threshold(ig[int(len(ig)*0.5)],0.95))+"\t"+str(probability_threshold(ig[int(len(ig)*0.95)],0.95))
-  print '--------'
+  print('--------')
 
 def median(x):
   if len(x) == 0: return None

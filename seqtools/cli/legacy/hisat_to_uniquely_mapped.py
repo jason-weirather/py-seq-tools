@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, argparse, re
 from subprocess import Popen, PIPE
 from SamBasics import SAM, is_header
@@ -14,7 +15,7 @@ def main():
     inf = p.stdout
   for line in inf:
     if is_header(line): 
-      print line.rstrip()
+      print(line.rstrip())
       continue
     sam = SAM(line)
     if sam.entry['cigar'] == '*': continue
@@ -23,6 +24,6 @@ def main():
       sys.stderr.write("ERROR not a hisat entry\n")
       sys.exit()
     if int(m.group(1))==1:
-      print line.rstrip()
+      print(line.rstrip())
 if __name__=="__main__":
   main()

@@ -57,7 +57,7 @@ class Bed12(seqtools.structure.transcript.Transcript):
       d = {}
       for name in names: d[name] = None #default values
       """set defaults here"""
-      for k,v in kwargs.iteritems():
+      for k,v in kwargs.items():
          if k in names: d[k] = v
          else: raise ValueError('Error '+k+' is not an options property')
       """Create a set of options based on the inputs"""
